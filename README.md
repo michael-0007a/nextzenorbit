@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nextzen Orbit
+
+> AI-powered resume optimization, job description analysis, and application tracking for the Indian job market.
+
+## Features
+
+- 🔐 **Google OAuth** — One-click sign in with Google
+- 📝 **Resume Builder** — Create and manage multiple resumes
+- 🤖 **AI Analyzer** — Match your resume against job descriptions using Groq AI
+- 📊 **Application Tracker** — Track job applications with status filters
+- 💳 **Subscription Plans** — Free, Pro, and Elite tiers with Razorpay
+- 🌙 **Dark Mode** — System preference + manual toggle
+
+## Tech Stack
+
+- **Framework:** Next.js 15 (App Router, TypeScript strict)
+- **Database:** Supabase (PostgreSQL + Auth + Storage)
+- **AI:** Groq API (LLaMA 3.3 70B Versatile)
+- **Payments:** Razorpay (primary), Cashfree (secondary)
+- **Styling:** TailwindCSS v4 + custom design tokens
+- **Animations:** Framer Motion
+- **Forms:** react-hook-form + Zod
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 20+
+- npm or pnpm
+- Supabase account
+- Groq API key
+
+### Environment Variables
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# AI
+GROQ_API_KEY=
+
+# Payments (optional for dev)
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Clone the repository
+git clone <repo-url>
+cd jobsearchai
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Install dependencies
+npm install
 
-## Learn More
+# Run database migrations
+# (copy SQL from supabase/migrations/ to Supabase SQL editor)
 
-To learn more about Next.js, take a look at the following resources:
+# Start development server
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── (auth)/             # Login, Register pages
+│   ├── (dashboard)/        # Protected dashboard pages
+│   │   ├── dashboard/      # Main dashboard
+│   │   ├── profile/        # User profile
+│   │   ├── resumes/        # Resume management
+│   │   ├── applications/   # Application tracker
+│   │   ├── analyzer/       # AI job analyzer
+│   │   ├── subscription/   # Subscription management
+│   │   └── settings/       # Account settings
+│   └── api/                # API routes
+├── components/
+│   ├── ui/                 # Base UI components
+│   ├── forms/              # Form components
+│   ├── layout/             # Layout components
+│   └── dashboard/          # Dashboard components
+├── lib/
+│   ├── supabase/           # Supabase client helpers
+│   ├── payments/           # Payment gateway abstraction
+│   ├── ai/                 # AI prompts and parsers
+│   └── validations/        # Zod schemas
+├── types/                  # TypeScript types
+└── hooks/                  # React hooks
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and data flow |
+| [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Database schema and RLS |
+| [API_DOCS.md](docs/API_DOCS.md) | API endpoint documentation |
+| [SECURITY.md](docs/SECURITY.md) | Security architecture |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment guide |
+| [PAYMENTS.md](docs/PAYMENTS.md) | Payment integration |
+| [UI_PATTERNS.md](docs/UI_PATTERNS.md) | Design system patterns |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Version history |
+| [ASSUMPTIONS.md](docs/ASSUMPTIONS.md) | Engineering decisions |
+
+## Phase Status
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 0 | ✅ Complete | Design system setup |
+| 1 | ✅ Complete | Auth, DB, payments infrastructure |
+| 2 | ✅ Complete | Profile, resume CRUD, AI analyzer |
+| 3 | 🔲 Pending | Resume templates, PDF export |
+| 4 | 🔲 Pending | JD analysis, keyword matching |
+| 5 | 🔲 Pending | Smart resume tailoring |
+| 6 | 🔲 Pending | Application tracker enhancements |
+| 7 | 🔲 Pending | Chrome extension |
+
+## License
+
+Private — All rights reserved.
+
+---
+
+*Built for the Indian job market 🇮🇳*

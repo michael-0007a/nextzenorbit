@@ -1,0 +1,33 @@
+src/app/api/webhooks/cashfree/route.ts(101,11): error TS2322: Type 'string' is not assignable to type 'SubscriptionStatus | undefined'.
+src/components/forms/profile-form.tsx(37,5): error TS2322: Type 'Resolver<FieldValues, unknown, FieldValues>' is not assignable to type 'Resolver<{ phone: string | null; headline: string | null; location: string | null; linkedin_url: string | null; avatar_url: string | null; full_name?: string | undefined; }, any, { phone: string | null; ... 4 more ...; full_name?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ phone: string | null; headline: string | null; location: string | null; linkedin_url: string | null; avatar_url: string | null; full_name?: string | undefined; }>' is not assignable to type 'ResolverOptions<FieldValues>'.
+      Type 'FieldValues' is missing the following properties from type '{ phone: string | null; headline: string | null; location: string | null; linkedin_url: string | null; avatar_url: string | null; full_name?: string | undefined; }': phone, headline, location, linkedin_url, avatar_url
+src/components/forms/profile-form.tsx(72,34): error TS2345: Argument of type '(data: UpdateProfileInput) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ phone: string | null; headline: string | null; location: string | null; linkedin_url: string | null; avatar_url: string | null; full_name?: string | undefined; }'.
+      Type 'FieldValues' is missing the following properties from type '{ phone: string | null; headline: string | null; location: string | null; linkedin_url: string | null; avatar_url: string | null; full_name?: string | undefined; }': phone, headline, location, linkedin_url, avatar_url
+src/components/forms/resume-editor.tsx(78,5): error TS2322: Type 'Resolver<FieldValues, unknown, FieldValues>' is not assignable to type 'Resolver<{ contact: { full_name: string; email: string; phone: string; location: string; linkedin_url?: string | undefined; portfolio_url?: string | undefined; github_url?: string | undefined; }; ... 7 more ...; custom_sections: { ...; }[]; }, any, { ...; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ contact: { full_name: string; email: string; phone: string; location: string; linkedin_url?: string | undefined; portfolio_url?: string | undefined; github_url?: string | undefined; }; ... 7 more ...; custom_sections: { ...; }[]; }>' is not assignable to type 'ResolverOptions<FieldValues>'.
+      Type 'FieldValues' is missing the following properties from type '{ contact: { full_name: string; email: string; phone: string; location: string; linkedin_url?: string | undefined; portfolio_url?: string | undefined; github_url?: string | undefined; }; summary: { ...; }; ... 6 more ...; custom_sections: { ...; }[]; }': contact, summary, experience, education, and 5 more.
+test-types.ts(21,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Argument of type '{ id: string; email: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type 'never[]'.
+test-types.ts(39,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Argument of type '{ id: string; email: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type 'never[]'.
+test-types.ts(57,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Argument of type '{ id: string; email: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type 'never[]'.
+test-types.ts(80,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Argument of type '{ id: string; email: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "users", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type 'never[]'.
