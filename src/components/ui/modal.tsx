@@ -114,13 +114,14 @@ export function Modal({
             className={cn(
               "relative z-10 w-full rounded-sm border border-granite bg-surface-elevated",
               "focus:outline-none",
+              "max-h-[90vh] flex flex-col",
               modalSizes[size],
               className
             )}
           >
             {/* Header */}
             {(title || true) && (
-              <div className="flex items-center justify-between border-b border-granite p-6 pb-4">
+              <div className="flex items-center justify-between border-b border-granite p-6 pb-4 shrink-0">
                 <div>
                   {title && (
                     <h2 className="text-lg font-semibold text-foreground">
@@ -151,7 +152,7 @@ export function Modal({
             )}
 
             {/* Body */}
-            <div className="p-6">{children}</div>
+            <div className="p-6 overflow-y-auto flex-1">{children}</div>
           </motion.div>
         </div>
       )}

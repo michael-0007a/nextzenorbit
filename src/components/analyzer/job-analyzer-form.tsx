@@ -24,6 +24,13 @@ import {
   Lightbulb,
   ArrowRight,
   Building2,
+  Wand2,
+  Shield,
+  Zap,
+  Rocket,
+  AlertTriangle,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { RadarChart } from "./radar-chart";
 import { KeywordHeatmap } from "./keyword-heatmap";
@@ -78,11 +85,22 @@ interface JobAnalyzerFormProps {
   resumes: ResumeOption[];
 }
 
+type EmbellishmentLevel = "conservative" | "moderate" | "aggressive";
+
 export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
   const [jobDescription, setJobDescription] = useState("");
   const [selectedResumeId, setSelectedResumeId] = useState(resumes[0]?.id ?? "");
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+
+  // Optimization state
+  const [optimizing, setOptimizing] = useState(false);
+  const [embellishmentLevel, setEmbellishmentLevel] = useState<EmbellishmentLevel>("moderate");
+  const [userAcknowledged, setUserAcknowledged] = useState(false);
+  const [optimizeResult, setOptimizeResult] = useState<{
+    matchScore: number;
+    changesApplied: string[];
+  } | null>(null);
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +162,56 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
       toast.error(message);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  // Handle resume optimization based on JD analysis
+  const handleOptimize = async () => {
+    if (!selectedResumeId) {
+      toast.error("Please select a resume first.");
+      return;
+    }
+
+    if (!jobDescription.trim()) {
+      toast.error("Please enter a job description.");
+      return;
+    }
+
+    if (embellishmentLevel === "aggressive" && !userAcknowledged) {
+      toast.error("Please acknowledge responsibility for maximum optimization mode.");
+      return;
+    }
+
+    setOptimizing(true);
+    setOptimizeResult(null);
+
+    try {
+      const response = await fetch(`/api/resumes/${selectedResumeId}/optimize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription: jobDescription.trim(),
+          embellishmentLevel,
+          userAcknowledged: embellishmentLevel === "aggressive" ? userAcknowledged : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setOptimizeResult({
+          matchScore: data.data.matchScore,
+          changesApplied: data.data.changesApplied || [],
+        });
+        toast.success(`Resume optimized! New match score: ${data.data.matchScore}%`);
+      } else {
+        throw new Error(data.error?.message || "Optimization failed");
+      }
+    } catch (error) {
+      console.error("Optimize error:", error);
+      toast.error("Failed to optimize resume. Please try again.");
+    } finally {
+      setOptimizing(false);
     }
   };
 
@@ -486,6 +554,186 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
                 </Card>
               </div>
             )}
+
+            {/* Optimize Resume Section */}
+            <Card className="relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-primary/5">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary-light to-primary" />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Wand2 className="h-4 w-4 text-primary" />
+                  </div>
+                  Optimize Your Resume
+                </CardTitle>
+                <CardDescription>
+                  Transform your resume to maximize match with this job description
+                </CardDescription>
+              </CardHeader>
+              <CardBody className="space-y-4">
+                {/* Embellishment Level Selection */}
+                <div className="grid gap-3">
+                  {/* Conservative */}
+                  <button
+                    onClick={() => {
+                      setEmbellishmentLevel("conservative");
+                      setUserAcknowledged(false);
+                    }}
+                    className={cn(
+                      "flex items-start gap-4 p-4 rounded-lg border transition-all text-left",
+                      embellishmentLevel === "conservative"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      embellishmentLevel === "conservative" ? "bg-primary/10" : "bg-muted"
+                    )}>
+                      <Shield className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground">Keep it Factual</p>
+                      <p className="text-sm text-text-secondary mt-0.5">
+                        Only rephrase existing content. Safe for verification.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Moderate */}
+                  <button
+                    onClick={() => {
+                      setEmbellishmentLevel("moderate");
+                      setUserAcknowledged(false);
+                    }}
+                    className={cn(
+                      "flex items-start gap-4 p-4 rounded-lg border transition-all text-left",
+                      embellishmentLevel === "moderate"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      embellishmentLevel === "moderate" ? "bg-primary/10" : "bg-muted"
+                    )}>
+                      <Zap className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground">Enhance Strategically</p>
+                      <p className="text-sm text-text-secondary mt-0.5">
+                        Add implied skills, quantify achievements, stronger language.
+                      </p>
+                      <span className="inline-block mt-1.5 text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded">
+                        Recommended
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Aggressive */}
+                  <button
+                    onClick={() => setEmbellishmentLevel("aggressive")}
+                    className={cn(
+                      "flex items-start gap-4 p-4 rounded-lg border transition-all text-left",
+                      embellishmentLevel === "aggressive"
+                        ? "border-orange-500 bg-orange-500/5"
+                        : "border-border hover:border-orange-500/50"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2 rounded-lg shrink-0",
+                      embellishmentLevel === "aggressive" ? "bg-orange-500/10" : "bg-muted"
+                    )}>
+                      <Rocket className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground">Maximize Match</p>
+                      <p className="text-sm text-text-secondary mt-0.5">
+                        Full optimization — fills gaps, adds relevant skills, maximum impact.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Aggressive mode warning */}
+                {embellishmentLevel === "aggressive" && (
+                  <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                      <div className="space-y-3">
+                        <p className="text-sm text-foreground">
+                          <strong>Maximum Impact Mode:</strong> This will add skills you likely have,
+                          quantify achievements, and optimize for maximum ATS match.
+                        </p>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={userAcknowledged}
+                            onChange={(e) => setUserAcknowledged(e.target.checked)}
+                            className="w-4 h-4 rounded border-orange-500/50 text-orange-500 focus:ring-orange-500"
+                          />
+                          <span className="text-sm text-foreground">
+                            I will verify and take responsibility for the optimized content
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Optimize Result */}
+                {optimizeResult && (
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <span className="font-medium text-foreground">
+                        Optimization Complete! New Match Score: {optimizeResult.matchScore}%
+                      </span>
+                    </div>
+                    {optimizeResult.changesApplied.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-text-secondary font-medium">Changes applied:</p>
+                        <ul className="text-sm text-text-secondary space-y-1">
+                          {optimizeResult.changesApplied.slice(0, 5).map((change, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <ArrowRight className="h-3 w-3 mt-1 shrink-0 text-primary" />
+                              <span>{change}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <Link
+                      href={`/resumes/${selectedResumeId}`}
+                      className="inline-flex items-center gap-1.5 mt-3 text-sm text-primary hover:underline"
+                    >
+                      View optimized resume
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <Button
+                    variant="primary"
+                    onClick={handleOptimize}
+                    disabled={
+                      optimizing ||
+                      (embellishmentLevel === "aggressive" && !userAcknowledged)
+                    }
+                    leftIcon={optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    className="flex-1"
+                  >
+                    {optimizing ? "Optimizing..." : "Optimize Resume"}
+                  </Button>
+                  <Link href={`/resumes/${selectedResumeId}`}>
+                    <Button variant="secondary">
+                      Edit Manually
+                    </Button>
+                  </Link>
+                </div>
+              </CardBody>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>

@@ -21,9 +21,16 @@ import {
   ChevronDown,
   FileType,
   FileCode,
+  Wand2,
+  Target,
+  AlertTriangle,
+  Shield,
+  Zap,
+  Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { Textarea } from "@/components/ui/textarea";
 import { TemplateSelector } from "./template-selector";
 import { cn } from "@/lib/utils";
 
@@ -45,15 +52,18 @@ interface ResumeActionsProps {
   resumeId: string;
   currentTemplateId: string;
   onTemplateChange: (template: BaseTemplate) => void;
+  onContentUpdate?: (content: unknown) => void;
   isPro?: boolean;
   className?: string;
 }
+
+type EmbellishmentLevel = "conservative" | "moderate" | "aggressive";
 
 export function ResumeActions({
   resumeId,
   currentTemplateId,
   onTemplateChange,
-  isPro = false,
+  onContentUpdate,
   className,
 }: ResumeActionsProps) {
   const [exporting, setExporting] = useState(false);
@@ -66,6 +76,14 @@ export function ResumeActions({
   const [savingVersion, setSavingVersion] = useState(false);
   const [restoringVersion, setRestoringVersion] = useState<string | null>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // AI Improvement state
+  const [improving, setImproving] = useState(false);
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
+  const [embellishmentLevel, setEmbellishmentLevel] = useState<EmbellishmentLevel>("moderate");
+  const [userAcknowledged, setUserAcknowledged] = useState(false);
 
   // Close export menu on click outside
   useEffect(() => {
@@ -185,6 +203,78 @@ export function ResumeActions({
     fetchVersions();
   };
 
+  // AI Improve (general ATS optimization)
+  const handleImprove = async () => {
+    setImproving(true);
+    try {
+      const response = await fetch(`/api/resumes/${resumeId}/improve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Resume improved! Refreshing...");
+        onContentUpdate?.(data.data.content);
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        throw new Error(data.error?.message || "Failed to improve");
+      }
+    } catch (error) {
+      console.error("Improve error:", error);
+      toast.error("Failed to improve resume. Please try again.");
+    } finally {
+      setImproving(false);
+    }
+  };
+
+  // JD-based optimization with embellishment levels
+  const handleOptimize = async () => {
+    if (!jobDescription.trim()) {
+      toast.error("Please enter a job description.");
+      return;
+    }
+
+    if (embellishmentLevel === "aggressive" && !userAcknowledged) {
+      toast.error("Please acknowledge responsibility for aggressive optimizations.");
+      return;
+    }
+
+    setOptimizing(true);
+    try {
+      const response = await fetch(`/api/resumes/${resumeId}/optimize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription,
+          embellishmentLevel,
+          userAcknowledged: embellishmentLevel === "aggressive" ? userAcknowledged : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowOptimizeModal(false);
+        setJobDescription("");
+        setUserAcknowledged(false);
+        toast.success(
+          `Resume optimized! Match score: ${data.data.matchScore}%. Refreshing...`
+        );
+        onContentUpdate?.(data.data.content);
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        throw new Error(data.error?.message || "Failed to optimize");
+      }
+    } catch (error) {
+      console.error("Optimize error:", error);
+      toast.error("Failed to optimize resume. Please try again.");
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
   return (
     <>
       <div className={cn("flex items-center gap-2", className)}>
@@ -254,6 +344,27 @@ export function ResumeActions({
           onClick={() => setShowTemplates(true)}
         >
           Template
+        </Button>
+
+        {/* AI Improve button */}
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={improving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+          onClick={handleImprove}
+          disabled={improving}
+        >
+          {improving ? "Improving..." : "Improve"}
+        </Button>
+
+        {/* JD Optimize button */}
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<Target className="h-4 w-4" />}
+          onClick={() => setShowOptimizeModal(true)}
+        >
+          Optimize for JD
         </Button>
 
         {/* Version history */}
@@ -394,6 +505,168 @@ export function ResumeActions({
           </>
         )}
       </AnimatePresence>
+
+      {/* JD Optimization Modal */}
+      <Modal
+        open={showOptimizeModal}
+        onClose={() => {
+          setShowOptimizeModal(false);
+          setJobDescription("");
+          setUserAcknowledged(false);
+        }}
+        title="Optimize for Job Description"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Job Description Input */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Paste the Job Description
+            </label>
+            <Textarea
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the full job description here..."
+              className="h-40"
+            />
+          </div>
+
+          {/* Embellishment Level Selector */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-3">
+              Optimization Intensity
+            </label>
+            <div className="grid gap-3">
+              {/* Conservative */}
+              <button
+                onClick={() => setEmbellishmentLevel("conservative")}
+                className={cn(
+                  "flex items-start gap-4 p-4 rounded-lg border transition-all text-left",
+                  embellishmentLevel === "conservative"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                )}
+              >
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  embellishmentLevel === "conservative" ? "bg-primary/10" : "bg-muted"
+                )}>
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Keep it Factual</p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    Only rephrase and restructure existing content. No additions.
+                  </p>
+                </div>
+              </button>
+
+              {/* Moderate */}
+              <button
+                onClick={() => setEmbellishmentLevel("moderate")}
+                className={cn(
+                  "flex items-start gap-4 p-4 rounded-lg border transition-all text-left",
+                  embellishmentLevel === "moderate"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                )}
+              >
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  embellishmentLevel === "moderate" ? "bg-primary/10" : "bg-muted"
+                )}>
+                  <Zap className="h-5 w-5 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Enhance Strategically</p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    Strengthen language, add implied skills, reasonable estimates.
+                  </p>
+                  <span className="inline-block mt-1.5 text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded">
+                    Recommended
+                  </span>
+                </div>
+              </button>
+
+              {/* Aggressive */}
+              <button
+                onClick={() => setEmbellishmentLevel("aggressive")}
+                className={cn(
+                  "flex items-start gap-4 p-4 rounded-lg border transition-all text-left",
+                  embellishmentLevel === "aggressive"
+                    ? "border-orange-500 bg-orange-500/5"
+                    : "border-border hover:border-orange-500/50"
+                )}
+              >
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  embellishmentLevel === "aggressive" ? "bg-orange-500/10" : "bg-muted"
+                )}>
+                  <Rocket className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Maximize Match</p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    Creative embellishment for maximum impact. Use with caution.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Aggressive mode warning & acknowledgment */}
+          {embellishmentLevel === "aggressive" && (
+            <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                <div className="space-y-3">
+                  <p className="text-sm text-foreground">
+                    <strong>Important:</strong> This mode may add skills, quantify achievements,
+                    and enhance descriptions beyond what&apos;s explicitly stated in your resume.
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={userAcknowledged}
+                      onChange={(e) => setUserAcknowledged(e.target.checked)}
+                      className="w-4 h-4 rounded border-orange-500/50 text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-foreground">
+                      I take responsibility for verifying the accuracy of the optimized content
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowOptimizeModal(false);
+                setJobDescription("");
+                setUserAcknowledged(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleOptimize}
+              disabled={
+                optimizing ||
+                !jobDescription.trim() ||
+                (embellishmentLevel === "aggressive" && !userAcknowledged)
+              }
+              leftIcon={optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Target className="h-4 w-4" />}
+            >
+              {optimizing ? "Optimizing..." : "Optimize Resume"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

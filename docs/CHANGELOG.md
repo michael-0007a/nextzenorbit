@@ -5,6 +5,59 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [0.10.0] — 2026-03-14
+
+### Added — **AI Resume Optimization Features**
+
+#### General Resume Improvement
+- **Improve Button**: One-click AI optimization for ATS compatibility and professional impact
+- **Full Resume Rewrite**: AI rewrites all sections with stronger action verbs, better metrics, and cleaner structure
+- **Automatic Versioning**: Original resume saved as backup before improvement
+
+#### JD-Based Optimization with Embellishment Levels
+- **Optimize for JD Button**: Available in both resume editor AND job analyzer page
+- **Three Optimization Modes**:
+  - **Keep it Factual** (Conservative): Only rephrase existing content — Target: 85-90% match
+  - **Enhance Strategically** (Moderate): Add implied skills, quantify achievements — Target: 90-95% match
+  - **Maximize Match** (Aggressive): Full optimization with user acknowledgment — Target: 95-100% match
+- **Match Score**: Returns estimated match percentage after optimization
+- **Changes Applied**: Lists all modifications made for transparency
+
+#### Job Analyzer Integration
+- **Post-Analysis Optimization**: After analyzing JD, immediately optimize resume from same page
+- **Seamless Flow**: Analyze → Choose optimization level → Optimize → View results
+- **Direct Links**: Quick navigation to view optimized resume
+
+#### Version Control Integration
+- Automatic backup before any AI modification
+- Clear version labels: "AI-optimized for ATS", "JD-tailored (factual)", etc.
+- One-click restore to any previous version
+
+### Improved — **AI Prompts v2.0**
+- Significantly improved optimization prompts for all three levels
+- Aggressive mode now properly targets 95-100% match score
+- Better keyword injection and JD alignment strategies
+- Specific quantification guidelines per experience level
+- Higher creativity (temperature) for aggressive mode
+
+### UI Fixes
+- Fixed modal vertical overflow — now properly scrollable with max-height
+- All modals now have `max-h-[90vh]` and scrollable body
+
+### New Files
+- `src/lib/ai/prompts/resume-improver.ts` — AI prompts for improvement and JD optimization
+- `src/app/api/resumes/[id]/improve/route.ts` — General improvement endpoint
+- `src/app/api/resumes/[id]/optimize/route.ts` — JD-based optimization endpoint
+
+### UI Changes
+- Added "Improve" button to resume editor top bar
+- Added "Optimize for JD" button to resume editor top bar
+- Added "Optimize Resume" section to job analyzer results
+- New optimization modal with embellishment level selector
+- User acknowledgment checkbox for aggressive optimization mode
+
+---
+
 ## [0.9.1] — 2026-03-12
 
 ### Improved — **Resume System Enhancements**

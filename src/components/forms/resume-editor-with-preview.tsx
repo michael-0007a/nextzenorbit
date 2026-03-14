@@ -256,11 +256,15 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
             Save
           </Button>
 
-          {/* Export, Template, History */}
+          {/* Export, Template, History, AI Improve */}
           <ResumeActions
             resumeId={resume.id}
             currentTemplateId={templateId}
             onTemplateChange={handleTemplateChange}
+            onContentUpdate={(content) => {
+              // Update form with AI-improved content
+              methods.reset(content as ResumeContent);
+            }}
             isPro={isPro}
           />
         </div>

@@ -293,6 +293,83 @@ Enhance resume content with AI.
 
 ---
 
+## Resume AI Optimization Endpoints
+
+### POST /api/resumes/[id]/improve
+Improve the entire resume with AI for ATS optimization and professional impact.
+
+**Authentication:** Required
+
+**Request Body:** None required
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "content": { /* Full improved resume content */ },
+    "versionCreated": 5,
+    "tokensUsed": 2500
+  }
+}
+```
+
+**Behavior:**
+- Creates a backup version before improvement
+- AI rewrites all sections with stronger action verbs and better metrics
+- Saves improved version automatically
+- Returns the new content for immediate UI update
+
+---
+
+### POST /api/resumes/[id]/optimize
+Optimize resume for a specific job description with configurable embellishment levels.
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "jobDescription": "Full job description text...",
+  "embellishmentLevel": "conservative" | "moderate" | "aggressive",
+  "userAcknowledged": true  // Required only for "aggressive" level
+}
+```
+
+**Embellishment Levels:**
+| Level | Description |
+|-------|-------------|
+| `conservative` | Only rephrase existing content, no additions |
+| `moderate` | Enhance language, add implied skills, reasonable estimates |
+| `aggressive` | Creative embellishment (requires user acknowledgment) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "content": { /* Full optimized resume content */ },
+    "matchScore": 85,
+    "changesApplied": [
+      "Reworded summary for DevOps focus",
+      "Added Kubernetes to skills",
+      "Enhanced deployment metrics"
+    ],
+    "versionCreated": 6,
+    "embellishmentLevel": "moderate",
+    "tokensUsed": 3200
+  }
+}
+```
+
+**Errors:**
+| Code | Condition |
+|------|-----------|
+| `VALIDATION_ERROR` | Missing jobDescription or invalid embellishment level |
+| `VALIDATION_ERROR` | Aggressive mode without userAcknowledged=true |
+
+---
+
 ## Resume Version Endpoints
 
 ### GET /api/resumes/[id]/versions
