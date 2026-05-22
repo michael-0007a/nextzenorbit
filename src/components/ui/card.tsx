@@ -24,8 +24,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        "rounded-2xl border border-border bg-card transition-all duration-200",
-        elevated && "bg-card shadow-lg",
+        "glass-card rounded-3xl transition-all duration-300",
+        elevated && "shadow-[0_30px_70px_rgba(0,0,0,0.55)]",
         className
       )}
       {...props}
@@ -108,7 +108,7 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
     <div
       ref={ref}
       className={cn(
-        "flex items-center gap-3 border-t border-granite p-6 pt-4",
+        "flex items-center gap-3 border-t border-border/60 p-6 pt-4",
         className
       )}
       {...props}

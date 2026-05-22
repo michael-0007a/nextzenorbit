@@ -50,15 +50,17 @@ export default async function DashboardLayout({
   const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined;
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
+      <div className="absolute inset-0 bg-space" />
+      <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.07),transparent_60%)]" />
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="relative flex flex-1 flex-col overflow-hidden">
         <TopNav
           userName={userName}
           userAvatar={userAvatar}
           breadcrumb={<span>Dashboard</span>}
         />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

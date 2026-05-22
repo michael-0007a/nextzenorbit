@@ -43,11 +43,11 @@ interface Column {
 }
 
 const columns: Column[] = [
-  { id: "applied", title: "Applied", icon: Clock, color: "text-blue-500", bgColor: "bg-blue-500/10" },
-  { id: "screening", title: "Screening", icon: AlertCircle, color: "text-amber-500", bgColor: "bg-amber-500/10" },
-  { id: "interview", title: "Interview", icon: MessageSquare, color: "text-purple-500", bgColor: "bg-purple-500/10" },
-  { id: "offer", title: "Offer", icon: CheckCircle2, color: "text-green-500", bgColor: "bg-green-500/10" },
-  { id: "rejected", title: "Rejected", icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
+  { id: "applied", title: "Applied", icon: Clock, color: "text-primary", bgColor: "bg-primary/10" },
+  { id: "screening", title: "Screening", icon: AlertCircle, color: "text-warning", bgColor: "bg-warning/10" },
+  { id: "interview", title: "Interview", icon: MessageSquare, color: "text-secondary", bgColor: "bg-secondary/10" },
+  { id: "offer", title: "Offer", icon: CheckCircle2, color: "text-success", bgColor: "bg-success/10" },
+  { id: "rejected", title: "Rejected", icon: XCircle, color: "text-error", bgColor: "bg-error/10" },
 ];
 
 export function ApplicationsKanban({ initialApplications }: ApplicationsKanbanProps) {
@@ -256,7 +256,7 @@ function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex-shrink-0 w-72 rounded-xl border bg-card transition-colors",
+        "flex-shrink-0 w-72 rounded-2xl border bg-white/5 backdrop-blur-xl transition-colors",
         isDropTarget ? "border-primary border-dashed bg-primary/5" : "border-border"
       )}
       onDragOver={(e) => e.preventDefault()}
@@ -290,7 +290,7 @@ function KanbanColumn({
         </AnimatePresence>
 
         {applications.length === 0 && (
-          <div className="py-8 text-center text-sm text-granite">
+          <div className="py-8 text-center text-sm text-text-secondary">
             No applications
           </div>
         )}
@@ -329,7 +329,7 @@ function ApplicationCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        "group relative p-3 rounded-lg border bg-background cursor-grab active:cursor-grabbing",
+        "group relative p-3 rounded-2xl border bg-white/5 cursor-grab active:cursor-grabbing",
         "hover:border-primary/50 transition-colors",
         isDragging && "ring-2 ring-primary"
       )}
@@ -343,18 +343,18 @@ function ApplicationCard({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <MoreVertical className="h-4 w-4 text-granite" />
+              <MoreVertical className="h-4 w-4 text-text-secondary" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-32 rounded-lg border border-border bg-card shadow-lg z-10">
+              <div className="absolute right-0 top-full mt-1 w-32 rounded-2xl border border-border/70 bg-surface/90 backdrop-blur-xl shadow-lg z-10">
                 <button
                   onClick={() => {
                     setShowMenu(false);
                     onEdit();
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-white/5"
                 >
                   <Edit className="h-3 w-3" /> Edit
                 </button>
@@ -375,7 +375,7 @@ function ApplicationCard({
       </div>
 
       {/* Meta */}
-      <div className="flex items-center gap-3 text-xs text-granite">
+      <div className="flex items-center gap-3 text-xs text-text-secondary">
         <span className="flex items-center gap-1">
           <Calendar className="h-3 w-3" />
           {new Date(application.applied_at).toLocaleDateString("en-IN", {
@@ -460,7 +460,7 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={onClose}
     >
       <motion.div
@@ -468,7 +468,7 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
+        className="w-full max-w-md rounded-3xl border border-border/70 bg-surface/90 backdrop-blur-2xl p-6 shadow-xl"
       >
         <h2 className="text-lg font-semibold text-foreground mb-4">
           {application ? "Edit Application" : "Add Application"}
@@ -481,13 +481,13 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
               Company *
             </label>
             <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-granite" />
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
               <input
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g., Google"
-                className="w-full h-10 pl-10 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full h-10 pl-10 pr-3 rounded-2xl border border-border bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -498,13 +498,13 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
               Position *
             </label>
             <div className="relative">
-              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-granite" />
+              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
               <input
                 type="text"
                 value={position}
                 onChange={(e) => setPosition(e.target.value)}
                 placeholder="e.g., Senior Software Engineer"
-                className="w-full h-10 pl-10 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full h-10 pl-10 pr-3 rounded-2xl border border-border bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -519,7 +519,7 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full h-10 px-3 rounded-2xl border border-border bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -531,7 +531,7 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ApplicationStatus)}
-              className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full h-10 px-3 rounded-2xl border border-border bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               {columns.map((col) => (
                 <option key={col.id} value={col.id}>
@@ -550,7 +550,7 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
               type="date"
               value={followUpAt}
               onChange={(e) => setFollowUpAt(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full h-10 px-3 rounded-2xl border border-border bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -564,7 +564,7 @@ function ApplicationModal({ application, onClose, onSubmit }: ApplicationModalPr
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Any additional notes..."
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              className="w-full px-3 py-2 rounded-2xl border border-border bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             />
           </div>
 

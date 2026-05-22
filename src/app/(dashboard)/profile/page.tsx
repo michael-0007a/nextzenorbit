@@ -74,6 +74,13 @@ export default async function ProfilePage() {
       location: null,
       linkedin_url: null,
       avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+      preferred_role: null,
+      preferred_location: null,
+      preferred_salary_min: null,
+      preferred_salary_max: null,
+      preferred_work_type: null,
+      years_of_experience: null,
+      preferred_portals: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -81,12 +88,13 @@ export default async function ProfilePage() {
     return (
       <div className="mx-auto max-w-2xl space-y-8">
         {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-sm border border-granite bg-gradient-to-br from-mint/5 via-transparent to-leaf/5 p-6">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-mint/5 rounded-full blur-2xl" />
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 p-6">
+          <div className="absolute inset-0 bg-space opacity-45" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
-              <div className="h-5 w-1 rounded-full bg-mint" />
-              <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+              <div className="h-5 w-1 rounded-full bg-primary" />
+              <h1 className="font-display text-2xl font-semibold text-foreground">Profile</h1>
             </div>
             <p className="text-text-secondary">
               Manage your personal information. This data can pre-fill your resumes.
@@ -101,12 +109,13 @@ export default async function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-sm border border-granite bg-gradient-to-br from-mint/5 via-transparent to-leaf/5 p-6">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-mint/5 rounded-full blur-2xl" />
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 p-6">
+        <div className="absolute inset-0 bg-space opacity-45" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
         <div className="relative">
           <div className="flex items-center gap-2 mb-2">
-            <div className="h-5 w-1 rounded-full bg-mint" />
-            <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+            <div className="h-5 w-1 rounded-full bg-primary" />
+            <h1 className="font-display text-2xl font-semibold text-foreground">Profile</h1>
           </div>
           <p className="text-text-secondary">
             Manage your personal information. This data can pre-fill your resumes.

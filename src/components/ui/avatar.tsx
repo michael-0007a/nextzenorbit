@@ -41,7 +41,7 @@ export function Avatar({
     <div
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
-        "bg-gradient-to-br from-primary/30 to-primary/10 text-primary",
+        "bg-gradient-to-br from-primary/40 via-secondary/20 to-accent/20 text-primary border border-border/60",
         "font-semibold select-none",
         avatarSizes[size],
         className

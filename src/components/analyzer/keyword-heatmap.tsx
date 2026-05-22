@@ -28,11 +28,11 @@ interface KeywordHeatmapProps {
 }
 
 const categoryColors: Record<Keyword["category"], string> = {
-  technical: "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400",
-  soft: "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400",
-  tool: "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400",
-  certification: "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400",
-  domain: "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400",
+  technical: "bg-primary/10 border-primary/30 text-primary",
+  soft: "bg-secondary/10 border-secondary/30 text-secondary",
+  tool: "bg-accent/10 border-accent/30 text-accent",
+  certification: "bg-success/10 border-success/30 text-success",
+  domain: "bg-warning/10 border-warning/30 text-warning",
 };
 
 export function KeywordHeatmap({ keywords, className }: KeywordHeatmapProps) {
@@ -136,22 +136,22 @@ export function KeywordHeatmap({ keywords, className }: KeywordHeatmapProps) {
 
       {/* Legend */}
       <div className="pt-4 border-t border-border">
-        <p className="text-xs text-granite mb-2">Category Legend:</p>
+        <p className="text-xs text-text-secondary mb-2">Category Legend:</p>
         <div className="flex flex-wrap gap-3 text-xs">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-blue-500/30" /> Technical
+            <span className="w-3 h-3 rounded bg-primary/30" /> Technical
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-purple-500/30" /> Soft Skills
+            <span className="w-3 h-3 rounded bg-secondary/30" /> Soft Skills
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-amber-500/30" /> Tools
+            <span className="w-3 h-3 rounded bg-accent/30" /> Tools
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-green-500/30" /> Certifications
+            <span className="w-3 h-3 rounded bg-success/30" /> Certifications
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-rose-500/30" /> Domain
+            <span className="w-3 h-3 rounded bg-warning/30" /> Domain
           </span>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -21,6 +22,7 @@ import {
   ArrowRight,
   Crown,
   Mail,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +41,7 @@ const mainNavItems: NavItem[] = [
   { label: "My Resumes", href: "/resumes", icon: FileText },
   { label: "Cover Letter", href: "/cover-letter", icon: Mail, badge: "AI", isNew: true },
   { label: "Job Analyzer", href: "/analyzer", icon: Search, badge: "AI" },
+  { label: "Job Search", href: "/job-search", icon: Rocket, badge: "NEW", isNew: true },
   { label: "Applications", href: "/applications", icon: Briefcase },
 ];
 
@@ -70,11 +73,11 @@ export function Sidebar({ className }: SidebarProps) {
         href={item.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl",
+          "group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-transparent",
           "text-sm font-medium transition-all duration-200",
           active
-            ? "text-foreground bg-primary/10 dark:bg-primary/15"
-            : "text-text-secondary hover:text-foreground hover:bg-muted"
+            ? "text-foreground bg-white/10 border-primary/40 shadow-[0_0_24px_rgba(255,0,61,0.2)]"
+            : "text-text-secondary hover:text-foreground hover:bg-white/5"
         )}
         aria-current={active ? "page" : undefined}
       >
@@ -89,10 +92,10 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Icon with background */}
         <div className={cn(
-          "relative z-10 flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200",
+          "relative z-10 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
           active
-            ? "bg-primary text-white shadow-md shadow-primary/25"
-            : "bg-muted text-stone group-hover:bg-border group-hover:text-foreground"
+            ? "bg-gradient-to-br from-primary to-primary-light text-white shadow-[0_0_24px_rgba(255,0,61,0.35)]"
+            : "bg-white/5 text-text-secondary group-hover:bg-white/10 group-hover:text-foreground"
         )}>
           <Icon className="h-[18px] w-[18px]" />
         </div>
@@ -107,7 +110,7 @@ export function Sidebar({ className }: SidebarProps) {
             "relative z-10 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
             item.isNew
               ? "bg-gradient-to-r from-primary to-primary-light text-white"
-              : "bg-secondary/10 text-secondary"
+              : "bg-white/10 text-text-secondary border border-border"
           )}>
             {item.isNew && <Sparkles className="h-2.5 w-2.5" />}
             {item.badge}
@@ -116,7 +119,7 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Hover arrow */}
         {!collapsed && !active && (
-          <ArrowRight className="relative z-10 h-4 w-4 text-stone opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+          <ArrowRight className="relative z-10 h-4 w-4 text-text-secondary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
         )}
       </Link>
     );
@@ -125,17 +128,11 @@ export function Sidebar({ className }: SidebarProps) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Logo Section */}
-      <div className="flex h-[72px] items-center gap-3 px-5 border-b border-border">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary to-primary-light shadow-lg shadow-primary/20">
-          <Zap className="h-5 w-5 text-white" />
-          {/* Animated ring */}
-          <div className="absolute inset-0 rounded-xl animate-ping bg-primary/20" style={{ animationDuration: '3s' }} />
+      <div className="flex h-[78px] items-center justify-center px-5 border-b border-border/60">
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20 shadow-[0_0_24px_rgba(255,0,61,0.25)]">
+          <Image src="/only%20logo.png" alt="NEXTZEN ORBIT" width={22} height={22} />
+          <div className="absolute inset-0 rounded-xl animate-ping bg-primary/15" style={{ animationDuration: "3s" }} />
         </div>
-        {!collapsed && (
-          <span className="text-base font-bold text-foreground tracking-tight whitespace-nowrap">
-            Nextzen Orbit
-          </span>
-        )}
       </div>
 
       {/* Navigation Section */}
@@ -143,7 +140,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Section Label */}
         {!collapsed && (
           <div className="px-3 mb-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-stone">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               Navigation
             </span>
           </div>
@@ -160,7 +157,7 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Section Label */}
         {!collapsed && (
           <div className="px-3 mb-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-stone">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               Account
             </span>
           </div>
@@ -175,10 +172,9 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Pro Card */}
       {!collapsed && (
         <div className="px-3 pb-3">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-dark/50 via-card to-card border border-border p-4">
-            {/* Decorative elements */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
-            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-secondary/10 rounded-full blur-xl" />
+          <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white/5 p-4">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/15 rounded-full blur-2xl" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-accent/10 rounded-full blur-xl" />
 
             <div className="relative">
               <div className="flex items-center gap-2 mb-2">
@@ -192,7 +188,7 @@ export function Sidebar({ className }: SidebarProps) {
               </p>
               <Link
                 href="/subscription"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-primary-light text-white hover:shadow-lg hover:shadow-primary/25 transition-all duration-200"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_18px_35px_rgba(255,0,61,0.3)] transition-transform duration-200 hover:-translate-y-0.5"
               >
                 Upgrade Now
                 <ArrowRight className="h-4 w-4" />
@@ -203,10 +199,10 @@ export function Sidebar({ className }: SidebarProps) {
       )}
 
       {/* Collapse Toggle */}
-      <div className="hidden lg:block px-3 py-3 border-t border-border">
+      <div className="hidden lg:block px-3 py-3 border-t border-border/60">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl p-2.5 text-stone hover:text-foreground hover:bg-muted transition-all duration-200"
+          className="flex w-full items-center justify-center gap-2 rounded-full p-2.5 text-text-secondary hover:text-foreground hover:bg-white/5 transition-all duration-200"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -227,7 +223,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card/90 backdrop-blur-md shadow-lg lg:hidden"
+        className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white/10 backdrop-blur-md shadow-lg lg:hidden"
         aria-label="Open navigation menu"
       >
         <Menu className="h-5 w-5 text-foreground" />
@@ -249,11 +245,11 @@ export function Sidebar({ className }: SidebarProps) {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "-100%", opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border lg:hidden shadow-2xl"
+              className="fixed inset-y-0 left-0 z-50 w-72 bg-surface/90 border-r border-border/60 backdrop-blur-2xl lg:hidden shadow-2xl"
             >
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-5 flex h-9 w-9 items-center justify-center rounded-xl text-stone hover:text-foreground hover:bg-muted transition-colors"
+                className="absolute right-3 top-5 flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:text-foreground hover:bg-white/10 transition-colors"
                 aria-label="Close navigation menu"
               >
                 <X className="h-5 w-5" />
@@ -267,7 +263,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex lg:flex-col lg:border-r lg:border-border lg:bg-card",
+          "hidden lg:flex lg:flex-col lg:border-r lg:border-border/60 lg:bg-surface/85 lg:backdrop-blur-2xl",
           "transition-all duration-300 ease-out",
           collapsed ? "lg:w-[80px]" : "lg:w-72",
           className

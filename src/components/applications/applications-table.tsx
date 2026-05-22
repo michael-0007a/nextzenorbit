@@ -42,12 +42,12 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
     return (
       <Card className="relative overflow-hidden">
         {/* Decorative elements */}
-        <div className="absolute top-10 right-10 w-32 h-32 bg-shadow/5 rounded-full blur-2xl" />
-        <div className="absolute bottom-10 left-10 w-24 h-24 bg-leaf/5 rounded-full blur-xl" />
+        <div className="absolute top-10 right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+        <div className="absolute bottom-10 left-10 w-24 h-24 bg-secondary/10 rounded-full blur-xl" />
 
         <CardBody className="relative py-20 text-center">
-          <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-sm border border-granite bg-gradient-to-br from-shadow/10 to-leaf/5">
-            <Briefcase className="h-8 w-8 text-granite" />
+          <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-white/5">
+            <Briefcase className="h-8 w-8 text-text-secondary" />
           </div>
           <h3 className="mt-6 text-lg font-semibold text-foreground">No applications yet</h3>
           <p className="mt-2 text-sm text-text-secondary max-w-sm mx-auto">
@@ -56,16 +56,16 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
 
           {/* Feature hints */}
           <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-mint/10 text-mint border border-mint/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-mint" />
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               Track status
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-leaf/10 text-leaf border border-leaf/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-leaf" />
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-secondary/10 text-secondary border border-secondary/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
               Set reminders
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-shadow/20 text-shadow dark:text-granite border border-shadow/30 dark:border-granite/30">
-              <div className="w-1.5 h-1.5 rounded-full bg-shadow dark:bg-granite" />
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-accent/10 text-accent border border-accent/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
               View analytics
             </span>
           </div>
@@ -77,25 +77,25 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters Row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-sm border border-granite bg-muted/30">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-2xl border border-border bg-white/5">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-granite" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <input
             type="text"
             placeholder="Search company or position..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-sm border border-granite bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors sm:w-72"
+            className="h-10 w-full rounded-2xl border border-border bg-white/5 pl-9 pr-3 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors sm:w-72"
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-          <Filter className="h-4 w-4 text-leaf shrink-0" />
+          <Filter className="h-4 w-4 text-secondary shrink-0" />
           <button
             onClick={() => setFilterStatus("all")}
-            className={`rounded-sm border px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
               filterStatus === "all"
-                ? "border-mint text-mint bg-mint/10 shadow-[0_0_10px_rgba(86,227,159,0.15)]"
-                : "border-granite text-granite hover:text-foreground hover:border-leaf"
+                ? "border-primary text-primary bg-primary/10 shadow-[0_0_10px_rgba(255,0,61,0.2)]"
+                : "border-border text-text-secondary hover:text-foreground hover:border-primary/40"
             }`}
           >
             All ({applications.length})
@@ -107,10 +107,10 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`rounded-sm border px-3 py-1.5 text-xs font-medium transition-all ${
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                   filterStatus === status
-                    ? "border-mint text-mint bg-mint/10 shadow-[0_0_10px_rgba(86,227,159,0.15)]"
-                    : "border-granite text-granite hover:text-foreground hover:border-leaf"
+                    ? "border-primary text-primary bg-primary/10 shadow-[0_0_10px_rgba(255,0,61,0.2)]"
+                    : "border-border text-text-secondary hover:text-foreground hover:border-primary/40"
                 }`}
               >
                 {statusConfig[status].label} ({count})
@@ -125,7 +125,7 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-granite">
+              <tr className="border-b border-border/60">
                 <th className="px-4 py-3 text-left font-medium text-text-secondary">Company</th>
                 <th className="px-4 py-3 text-left font-medium text-text-secondary">Position</th>
                 <th className="px-4 py-3 text-left font-medium text-text-secondary">Status</th>
@@ -135,7 +135,7 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
             </thead>
             <tbody>
               {filtered.map((app) => (
-                <tr key={app.id} className="border-b border-granite/50 last:border-0 hover:bg-muted/50 transition-colors">
+                <tr key={app.id} className="border-b border-border/40 last:border-0 hover:bg-white/5 transition-colors">
                   <td className="px-4 py-3">
                     <span className="font-medium text-foreground">{app.company}</span>
                   </td>
@@ -157,12 +157,12 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
                         href={app.job_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-leaf hover:text-mint transition-colors"
+                        className="inline-flex items-center gap-1 text-primary hover:text-primary-light transition-colors"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     ) : (
-                      <span className="text-granite">—</span>
+                      <span className="text-text-secondary">—</span>
                     )}
                   </td>
                 </tr>

@@ -1,311 +1,142 @@
 # Database Schema — Nextzen Orbit
 
-## Overview
-
-PostgreSQL database hosted on Supabase with Row Level Security (RLS) enabled on all tables.
-
-## Tables
-
-### users
-Core user identity table linked to Supabase Auth.
-
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- RLS Policies
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "users_select_own" ON users
-  FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "users_insert_own" ON users
-  FOR INSERT WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "users_update_own" ON users
-  FOR UPDATE USING (auth.uid() = id);
-
--- Note: Admin operations use service role key (bypasses RLS)
--- Do NOT add a policy that queries the users table itself
--- as this causes infinite recursion.
-```
-
-### profiles
-Extended user profile data.
-
-```sql
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  full_name TEXT,
-  phone TEXT,
-  headline TEXT,
-  location TEXT,
-  linkedin_url TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- RLS Policies
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "profiles_own_row" ON profiles
-  FOR ALL USING (auth.uid() = user_id);
-```
-
-### subscriptions
-User subscription and billing data.
-
-```sql
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  
-  -- Provider
-  provider TEXT NOT NULL DEFAULT 'razorpay' CHECK (provider IN ('razorpay', 'cashfree')),
-  plan_id TEXT NOT NULL DEFAULT 'free' CHECK (plan_id IN ('free', 'pro', 'elite')),
-  status TEXT NOT NULL DEFAULT 'trialing' 
-    CHECK (status IN ('trialing', 'active', 'past_due', 'cancelled', 'paused')),
-  
-  -- Razorpay fields
-  razorpay_customer_id TEXT,
-  razorpay_subscription_id TEXT,
-  razorpay_plan_id TEXT,
-  
-  -- Cashfree fields
-  cashfree_customer_id TEXT,
-  cashfree_subscription_id TEXT,
-  
-  -- Billing
-  currency TEXT DEFAULT 'INR',
-  amount_paise INTEGER,
-  gst_amount_paise INTEGER,
-  
-  -- Trial period
-  trial_starts_at TIMESTAMPTZ,
-  trial_ends_at TIMESTAMPTZ,
-  
-  -- Subscription period
-  current_period_start TIMESTAMPTZ,
-  current_period_end TIMESTAMPTZ,
-  
-  -- Cancellation
-  cancel_at_period_end BOOLEAN DEFAULT FALSE,
-  cancelled_at TIMESTAMPTZ,
-  
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- RLS Policies
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "subscriptions_own_row" ON subscriptions
-  FOR ALL USING (auth.uid() = user_id);
-```
-
-### resumes
-User resumes with structured JSON content.
-
-```sql
-CREATE TABLE resumes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL DEFAULT 'Untitled Resume',
-  content JSONB NOT NULL DEFAULT '{}',
-  template_id TEXT,
-  is_base BOOLEAN DEFAULT FALSE,
-  version INTEGER DEFAULT 1,
-  file_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  deleted_at TIMESTAMPTZ  -- Soft delete
-);
-
--- RLS Policies
-ALTER TABLE resumes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "resumes_own_row" ON resumes
-  FOR ALL USING (auth.uid() = user_id);
-
--- Indexes
-CREATE INDEX idx_resumes_user_id ON resumes(user_id);
-CREATE INDEX idx_resumes_deleted_at ON resumes(deleted_at) WHERE deleted_at IS NULL;
-```
-
-### applications
-Job application tracking.
-
-```sql
-CREATE TABLE applications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  resume_id UUID REFERENCES resumes(id) ON DELETE SET NULL,
-  company TEXT NOT NULL,
-  position TEXT NOT NULL,
-  job_url TEXT,
-  status TEXT NOT NULL DEFAULT 'applied' 
-    CHECK (status IN ('applied', 'screening', 'interview', 'offer', 'rejected')),
-  applied_at TIMESTAMPTZ DEFAULT NOW(),
-  notes TEXT,
-  follow_up_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- RLS Policies
-ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "applications_own_row" ON applications
-  FOR ALL USING (auth.uid() = user_id);
-
--- Indexes
-CREATE INDEX idx_applications_user_id ON applications(user_id);
-CREATE INDEX idx_applications_status ON applications(status);
-```
-
-### ai_usage
-Track AI token consumption per billing period.
-
-```sql
-CREATE TABLE ai_usage (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  billing_period_start TIMESTAMPTZ NOT NULL,
-  billing_period_end TIMESTAMPTZ NOT NULL,
-  tokens_used INTEGER DEFAULT 0,
-  tokens_limit INTEGER NOT NULL,
-  last_used_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- RLS Policies
-ALTER TABLE ai_usage ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "ai_usage_own_row" ON ai_usage
-  FOR ALL USING (auth.uid() = user_id);
-```
-
-### webhook_events
-Idempotent webhook event log.
-
-```sql
-CREATE TABLE webhook_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  provider TEXT NOT NULL CHECK (provider IN ('razorpay', 'cashfree')),
-  event_id TEXT NOT NULL,
-  event_type TEXT NOT NULL,
-  payload JSONB DEFAULT '{}',
-  processed_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(provider, event_id)
-);
-
--- No RLS - only accessed by service role via webhooks
-```
-
-## Entity Relationship Diagram
-
-```
-┌─────────────┐       ┌──────────────┐       ┌──────────────┐
-│    users    │───────│   profiles   │       │ subscriptions│
-│             │  1:1  │              │       │              │
-│ id (PK)     │       │ user_id (FK) │       │ user_id (FK) │
-│ email       │       │ full_name    │       │ plan_id      │
-│ role        │       │ phone        │       │ status       │
-└──────┬──────┘       │ headline     │       │ trial_ends_at│
-       │              │ location     │       └──────────────┘
-       │              │ linkedin_url │
-       │              │ avatar_url   │
-       │              └──────────────┘
-       │
-       │ 1:N
-       │
-┌──────┴──────┐       ┌──────────────┐
-│   resumes   │───────│ applications │
-│             │  1:N  │              │
-│ id (PK)     │       │ resume_id(FK)│
-│ user_id(FK) │       │ user_id (FK) │
-│ title       │       │ company      │
-│ content     │       │ position     │
-│ template_id │       │ status       │
-│ is_base     │       │ applied_at   │
-└─────────────┘       └──────────────┘
-```
-
-## Resume Content JSON Schema
-
-```typescript
-interface ResumeContent {
-  contact: {
-    full_name: string;
-    email: string;
-    phone: string;
-    location: string;
-    linkedin_url?: string;
-    portfolio_url?: string;
-    github_url?: string;
-  };
-  summary: {
-    text: string;
-  };
-  experience: Array<{
-    id: string;
-    company: string;
-    title: string;
-    location: string;
-    start_date: string;
-    end_date: string | null;
-    is_current: boolean;
-    bullets: string[];
-  }>;
-  education: Array<{
-    id: string;
-    institution: string;
-    degree: string;
-    field: string;
-    location: string;
-    start_date: string;
-    end_date: string | null;
-    gpa?: string;
-    achievements: string[];
-  }>;
-  skills: {
-    technical: string[];
-    soft: string[];
-    languages: string[];
-    tools: string[];
-  };
-  certifications: Array<{
-    id: string;
-    name: string;
-    issuer: string;
-    date: string;
-    url?: string;
-  }>;
-  projects: Array<{
-    id: string;
-    name: string;
-    description: string;
-    technologies: string[];
-    url?: string;
-    start_date?: string;
-    end_date?: string;
-  }>;
-  languages: Array<{
-    name: string;
-    proficiency: 'native' | 'fluent' | 'professional' | 'conversational' | 'basic';
-  }>;
-}
-```
+> All tables live in Supabase PostgreSQL with Row Level Security (RLS) enabled.
 
 ---
 
-*Last updated: 2026-03-05*
+## Tables
 
+### `profiles`
+User profile and job preferences. Created on first login.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | uuid | gen_random_uuid() | Primary key |
+| `user_id` | uuid | — | FK → auth.users |
+| `full_name` | text | '' | Display name |
+| `phone` | text | null | Phone number |
+| `location` | text | null | City/state |
+| `linkedin_url` | text | null | LinkedIn profile |
+| `avatar_url` | text | null | Profile picture |
+| `preferred_role` | text | null | Target job title |
+| `preferred_location` | text | null | Preferred work location |
+| `preferred_salary_min` | integer | null | Min salary (INR) |
+| `preferred_salary_max` | integer | null | Max salary (INR) |
+| `preferred_work_type` | text | null | remote/onsite/hybrid |
+| `years_of_experience` | integer | null | Years of experience |
+| `preferred_portals` | text[] | {} | Job portals to target |
+| `subscription_tier` | text | 'free' | free/pro/premium |
+| `created_at` | timestamptz | now() | Created date |
+| `updated_at` | timestamptz | now() | Last updated |
+
+### `resumes`
+User resumes stored as structured JSON.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | uuid | gen_random_uuid() | Primary key |
+| `user_id` | uuid | — | FK → auth.users |
+| `title` | text | 'Untitled Resume' | Resume name |
+| `content` | jsonb | {} | Structured resume data |
+| `template_id` | text | null | Template used |
+| `is_base` | boolean | false | Is base resume |
+| `version` | integer | 1 | Version number |
+| `deleted_at` | timestamptz | null | Soft delete |
+| `created_at` | timestamptz | now() | — |
+| `updated_at` | timestamptz | now() | — |
+
+### `applications`
+Job application tracking (Kanban board).
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | uuid | gen_random_uuid() | Primary key |
+| `user_id` | uuid | — | FK → auth.users |
+| `resume_id` | uuid | null | FK → resumes |
+| `company` | text | — | Company name |
+| `position` | text | — | Job title |
+| `job_url` | text | null | Original listing URL |
+| `status` | text | 'applied' | applied/screening/interview/offer/rejected |
+| `notes` | text | null | User notes |
+| `applied_at` | timestamptz | now() | When applied |
+| `follow_up_at` | timestamptz | null | Follow-up reminder |
+| `created_at` | timestamptz | now() | — |
+| `updated_at` | timestamptz | now() | — |
+
+### `job_queue`
+Auto-apply queue. Worker processes jobs with status `pending`.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | uuid | gen_random_uuid() | Primary key |
+| `user_id` | uuid | — | FK → auth.users |
+| `title` | text | — | Job title |
+| `company` | text | — | Company name |
+| `job_url` | text | — | Job listing URL (unique per user) |
+| `location` | text | null | Location |
+| `salary_text` | text | null | Formatted salary |
+| `description` | text | null | Job description |
+| `source` | text | 'adzuna' | adzuna/indeed/linkedin/manual |
+| `status` | text | 'pending' | pending/processing/applied/failed/skipped |
+| `error_message` | text | null | Error if failed |
+| `cover_letter_id` | uuid | null | Generated cover letter |
+| `resume_id` | uuid | null | FK → resumes |
+| `applied_at` | timestamptz | null | When auto-applied |
+| `screenshot_url` | text | null | Proof screenshot URL |
+| `screenshot_expires_at` | timestamptz | null | 7-day expiry |
+| `created_at` | timestamptz | now() | — |
+| `updated_at` | timestamptz | now() | — |
+
+### `ai_usage`
+AI token tracking per billing period.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | uuid | gen_random_uuid() | Primary key |
+| `user_id` | uuid | — | FK → auth.users |
+| `billing_period_start` | date | — | Period start |
+| `billing_period_end` | date | — | Period end |
+| `tokens_used` | integer | 0 | Tokens consumed |
+| `tokens_limit` | integer | 50000 | Token quota |
+| `last_used_at` | timestamptz | null | Last AI call |
+
+### `webhook_events`
+Payment webhook audit log.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | uuid | gen_random_uuid() | Primary key |
+| `provider` | text | — | razorpay/cashfree |
+| `event_id` | text | — | Provider event ID |
+| `event_type` | text | — | Event type |
+| `payload` | jsonb | {} | Raw webhook payload |
+| `created_at` | timestamptz | now() | — |
+
+---
+
+## Migrations
+
+| # | File | Description |
+|---|------|-------------|
+| 001 | `001_users.sql` | Base profiles table |
+| 002 | `002_resumes.sql` | Resumes table |
+| 003 | `003_applications.sql` | Applications tracking |
+| 004 | `004_ai_usage.sql` | AI token tracking |
+| 005 | `005_rls_policies.sql` | Row Level Security |
+| 006-010 | Various | Payments, webhooks, indexes |
+| 011 | `011_job_preferences.sql` | Job preference columns on profiles |
+| 012 | `012_job_queue.sql` | Job queue table |
+| 013 | `013_screenshot_columns.sql` | Screenshot proof columns |
+
+---
+
+## Storage Buckets
+
+| Bucket | Access | Contents |
+|--------|--------|----------|
+| `resumes` | Private | User resume PDF uploads |
+| `screenshots` | Private | Auto-apply proof screenshots (7-day TTL) |
+
+---
+
+*Last updated: 2026-03-20*

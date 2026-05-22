@@ -20,6 +20,7 @@ import {
   Building2,
   Briefcase,
   User,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,8 @@ interface CoverLetterGeneratorProps {
   resumes: Resume[];
 }
 
+type ExportFormat = "pdf" | "docx" | "txt";
+
 export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
   const [selectedResume, setSelectedResume] = useState<string>(resumes[0]?.id || "");
   const [companyName, setCompanyName] = useState("");
@@ -46,6 +49,7 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
   const [coverLetter, setCoverLetter] = useState("");
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleGenerate = async () => {
     if (!selectedResume) {
@@ -104,12 +108,66 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([coverLetter], { type: "text/plain" });
+  const handleDownload = async (format: ExportFormat) => {
+    if (!coverLetter) return;
+
+    const filename = `cover_letter_${companyName.replace(/\s+/g, "_")}`;
+    setExporting(true);
+
+    try {
+      if (format === "txt") {
+        // Plain text download
+        const blob = new Blob([coverLetter], { type: "text/plain" });
+        downloadBlob(blob, `${filename}.txt`);
+        toast.success("Downloaded as TXT");
+      } else if (format === "docx") {
+        // DOCX download via API
+        const response = await fetch("/api/cover-letter/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: coverLetter,
+            format: "docx",
+            filename,
+          }),
+        });
+
+        if (!response.ok) throw new Error("Export failed");
+
+        const blob = await response.blob();
+        downloadBlob(blob, `${filename}.docx`);
+        toast.success("Downloaded as DOCX");
+      } else if (format === "pdf") {
+        // PDF download via API
+        const response = await fetch("/api/cover-letter/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: coverLetter,
+            format: "pdf",
+            filename,
+          }),
+        });
+
+        if (!response.ok) throw new Error("Export failed");
+
+        const blob = await response.blob();
+        downloadBlob(blob, `${filename}.pdf`);
+        toast.success("Downloaded as PDF");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error(`Failed to export as ${format.toUpperCase()}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `cover_letter_${companyName.replace(/\s+/g, "_")}.txt`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -128,7 +186,7 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
         {/* Resume Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-2">
-            <FileText className="h-4 w-4 text-granite" />
+            <FileText className="h-4 w-4 text-text-secondary" />
             Select Resume
           </label>
           {resumes.length === 0 ? (
@@ -140,8 +198,8 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
               value={selectedResume}
               onChange={(e) => setSelectedResume(e.target.value)}
               className={cn(
-                "w-full h-10 px-3 rounded-lg border border-border bg-background",
-                "text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                "w-full h-10 px-3 rounded-2xl border border-border bg-white/5",
+                "text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               )}
             >
               {resumes.map((resume) => (
@@ -156,7 +214,7 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
         {/* Company Name */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-granite" />
+            <Building2 className="h-4 w-4 text-text-secondary" />
             Company Name *
           </label>
           <Input
@@ -169,7 +227,7 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
         {/* Job Title */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-granite" />
+            <Briefcase className="h-4 w-4 text-text-secondary" />
             Job Title *
           </label>
           <Input
@@ -182,8 +240,8 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
         {/* Hiring Manager (optional) */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground flex items-center gap-2">
-            <User className="h-4 w-4 text-granite" />
-            Hiring Manager <span className="text-granite">(optional)</span>
+            <User className="h-4 w-4 text-text-secondary" />
+            Hiring Manager <span className="text-text-secondary">(optional)</span>
           </label>
           <Input
             value={hiringManager}
@@ -242,14 +300,38 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
               >
                 {copied ? "Copied" : "Copy"}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDownload}
-                leftIcon={<Download className="h-4 w-4" />}
-              >
-                Download
-              </Button>
+              {/* Export dropdown */}
+              <div className="relative group">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={exporting}
+                  leftIcon={exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  rightIcon={<ChevronDown className="h-3 w-3" />}
+                >
+                  Export
+                </Button>
+                <div className="absolute right-0 top-full mt-1 w-32 py-1 bg-background border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                  <button
+                    onClick={() => handleDownload("pdf")}
+                    className="w-full px-3 py-1.5 text-sm text-left hover:bg-muted transition-colors"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => handleDownload("docx")}
+                    className="w-full px-3 py-1.5 text-sm text-left hover:bg-muted transition-colors"
+                  >
+                    DOCX
+                  </button>
+                  <button
+                    onClick={() => handleDownload("txt")}
+                    className="w-full px-3 py-1.5 text-sm text-left hover:bg-muted transition-colors"
+                  >
+                    TXT
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

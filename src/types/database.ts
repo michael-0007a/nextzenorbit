@@ -14,6 +14,9 @@ export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled
 export type PlanId = "free" | "pro" | "elite";
 export type PaymentProviderType = "razorpay" | "cashfree";
 export type ApplicationStatus = "applied" | "screening" | "interview" | "offer" | "rejected";
+export type WorkType = "remote" | "onsite" | "hybrid" | "any";
+export type JobQueueStatus = "pending" | "processing" | "applied" | "failed" | "skipped";
+export type JobSource = "adzuna" | "jsearch" | "manual";
 
 // ── Row types ──
 // IMPORTANT: Use `type` not `interface` — interfaces lack implicit index
@@ -37,6 +40,13 @@ export type ProfileRow = {
   location: string | null;
   linkedin_url: string | null;
   avatar_url: string | null;
+  preferred_role: string | null;
+  preferred_location: string | null;
+  preferred_salary_min: number | null;
+  preferred_salary_max: number | null;
+  preferred_work_type: WorkType | null;
+  years_of_experience: number | null;
+  preferred_portals: string[];
   created_at: string;
   updated_at: string;
 };
@@ -139,6 +149,27 @@ export type CoverLetterRow = {
   updated_at: string;
 };
 
+export type JobQueueRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  company: string;
+  job_url: string;
+  location: string | null;
+  salary_text: string | null;
+  description: string | null;
+  source: JobSource;
+  status: JobQueueStatus;
+  error_message: string | null;
+  cover_letter_id: string | null;
+  resume_id: string | null;
+  applied_at: string | null;
+  screenshot_url: string | null;
+  screenshot_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // ── Supabase Database type ──
 // Compatible with @supabase/supabase-js v2.98+
 
@@ -153,8 +184,8 @@ export type Database = {
       };
       profiles: {
         Row: ProfileRow;
-        Insert: { user_id: string; full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null };
-        Update: { full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null };
+        Insert: { user_id: string; full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[] };
+        Update: { full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[] };
         Relationships: [{ foreignKeyName: "profiles_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
       subscriptions: {
@@ -198,6 +229,12 @@ export type Database = {
         Insert: { user_id: string; resume_id?: string | null; title?: string; content: string; company_name: string; job_title: string; job_description?: string | null };
         Update: { title?: string; content?: string; company_name?: string; job_title?: string; job_description?: string | null };
         Relationships: [{ foreignKeyName: "cover_letters_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "cover_letters_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }];
+      };
+      job_queue: {
+        Row: JobQueueRow;
+        Insert: { user_id: string; title: string; company: string; job_url: string; location?: string | null; salary_text?: string | null; description?: string | null; source?: JobSource; status?: JobQueueStatus; resume_id?: string | null };
+        Update: { status?: JobQueueStatus; error_message?: string | null; cover_letter_id?: string | null; resume_id?: string | null; applied_at?: string | null; screenshot_url?: string | null; screenshot_expires_at?: string | null };
+        Relationships: [{ foreignKeyName: "job_queue_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "job_queue_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }];
       };
     };
     Views: Record<string, never>;

@@ -58,7 +58,7 @@ export function TopNav({
     <header
       className={cn(
         "sticky top-0 z-30 flex h-16 items-center justify-between gap-4",
-        "border-b border-border bg-card/80 backdrop-blur-xl px-6",
+        "border-b border-border/60 bg-surface/70 backdrop-blur-2xl px-6",
         className
       )}
     >
@@ -76,9 +76,9 @@ export function TopNav({
         {/* Search */}
         <button
           className={cn(
-            "hidden sm:inline-flex h-10 items-center gap-2 rounded-xl",
-            "border border-border bg-muted/50 px-4 text-sm text-stone",
-            "hover:text-foreground hover:border-border-hover hover:bg-muted transition-all duration-200",
+            "hidden sm:inline-flex h-10 items-center gap-2 rounded-full",
+            "border border-border bg-white/5 px-4 text-sm text-text-secondary",
+            "hover:text-foreground hover:border-border-hover hover:bg-white/10 transition-all duration-200",
             "w-48 lg:w-64"
           )}
           aria-label="Search"
@@ -92,7 +92,7 @@ export function TopNav({
 
         {/* Notifications */}
         <button
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted/50 text-stone hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all duration-200"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white/5 text-text-secondary hover:text-primary hover:border-primary/50 hover:bg-white/10 transition-all duration-200"
           aria-label="Notifications"
         >
           <Bell className="h-[18px] w-[18px]" />
@@ -107,7 +107,7 @@ export function TopNav({
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40"
             aria-label="User menu"
             aria-expanded={menuOpen}
             aria-haspopup="true"
@@ -116,11 +116,11 @@ export function TopNav({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-64 rounded-3xl border border-border/70 bg-surface/90 backdrop-blur-2xl shadow-xl z-50 overflow-hidden">
               {/* User info header */}
-              <div className="border-b border-border px-4 py-3 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5">
+              <div className="border-b border-border/60 px-4 py-3 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10">
                 <p className="text-sm font-semibold text-foreground truncate">{userName}</p>
-                <p className="text-xs text-stone mt-0.5">Manage your account</p>
+                <p className="text-xs text-text-secondary mt-0.5">Manage your account</p>
               </div>
 
               {/* Menu items */}
@@ -128,9 +128,9 @@ export function TopNav({
                 <Link
                   href="/profile"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-muted transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
                     <User className="h-4 w-4" />
                   </div>
                   Profile
@@ -138,7 +138,7 @@ export function TopNav({
                 <Link
                   href="/subscription"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-muted transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <CreditCard className="h-4 w-4 text-primary" />
@@ -148,9 +148,9 @@ export function TopNav({
                 <Link
                   href="/settings"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-muted transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
                     <Settings className="h-4 w-4" />
                   </div>
                   Settings
@@ -158,11 +158,11 @@ export function TopNav({
               </div>
 
               {/* Sign out */}
-              <div className="border-t border-border py-2">
+              <div className="border-t border-border/60 py-2">
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-error hover:bg-error/10 transition-colors"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-error/10">
                       <LogOut className="h-4 w-4" />

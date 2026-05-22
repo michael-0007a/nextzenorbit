@@ -150,17 +150,18 @@ export function ResumeGrid({ resumes: initialResumes }: ResumeGridProps) {
   // ── Empty state ──
   if (resumes.length === 0) {
     return (
-      <motion.div variants={fadeIn} initial="hidden" animate="visible" className="relative overflow-hidden rounded-sm border border-granite py-20 px-8">
+      <motion.div variants={fadeIn} initial="hidden" animate="visible" className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 py-20 px-8">
+        <div className="absolute inset-0 bg-space opacity-45" />
         {/* Decorative gradient orbs */}
-        <div className="absolute top-10 left-1/4 w-64 h-64 bg-mint/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-1/4 w-48 h-48 bg-leaf/5 rounded-full blur-2xl" />
-        <div className="absolute top-1/2 right-10 w-32 h-32 bg-shadow/5 rounded-full blur-xl" />
+        <div className="absolute top-10 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-1/4 w-48 h-48 bg-secondary/10 rounded-full blur-2xl" />
+        <div className="absolute top-1/2 right-10 w-32 h-32 bg-accent/10 rounded-full blur-xl" />
 
         <div className="relative flex flex-col items-center justify-center">
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-sm border border-granite bg-gradient-to-br from-mint/5 to-leaf/5">
-            <FileText className="h-12 w-12 text-granite" />
-            <div className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-mint/10 border border-mint/30">
-              <Sparkles className="h-3.5 w-3.5 text-mint" />
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl border border-border bg-white/5">
+            <FileText className="h-12 w-12 text-text-secondary" />
+            <div className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 border border-primary/30">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
             </div>
           </div>
           <h2 className="mt-8 text-2xl font-bold text-foreground">
@@ -177,7 +178,6 @@ export function ResumeGrid({ resumes: initialResumes }: ResumeGridProps) {
               leftIcon={<Plus className="h-4 w-4" />}
               onClick={handleCreateBlank}
               isLoading={creating}
-              className="shadow-[0_0_20px_rgba(86,227,159,0.2)]"
             >
               Start from Scratch
             </Button>
@@ -201,21 +201,21 @@ export function ResumeGrid({ resumes: initialResumes }: ResumeGridProps) {
 
           {/* Feature hints */}
           <div className="mt-12 grid gap-4 sm:grid-cols-3 w-full max-w-2xl">
-            <div className="flex items-center gap-3 p-4 rounded-sm border border-granite/50 bg-muted/30">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-mint/10">
-                <Sparkles className="h-4 w-4 text-mint" />
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-white/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <Sparkles className="h-4 w-4 text-primary" />
               </div>
               <span className="text-sm text-text-secondary">AI-powered parsing</span>
             </div>
-            <div className="flex items-center gap-3 p-4 rounded-sm border border-granite/50 bg-muted/30">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-leaf/10">
-                <FileBadge className="h-4 w-4 text-leaf" />
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-white/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary/10">
+                <FileBadge className="h-4 w-4 text-secondary" />
               </div>
               <span className="text-sm text-text-secondary">Multiple versions</span>
             </div>
-            <div className="flex items-center gap-3 p-4 rounded-sm border border-granite/50 bg-muted/30">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-shadow/20 dark:bg-shadow/40">
-                <Upload className="h-4 w-4 text-shadow dark:text-leaf" />
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-white/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10">
+                <Upload className="h-4 w-4 text-accent" />
               </div>
               <span className="text-sm text-text-secondary">PDF & DOCX support</span>
             </div>

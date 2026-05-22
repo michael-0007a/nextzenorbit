@@ -2,149 +2,176 @@
 
 ## System Overview
 
-Nextzen Orbit is an AI-powered resume optimization and job application SaaS platform targeting the Indian job market. Built with Next.js 15 (App Router), Supabase, and Groq AI (LLaMA 3.3 70B).
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS v4 |
-| Backend | Next.js API Routes (Server Actions) |
-| Database | Supabase PostgreSQL with RLS |
-| Auth | Supabase Auth (Google OAuth) |
-| AI | Groq API (LLaMA 3.3 70B Versatile) |
-| Payments | Razorpay (primary), Cashfree (secondary) |
-| Storage | Supabase Storage |
-| Hosting | Vercel |
-
-## Architecture Diagram
+Nextzen Orbit is an AI-powered job application platform. It helps users build resumes, search for jobs, and auto-apply using browser automation.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Client                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Next.js   │  │   React     │  │  TailwindCSS +      │  │
-│  │  App Router │  │ Components  │  │  Framer Motion      │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-└─────────┼────────────────┼───────────────────┼──────────────┘
-          │                │                   │
-          ▼                ▼                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Next.js API Routes                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
-│  │  /api/auth   │  │ /api/profile │  │  /api/resumes    │   │
-│  │  /api/analyzer│ │ /api/webhooks│  │  /api/payments   │   │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────────┘   │
-└─────────┼────────────────┼───────────────────┼──────────────┘
-          │                │                   │
-          ▼                ▼                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    External Services                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
-│  │   Supabase   │  │   Groq AI    │  │    Razorpay/     │   │
-│  │  (DB + Auth) │  │  (LLaMA 3.3) │  │    Cashfree      │   │
-│  └──────────────┘  └──────────────┘  └──────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Data Flow
-
-### Authentication Flow (Google OAuth)
-```
-1. User clicks "Continue with Google"
-2. Redirect to Google OAuth consent screen
-3. Google redirects to /api/auth/callback with auth code
-4. Exchange code for session
-5. Create/update user, profile, subscription rows
-6. Redirect to /dashboard
-```
-
-### Resume Analysis Flow
-```
-1. User pastes job description
-2. User selects resume to compare
-3. POST /api/analyzer with JD + resume_id
-4. Fetch resume content from DB
-5. Send to Groq AI for analysis
-6. Return match score, skills, suggestions
-7. Display results in UI
-```
-
-### Subscription Flow
-```
-1. User selects plan
-2. Create Razorpay order via /api/payments/create-order
-3. Open Razorpay checkout modal
-4. User completes payment
-5. Razorpay sends webhook to /api/webhooks/razorpay
-6. Verify signature, update subscription status
-7. User sees updated plan
-```
-
-## Folder Structure
-
-```
-src/
-├── app/                      # Next.js App Router
-│   ├── (auth)/              # Auth pages (login, register)
-│   ├── (dashboard)/         # Protected dashboard pages
-│   └── api/                 # API routes
-├── components/              # React components
-│   ├── ui/                  # Base UI primitives
-│   ├── forms/               # Form components
-│   ├── layout/              # Layout components
-│   └── dashboard/           # Dashboard-specific
-├── lib/                     # Utilities & integrations
-│   ├── supabase/           # Supabase client helpers
-│   ├── payments/           # Payment gateway abstraction
-│   ├── ai/                 # AI prompts & parsers
-│   └── validations/        # Zod schemas
-├── types/                   # TypeScript types
-└── hooks/                   # React hooks
-```
-
-## Security Architecture
-
-### Row Level Security (RLS)
-All database tables have RLS policies enforcing:
-- Users can only access their own data
-- Admin role can access all data
-- Service role bypasses RLS (for webhooks)
-
-### API Security
-- All routes validate authentication first
-- Input validation with Zod (client + server)
-- Rate limiting on auth endpoints
-- CORS restricted to known origins
-
-### Payment Security
-- Webhook signatures verified cryptographically
-- Subscription status only updated via webhooks
-- All amounts stored in paise (smallest unit)
-
-## Environment Variables
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# AI
-GROQ_API_KEY=
-
-# Payments
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
-CASHFREE_APP_ID=
-CASHFREE_SECRET_KEY=
-
-# App
-NEXT_PUBLIC_APP_URL=
+┌─────────────────────────────────────────────────────────────────┐
+│                         User (Browser)                          │
+└─────────────────┬───────────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Next.js App (App Router)                      │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │ Dashboard │  │ Resume   │  │ Job      │  │ Applications     │ │
+│  │ Page      │  │ Builder  │  │ Search   │  │ Kanban Tracker   │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───────┬──────────┘ │
+│       │              │             │                │            │
+│  ┌────▼──────────────▼─────────────▼────────────────▼──────────┐ │
+│  │                     API Routes (/api)                        │ │
+│  │  /auth   /profile   /resumes   /jobs/search   /jobs/queue   │ │
+│  │  /ai     /webhooks  /cron/cleanup                           │ │
+│  └──────────────────────────┬──────────────────────────────────┘ │
+└─────────────────────────────┼───────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────────────┐
+              ▼               ▼                       ▼
+┌─────────────────┐  ┌───────────────┐  ┌─────────────────────┐
+│   Supabase      │  │   Groq AI     │  │   Adzuna API        │
+│   - Auth        │  │   (LLaMA 3.3) │  │   (Job Search)      │
+│   - Database    │  │               │  │                     │
+│   - Storage     │  │   - Resume    │  │   - Free tier       │
+│     - resumes   │  │     parsing   │  │   - India market    │
+│     - shots     │  │   - Form      │  │                     │
+│                 │  │     detection │  │                     │
+└────────┬────────┘  └───────────────┘  └─────────────────────┘
+         │
+         │  polls job_queue
+         ▼
+┌──────────────────────────────────────┐
+│   Playwright Worker (background)     │
+│                                      │
+│   1. Poll Supabase for pending jobs  │
+│   2. Open job URL in browser         │
+│   3. Detect form (AI or hardcoded)   │
+│   4. Fill fields from user profile   │
+│   5. Take proof screenshot           │
+│   6. Upload to Supabase Storage      │
+│   7. Mark job as applied             │
+│   8. Create application record       │
+└──────────────────────────────────────┘
 ```
 
 ---
 
-*Last updated: 2026-03-05*
+## Tech Stack
 
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Frontend | Next.js 16 (App Router) | SSR + Client Components |
+| Styling | Tailwind CSS | Utility-first CSS |
+| UI | Custom Yeldra design system | `src/components/ui/` |
+| Auth | Supabase Auth (Google OAuth) | Login/signup |
+| Database | Supabase PostgreSQL | All data storage |
+| Storage | Supabase Storage | Resumes + screenshots |
+| AI | Groq (LLaMA 3.3 70B) | Resume parsing, form detection |
+| Job Search | Adzuna API (free) | India job listings |
+| Automation | Playwright | Browser automation |
+| Payments | Razorpay | Subscription billing |
+
+---
+
+## Directory Structure
+
+```
+nextzenorbit/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── (auth)/             # Login, signup pages
+│   │   ├── (dashboard)/        # Protected dashboard pages
+│   │   │   ├── dashboard/      # Main dashboard
+│   │   │   ├── profile/        # Profile + job preferences
+│   │   │   ├── resumes/        # Resume builder
+│   │   │   ├── applications/   # Kanban tracker
+│   │   │   └── job-search/     # Job search + queue
+│   │   └── api/                # API routes
+│   │       ├── auth/           # Auth callbacks
+│   │       ├── profile/        # Profile CRUD
+│   │       ├── resumes/        # Resume CRUD
+│   │       ├── ai/             # AI endpoints
+│   │       ├── jobs/           # Job search + queue
+│   │       │   ├── search/     # Adzuna search
+│   │       │   └── queue/      # Queue management
+│   │       ├── webhooks/       # Payment webhooks
+│   │       └── cron/           # Scheduled cleanup
+│   ├── components/
+│   │   ├── ui/                 # Design system (Button, Card, etc.)
+│   │   ├── layout/             # Sidebar, PageHeader
+│   │   ├── forms/              # ProfileForm, ResumeForm
+│   │   └── dashboard/          # JobSearchClient
+│   ├── lib/
+│   │   ├── supabase/           # Supabase clients (server, admin)
+│   │   ├── ai/                 # Groq client + prompts
+│   │   ├── jobs/               # Adzuna API client
+│   │   └── validations/        # Zod schemas
+│   └── types/                  # TypeScript types (database.ts)
+├── worker/                     # Standalone Playwright worker
+│   ├── src/
+│   │   ├── index.ts            # Bootstrap (loads env)
+│   │   ├── worker.ts           # Main polling loop
+│   │   ├── supabase.ts         # Worker Supabase client
+│   │   ├── browser.ts          # Playwright manager
+│   │   └── fillers/
+│   │       ├── indeed.ts       # Indeed form selectors
+│   │       └── generic.ts      # AI-powered form filler
+│   ├── package.json
+│   └── tsconfig.json
+├── supabase/
+│   └── migrations/             # SQL migrations (001-013)
+└── docs/                       # Documentation
+```
+
+---
+
+## Data Flow: Auto-Apply Pipeline
+
+```
+User searches jobs on /dashboard/job-search
+        │
+        ▼
+POST /api/jobs/search   →  Adzuna API  →  job results
+        │
+        ▼
+User clicks "Add to Queue"
+        │
+        ▼
+POST /api/jobs/queue    →  INSERT into job_queue (status: pending)
+        │
+        ▼
+Worker polls job_queue  →  picks job   →  status: processing
+        │
+        ▼
+Playwright opens job URL → detects form → fills fields
+        │
+        ▼
+Screenshot captured     →  uploaded to Supabase Storage
+        │
+        ▼
+job_queue updated       →  status: applied
+                        →  screenshot_url + 7-day expiry
+        │
+        ▼
+Application record created in applications table
+        │
+        ▼
+User sees result on dashboard + screenshot proof in queue panel
+```
+
+---
+
+## Key Design Decisions
+
+1. **Worker is separate from Next.js** — Playwright needs system-level Chromium, doesn't work in serverless. Runs as a standalone process.
+
+2. **Lazy Supabase client in worker** — ESM imports execute before module-level code, so dotenv must load in a bootstrap file (`index.ts`) that dynamically imports the worker.
+
+3. **Indeed-first, AI-fallback** — Hardcoded Indeed selectors are fast and reliable. AI generic filler is the fallback for unknown job sites.
+
+4. **7-day screenshot TTL** — Screenshots are proof of submission, not permanent records. Signed URLs expire automatically. Cleanup cron removes the files.
+
+5. **Adzuna over scraping** — Adzuna API is free, legal, and returns structured data. Playwright scraping is reserved for the apply step, not job discovery.
+
+---
+
+*Last updated: 2026-03-20*

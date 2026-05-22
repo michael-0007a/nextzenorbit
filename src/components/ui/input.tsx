@@ -64,10 +64,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={!!error}
             aria-describedby={describedBy}
             className={cn(
-              "flex h-11 w-full rounded-xl border bg-muted/50 px-4 py-2 text-sm",
-              "text-foreground placeholder:text-stone",
+              "flex h-11 w-full rounded-2xl border bg-white/5 px-4 py-2 text-sm",
+              "text-foreground placeholder:text-text-secondary",
               "transition-all duration-200",
-              "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-background",
+              "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 focus:bg-white/10",
               "disabled:cursor-not-allowed disabled:opacity-40",
               error
                 ? "border-error focus:ring-error/30"
@@ -79,7 +79,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightAddon && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-stone">
+            <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-text-secondary">
               {rightAddon}
             </div>
           )}

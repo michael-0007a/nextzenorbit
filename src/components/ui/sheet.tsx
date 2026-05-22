@@ -98,20 +98,20 @@ export function Sheet({
             tabIndex={-1}
             onKeyDown={handleKeyDown}
             className={cn(
-              "absolute bg-surface-elevated border-granite focus:outline-none",
+              "absolute bg-surface-elevated/90 border-border/70 backdrop-blur-2xl focus:outline-none",
               side === "right" && [
                 "inset-y-0 right-0 border-l",
                 width,
               ],
               side === "bottom" && [
-                "inset-x-0 bottom-0 border-t rounded-t-sm",
+                "inset-x-0 bottom-0 border-t rounded-t-3xl",
                 "max-h-[85vh]",
               ],
               className
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-granite p-4">
+            <div className="flex items-center justify-between border-b border-border/60 p-4">
               <div>
                 {title && (
                   <h2 className="text-base font-semibold text-foreground">
@@ -127,8 +127,8 @@ export function Sheet({
               <button
                 onClick={onClose}
                 className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-sm",
-                  "text-granite hover:text-foreground hover:bg-muted",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full",
+                  "text-text-secondary hover:text-foreground hover:bg-white/10",
                   "transition-colors duration-150"
                 )}
                 aria-label="Close panel"

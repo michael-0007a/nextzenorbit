@@ -2,13 +2,13 @@ import { cn } from "@/lib/utils";
 
 // === Shape Definitions ===
 const skeletonShapes = {
-  text: "h-4 w-full rounded-sm",
-  heading: "h-6 w-3/4 rounded-sm",
+  text: "h-4 w-full rounded-xl",
+  heading: "h-6 w-3/4 rounded-xl",
   circle: "rounded-full",
-  rect: "rounded-sm",
-  card: "h-48 w-full rounded-sm",
+  rect: "rounded-xl",
+  card: "h-48 w-full rounded-3xl",
   avatar: "h-10 w-10 rounded-full",
-  button: "h-10 w-24 rounded-sm",
+  button: "h-10 w-24 rounded-full",
 };
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -57,7 +57,7 @@ export function Skeleton({
  */
 export function SkeletonCard() {
   return (
-    <div className="rounded-sm border border-granite p-6 space-y-4">
+    <div className="rounded-3xl border border-border/60 p-6 space-y-4">
       <div className="flex items-center gap-3">
         <Skeleton shape="avatar" />
         <div className="flex-1 space-y-2">

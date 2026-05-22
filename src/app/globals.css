@@ -4,54 +4,67 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================
-   Nextzen Orbit — Premium Design System
+  NEXTZEN ORBIT - Adaptive Light/Dark System
+  ============================================ */
 
-   New Palette: Warm Amber/Gold + Cool Slate
-   Sophisticated. Unique. Not another Supabase clone.
-   ============================================ */
-
-/* ── LIGHT MODE ── */
 :root {
-  --background: #FAFAFA;
-  --foreground: #0F172A;
+  --background: #F7F8FB;
+  --foreground: #10121A;
   --surface: #FFFFFF;
-  --surface-elevated: #FFFFFF;
-  --surface-overlay: rgba(0, 0, 0, 0.6);
-  --border: #E2E8F0;
-  --border-hover: #CBD5E1;
-  --ring: rgba(225, 29, 72, 0.3);
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --text-secondary: #64748B;
+  --surface-elevated: #F1F3F8;
+  --surface-overlay: rgba(247, 248, 251, 0.8);
+  --border: rgba(15, 23, 42, 0.12);
+  --border-hover: rgba(15, 23, 42, 0.2);
+  --ring: rgba(255, 0, 61, 0.25);
+  --muted: #F1F3F8;
+  --muted-foreground: #5B667A;
+  --text-secondary: #5B667A;
 
-  /* Card backgrounds */
   --card: #FFFFFF;
-  --card-hover: #F8FAFC;
+  --card-hover: #F5F7FB;
+
+  --glow-1: rgba(255, 0, 61, 0.08);
+  --glow-2: rgba(124, 58, 237, 0.08);
+  --glow-3: rgba(0, 209, 255, 0.06);
+
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-strong: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  --glass-card-shadow: 0 20px 50px rgba(15, 23, 42, 0.14);
 }
 
-/* ── DARK MODE ── */
 .dark {
-  --background: #020617;
-  --foreground: #F8FAFC;
-  --surface: #0F172A;
-  --surface-elevated: #0F172A;
-  --surface-overlay: rgba(0, 0, 0, 0.8);
-  --border: #1E293B;
-  --border-hover: #334155;
-  --ring: rgba(251, 113, 133, 0.4);
-  --muted: #0F172A;
-  --muted-foreground: #94A3B8;
-  --text-secondary: #94A3B8;
+  --background: #0A0A0F;
+  --foreground: #F5F7FA;
+  --surface: #111118;
+  --surface-elevated: #171721;
+  --surface-overlay: rgba(10, 10, 15, 0.75);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --ring: rgba(255, 43, 106, 0.35);
+  --muted: #111118;
+  --muted-foreground: #A7B0C0;
+  --text-secondary: #A7B0C0;
 
-  --card: #0F172A;
-  --card-hover: #1E293B;
+  --card: #171721;
+  --card-hover: #1D1D2A;
+
+  --glow-1: rgba(255, 0, 61, 0.18);
+  --glow-2: rgba(124, 58, 237, 0.16);
+  --glow-3: rgba(0, 209, 255, 0.12);
+
+  --glass: rgba(23, 23, 33, 0.55);
+  --glass-strong: rgba(23, 23, 33, 0.62);
+  --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --glass-card-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
 /* ── TailwindCSS v4 Theme ── */
 @theme inline {
   /* Fonts */
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  --font-sans: var(--font-sora), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Surfaces */
   --color-background: var(--background);
@@ -68,40 +81,38 @@
   --color-card: var(--card);
   --color-card-hover: var(--card-hover);
 
-  /* ── UNIQUE PREMIUM PALETTE ── */
+  /* Primary: Orbit Red */
+  --color-primary: #FF003D;
+  --color-primary-hover: #E00035;
+  --color-primary-light: #FF2B6A;
+  --color-primary-muted: rgba(255, 0, 61, 0.12);
+  --color-primary-border: rgba(255, 0, 61, 0.35);
 
-  /* Primary: Rose/Crimson - Elegant, bold, warm */
-  --color-primary: #E11D48;
-  --color-primary-hover: #BE123C;
-  --color-primary-light: #FB7185;
-  --color-primary-muted: rgba(225, 29, 72, 0.1);
-  --color-primary-border: rgba(225, 29, 72, 0.3);
+  /* Secondary: Electric Purple */
+  --color-secondary: #7C3AED;
+  --color-secondary-hover: #6D28D9;
+  --color-secondary-light: #A78BFA;
+  --color-secondary-muted: rgba(124, 58, 237, 0.16);
 
-  /* Secondary: Deep Navy/Slate - Sophisticated, professional */
-  --color-secondary: #1E40AF;
-  --color-secondary-hover: #1E3A8A;
-  --color-secondary-light: #3B82F6;
-  --color-secondary-muted: rgba(30, 64, 175, 0.1);
+  /* Accent: Cyan Glow */
+  --color-accent: #00D1FF;
+  --color-accent-hover: #00B6E0;
+  --color-accent-muted: rgba(0, 209, 255, 0.16);
 
-  /* Accent: Amber/Gold - Warm highlight */
-  --color-accent: #D97706;
-  --color-accent-hover: #B45309;
-  --color-accent-muted: rgba(217, 119, 6, 0.1);
-
-  /* Neutral: Slate grays */
-  --color-stone: #64748B;
-  --color-stone-light: #94A3B8;
-  --color-stone-dark: #334155;
+  /* Neutrals */
+  --color-stone: #A7B0C0;
+  --color-stone-light: #C7CFDA;
+  --color-stone-dark: #70798A;
 
   /* Legacy aliases for compatibility */
-  --color-mint: #E11D48;
-  --color-mint-hover: #BE123C;
-  --color-mint-muted: rgba(225, 29, 72, 0.1);
-  --color-mint-border: rgba(225, 29, 72, 0.3);
-  --color-leaf: #FB7185;
-  --color-granite: #64748B;
-  --color-shadow: #1E293B;
-  --color-midnight: #0F172A;
+  --color-mint: #FF003D;
+  --color-mint-hover: #E00035;
+  --color-mint-muted: rgba(255, 0, 61, 0.12);
+  --color-mint-border: rgba(255, 0, 61, 0.35);
+  --color-leaf: #FF2B6A;
+  --color-granite: #A7B0C0;
+  --color-shadow: #05050A;
+  --color-midnight: #0A0A0F;
 
   /* ── Semantic Colors ── */
   --color-success: #22C55E;
@@ -111,11 +122,11 @@
 
   /* ── Border Radius (softer, more refined) ── */
   --radius-none: 0;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
   --radius-full: 9999px;
 
   /* ── Box Shadows (more depth) ── */
@@ -125,9 +136,10 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 0 20px rgba(225, 29, 72, 0.15);
-  --shadow-glow-lg: 0 0 40px rgba(225, 29, 72, 0.2);
-  --shadow-glow-secondary: 0 0 20px rgba(30, 64, 175, 0.15);
+  --shadow-glow: 0 0 24px rgba(255, 43, 106, 0.25);
+  --shadow-glow-lg: 0 0 60px rgba(255, 0, 61, 0.3);
+  --shadow-glow-secondary: 0 0 30px rgba(0, 209, 255, 0.28);
+  --shadow-soft: 0 20px 50px rgba(0, 0, 0, 0.45);
 
   /* Animations */
   --animate-shimmer: shimmer 2s infinite linear;
@@ -155,21 +167,38 @@
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes glow {
-  from { box-shadow: 0 0 20px rgba(225, 29, 72, 0.1); }
-  to { box-shadow: 0 0 30px rgba(225, 29, 72, 0.25); }
+  from { box-shadow: 0 0 20px rgba(255, 0, 61, 0.18); }
+  to { box-shadow: 0 0 34px rgba(255, 43, 106, 0.32); }
 }
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
 @keyframes pulse-ring {
   0% { transform: scale(0.95); opacity: 1; }
   100% { transform: scale(1.3); opacity: 0; }
+}
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes drift {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(12px, -8px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 /* ── Base ── */
 body {
   background: var(--background);
+  background-image:
+    radial-gradient(1200px circle at 12% 8%, var(--glow-1), transparent 60%),
+    radial-gradient(900px circle at 85% 18%, var(--glow-2), transparent 58%),
+    radial-gradient(800px circle at 50% 85%, var(--glow-3), transparent 62%);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -195,23 +224,21 @@ body {
 
 /* ── Selection ── */
 ::selection {
-  background: rgba(225, 29, 72, 0.2);
+  background: rgba(255, 0, 61, 0.22);
   color: inherit;
 }
 
 /* ── Glass Effect Utility ── */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.dark .glass {
-  background: rgba(28, 25, 23, 0.8);
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--glass-shadow);
 }
 
 /* ── Gradient Text Utility ── */
 .gradient-text {
-  background: linear-gradient(135deg, #E11D48 0%, #FB7185 50%, #1E40AF 100%);
+  background: linear-gradient(135deg, #FF003D 0%, #FF2B6A 45%, #7C3AED 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -227,10 +254,104 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #E11D48, #1E40AF, #E11D48);
+  background: linear-gradient(135deg, #FF003D, #7C3AED, #00D1FF);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
+}
+
+/* ── New UI Utilities ── */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.bg-space {
+  background:
+    radial-gradient(1200px circle at 15% 10%, var(--glow-1), transparent 55%),
+    radial-gradient(900px circle at 85% 20%, var(--glow-2), transparent 58%),
+    radial-gradient(800px circle at 50% 85%, var(--glow-3), transparent 60%);
+}
+
+.auth-aurora {
+  background:
+    radial-gradient(820px circle at 50% -8%, rgba(255, 255, 255, 0.14), transparent 62%),
+    radial-gradient(1200px circle at 12% 8%, rgba(255, 0, 61, 0.22), transparent 62%),
+    radial-gradient(900px circle at 88% 18%, rgba(124, 58, 237, 0.2), transparent 60%),
+    radial-gradient(820px circle at 52% 88%, rgba(0, 209, 255, 0.18), transparent 62%);
+}
+
+.auth-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.25;
+  mask-image: radial-gradient(circle at 50% 20%, rgba(0, 0, 0, 0.65), transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at 50% 20%, rgba(0, 0, 0, 0.65), transparent 70%);
+}
+
+.glass-card {
+  background: var(--glass-strong);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--glass-card-shadow);
+}
+
+.orbit-ring {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  animation: orbit 28s linear infinite;
+}
+.orbit-ring::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #FF2B6A 0%, rgba(255, 43, 106, 0.15) 70%);
+  box-shadow: 0 0 20px rgba(255, 43, 106, 0.7);
+}
+.orbit-ring.orbit-ring--secondary {
+  border-color: rgba(124, 58, 237, 0.18);
+  animation-duration: 34s;
+}
+.orbit-ring.orbit-ring--secondary::after {
+  background: radial-gradient(circle, #7C3AED 0%, rgba(124, 58, 237, 0.15) 70%);
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+}
+.orbit-ring.orbit-ring--accent {
+  border-color: rgba(0, 209, 255, 0.2);
+  animation-duration: 22s;
+  animation-direction: reverse;
+}
+.orbit-ring.orbit-ring--accent::after {
+  background: radial-gradient(circle, #00D1FF 0%, rgba(0, 209, 255, 0.2) 70%);
+  box-shadow: 0 0 20px rgba(0, 209, 255, 0.6);
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+.animate-float-fast {
+  animation: float 4.5s ease-in-out infinite;
+}
+.animate-drift {
+  animation: drift 10s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-ring,
+  .animate-float-slow,
+  .animate-float-fast,
+  .animate-drift {
+    animation: none;
+  }
 }
 

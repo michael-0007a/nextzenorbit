@@ -1,207 +1,282 @@
 # Deployment Guide — Nextzen Orbit
 
+## Architecture Overview
+
+```
+┌───────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   Next.js App     │     │  Playwright       │     │  Supabase        │
+│  (Fly.io/Vercel)  │────▶│  Worker (Fly.io)  │────▶│  (Cloud)         │
+│                   │     │                   │     │  - Auth           │
+│  - Dashboard      │     │  - Auto-apply     │     │  - Database       │
+│  - Job Search     │     │  - Screenshot     │     │  - Storage        │
+│  - Resume Builder │     │  - Form Filler    │     │                   │
+└───────────────────┘     └──────────────────┘     └──────────────────┘
+```
+
 ## Prerequisites
 
 - Node.js 20+
-- npm or pnpm
-- Vercel account
+- [Fly.io CLI](https://fly.io/docs/flyctl/install/) (`flyctl`)
 - Supabase project
 - Groq API key
-- Razorpay account (for payments)
-
-## Environment Variables
-
-### Required Variables
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# AI
-GROQ_API_KEY=gsk_your_groq_api_key
-
-# Payments
-RAZORPAY_KEY_ID=rzp_test_xxx
-RAZORPAY_KEY_SECRET=your_razorpay_secret
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
-
-# App
-NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
-```
-
-### Optional Variables
-
-```env
-# Cashfree (secondary payment provider)
-CASHFREE_APP_ID=
-CASHFREE_SECRET_KEY=
-
-# Feature flags
-PAYMENT_PROVIDER=razorpay
-```
-
-## Local Development
-
-### 1. Clone Repository
-```bash
-git clone https://github.com/your-org/jobsearchai.git
-cd jobsearchai
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
-### 3. Environment Setup
-```bash
-cp .env.example .env.local
-# Edit .env.local with your values
-```
-
-### 4. Run Development Server
-```bash
-npm run dev
-```
-
-### 5. Access Application
-Open http://localhost:3000
-
-## Supabase Setup
-
-### 1. Create Project
-1. Go to https://supabase.com
-2. Create new project
-3. Note the URL and keys
-
-### 2. Run Migrations
-```bash
-# Using Supabase CLI
-supabase db push
-
-# Or manually via SQL editor
-# Copy contents from supabase/migrations/*.sql
-```
-
-### 3. Configure Auth
-1. Go to Authentication > Providers
-2. Enable Google OAuth
-3. Add OAuth credentials from Google Cloud Console
-4. Set redirect URL: `https://your-domain.vercel.app/api/auth/callback`
-
-### 4. Storage Setup
-1. Go to Storage
-2. Create bucket: `resumes` (private)
-3. Set up RLS policies
-
-## Google OAuth Setup
-
-### 1. Google Cloud Console
-1. Go to https://console.cloud.google.com
-2. Create new project or select existing
-3. Enable Google+ API
-
-### 2. OAuth Credentials
-1. Go to APIs & Services > Credentials
-2. Create OAuth 2.0 Client ID
-3. Add authorized redirect URIs:
-   - `http://localhost:3000/api/auth/callback` (dev)
-   - `https://your-domain.vercel.app/api/auth/callback` (prod)
-
-### 3. Configure Supabase
-1. Go to Supabase Auth settings
-2. Add Google provider
-3. Enter Client ID and Client Secret
-
-## Vercel Deployment
-
-### 1. Connect Repository
-```bash
-vercel link
-```
-
-### 2. Add Environment Variables
-```bash
-vercel env add NEXT_PUBLIC_SUPABASE_URL
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
-vercel env add SUPABASE_SERVICE_ROLE_KEY
-vercel env add GROQ_API_KEY
-vercel env add RAZORPAY_KEY_ID
-vercel env add RAZORPAY_KEY_SECRET
-vercel env add RAZORPAY_WEBHOOK_SECRET
-vercel env add NEXT_PUBLIC_APP_URL
-```
-
-### 3. Deploy
-```bash
-vercel --prod
-```
-
-## Razorpay Setup
-
-### 1. Create Account
-1. Go to https://razorpay.com
-2. Sign up for test/live account
-3. Complete KYC (for live mode)
-
-### 2. Get API Keys
-1. Go to Settings > API Keys
-2. Generate Key ID and Secret
-3. Add to environment variables
-
-### 3. Configure Webhooks
-1. Go to Settings > Webhooks
-2. Add endpoint: `https://your-domain.vercel.app/api/webhooks/razorpay`
-3. Select events:
-   - payment.captured
-   - payment.failed
-   - subscription.activated
-   - subscription.charged
-   - subscription.cancelled
-4. Copy webhook secret to environment
-
-## Post-Deployment Checklist
-
-- [ ] Verify Google OAuth flow works
-- [ ] Check Supabase connection
-- [ ] Test profile creation/update
-- [ ] Verify AI analyzer endpoint
-- [ ] Check webhook endpoint accessibility
-- [ ] Test error handling
-- [ ] Monitor logs for issues
-
-## Monitoring
-
-### Vercel Analytics
-- Enable in Vercel dashboard
-- Monitor Core Web Vitals
-- Track error rates
-
-### Supabase Dashboard
-- Monitor database performance
-- Check auth logs
-- Review storage usage
-
-## Troubleshooting
-
-### OAuth Redirect Issues
-- Verify redirect URLs match exactly
-- Check Supabase auth settings
-- Ensure NEXT_PUBLIC_APP_URL is correct
-
-### Database Connection Errors
-- Verify Supabase URL and keys
-- Check RLS policies
-- Review Supabase logs
-
-### AI API Errors
-- Verify GROQ_API_KEY is valid
-- Check rate limits
-- Review API response errors
+- Adzuna API keys (free at [developer.adzuna.com](https://developer.adzuna.com/))
 
 ---
 
-*Last updated: 2026-03-05*
+## Part 1: Supabase Setup
 
+### 1.1 Create Project
+1. Go to [supabase.com](https://supabase.com) → New Project
+2. Note: **Project URL**, **Anon Key**, **Service Role Key**
+
+### 1.2 Run Migrations
+```bash
+# Run all migrations in order via SQL Editor
+# supabase/migrations/001_users.sql  through  013_screenshot_columns.sql
+```
+
+Or with the CLI:
+```bash
+supabase db push
+```
+
+### 1.3 Storage Buckets
+Create two buckets in **Supabase → Storage**:
+
+| Bucket | Public | Purpose |
+|--------|--------|---------|
+| `resumes` | No | User resume PDFs |
+| `screenshots` | No | Auto-apply proof screenshots |
+
+### 1.4 Auth Provider
+1. **Authentication → Providers → Google**
+2. Add your OAuth credentials from [Google Cloud Console](https://console.cloud.google.com)
+3. Redirect URL: `https://your-domain.fly.dev/api/auth/callback`
+
+---
+
+## Part 2: Next.js App (Fly.io)
+
+### 2.1 Initialize Fly App
+```bash
+cd nextzenorbit
+flyctl launch --name nextzen-orbit --region maa
+# Region "maa" = Mumbai (closest to India users)
+# Select: No to Postgres, No to Redis
+```
+
+### 2.2 Create `Dockerfile` (root)
+```dockerfile
+FROM node:20-alpine AS base
+
+FROM base AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+ENV PORT=3000
+CMD ["node", "server.js"]
+```
+
+### 2.3 Update `next.config.ts`
+```typescript
+// Add to your next.config.ts
+const nextConfig = {
+  output: "standalone", // Required for Docker deployment
+  // ... existing config
+};
+```
+
+### 2.4 Set Environment Variables
+```bash
+flyctl secrets set \
+  NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co \
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key \
+  SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+  GROQ_API_KEY=your-groq-key \
+  ADZUNA_APP_ID=your-adzuna-id \
+  ADZUNA_APP_KEY=your-adzuna-key \
+  NEXT_PUBLIC_APP_URL=https://nextzen-orbit.fly.dev \
+  RAZORPAY_KEY_ID=rzp_test_xxx \
+  RAZORPAY_KEY_SECRET=your-secret \
+  RAZORPAY_WEBHOOK_SECRET=your-webhook-secret
+```
+
+### 2.5 Deploy
+```bash
+flyctl deploy
+```
+
+### 2.6 Verify
+```bash
+flyctl open  # Opens your app in browser
+flyctl logs  # Check logs
+```
+
+---
+
+## Part 3: Worker (Fly.io)
+
+The worker runs as a **separate Fly app** (no HTTP — just a background process).
+
+### 3.1 Initialize Worker App
+```bash
+cd worker
+flyctl launch --name nextzen-orbit-worker --region maa
+```
+
+### 3.2 Create `worker/Dockerfile`
+```dockerfile
+FROM node:20-alpine
+
+# Install Chromium for Playwright
+RUN apk add --no-cache chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+# Install Playwright with system Chromium
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+COPY . .
+
+CMD ["npx", "tsx", "src/index.ts"]
+```
+
+### 3.3 Create `worker/fly.toml`
+```toml
+app = "nextzen-orbit-worker"
+primary_region = "maa"
+
+[build]
+
+# No HTTP services — this is a background worker
+[processes]
+  worker = "npx tsx src/index.ts"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
+```
+
+### 3.4 Set Worker Secrets
+```bash
+cd worker
+flyctl secrets set \
+  NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co \
+  SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+  GROQ_API_KEY=your-groq-key \
+  POLL_INTERVAL_MS=5000 \
+  MAX_RETRIES=3 \
+  HEADLESS=true
+```
+
+### 3.5 Deploy Worker
+```bash
+flyctl deploy
+```
+
+### 3.6 Monitor Worker
+```bash
+flyctl logs -a nextzen-orbit-worker  # Live logs
+flyctl status -a nextzen-orbit-worker  # Health check
+```
+
+---
+
+## Part 4: Cron Jobs
+
+### Screenshot Cleanup (daily)
+Option A — Fly.io cron (recommended):
+```bash
+# Add to fly.toml of the main app:
+# [[services]]
+#   [services.concurrency]
+#     type = "requests"
+#     hard_limit = 25
+#     soft_limit = 20
+
+# Then set up a scheduled machine:
+flyctl machine run --schedule daily --command "curl -X POST https://nextzen-orbit.fly.dev/api/cron/cleanup"
+```
+
+Option B — External cron service (e.g., cron-job.org):
+- URL: `POST https://nextzen-orbit.fly.dev/api/cron/cleanup`
+- Schedule: Daily at midnight
+- Header: `Authorization: Bearer YOUR_CRON_SECRET`
+
+---
+
+## Part 5: Environment Variables Reference
+
+| Variable | Required | Used By | Description |
+|----------|----------|---------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | App + Worker | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | App | Supabase anon key (client-side) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | App + Worker | Admin key (bypasses RLS) |
+| `GROQ_API_KEY` | ✅ | App + Worker | Groq AI for resume parsing + form detection |
+| `ADZUNA_APP_ID` | ✅ | App | Adzuna job search API |
+| `ADZUNA_APP_KEY` | ✅ | App | Adzuna job search API |
+| `NEXT_PUBLIC_APP_URL` | ✅ | App | Public app URL |
+| `RAZORPAY_KEY_ID` | ⚡ | App | Razorpay (payments) |
+| `RAZORPAY_KEY_SECRET` | ⚡ | App | Razorpay (payments) |
+| `RAZORPAY_WEBHOOK_SECRET` | ⚡ | App | Razorpay webhooks |
+| `CRON_SECRET` | Optional | App | Secures cleanup cron endpoint |
+| `POLL_INTERVAL_MS` | Optional | Worker | Queue poll interval (default: 5000ms) |
+| `MAX_RETRIES` | Optional | Worker | Max retry attempts (default: 3) |
+| `HEADLESS` | Optional | Worker | Run browser headless (default: true) |
+
+---
+
+## Post-Deployment Checklist
+
+- [ ] Google OAuth works (login + redirect)
+- [ ] Supabase connection verified (profile loads)
+- [ ] Resume builder + AI analyzer works
+- [ ] Job search returns results (Adzuna API)
+- [ ] Worker starts and polls queue
+- [ ] Worker captures screenshots on apply
+- [ ] Screenshots visible in queue panel
+- [ ] Cleanup cron runs without errors
+- [ ] Razorpay webhooks configured
+
+---
+
+## Troubleshooting
+
+### Worker crashes on Fly.io
+- Check memory: Chromium needs 512MB+. Use `memory = "1gb"` in fly.toml
+- Check logs: `flyctl logs -a nextzen-orbit-worker`
+
+### Screenshots not uploading
+- Verify `screenshots` bucket exists in Supabase Storage
+- Check `SUPABASE_SERVICE_ROLE_KEY` is correct in worker secrets
+
+### Adzuna API 400 errors
+- Verify `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` are real keys
+- Check if the API is up at [api.adzuna.com](https://api.adzuna.com)
+
+### OAuth redirect mismatch
+- Ensure redirect URL in Google Cloud Console matches `NEXT_PUBLIC_APP_URL`
+- For Fly.io: use `https://your-app.fly.dev/api/auth/callback`
+
+---
+
+*Last updated: 2026-03-20*

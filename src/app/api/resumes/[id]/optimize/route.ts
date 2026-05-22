@@ -143,6 +143,8 @@ export async function POST(
       resumeContent: ResumeRow["content"];
       matchScore: number;
       changesApplied: string[];
+      keywordsIncorporated?: string[];
+      keywordsMissing?: string[];
     };
 
     try {
@@ -151,14 +153,33 @@ export async function POST(
         .replace(/```\n?/g, "")
         .trim();
 
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found");
+      // Find the outermost JSON object by tracking brace depth
+      let depth = 0;
+      let startIdx = -1;
+      let endIdx = -1;
+
+      for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] === "{") {
+          if (depth === 0) startIdx = i;
+          depth++;
+        } else if (cleaned[i] === "}") {
+          depth--;
+          if (depth === 0 && startIdx !== -1) {
+            endIdx = i + 1;
+            break;
+          }
+        }
       }
 
-      result = JSON.parse(jsonMatch[0]);
-    } catch {
-      console.error("Failed to parse optimization response:", responseText.slice(0, 500));
+      if (startIdx === -1 || endIdx === -1) {
+        throw new Error("No JSON object found");
+      }
+
+      const jsonStr = cleaned.slice(startIdx, endIdx);
+      result = JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error("Failed to parse optimization response:", responseText.slice(0, 1000));
+      console.error("Parse error:", parseError);
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to parse AI response.", 500);
     }
 
@@ -208,6 +229,8 @@ export async function POST(
         content: result.resumeContent,
         matchScore: result.matchScore,
         changesApplied: result.changesApplied,
+        keywordsIncorporated: result.keywordsIncorporated || [],
+        keywordsMissing: result.keywordsMissing || [],
         versionCreated: backupVersionNumber + 1,
         embellishmentLevel,
         tokensUsed: completion.usage?.total_tokens || 0,

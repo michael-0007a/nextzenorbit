@@ -1,11 +1,26 @@
+import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Sparkles, ArrowRight, FileText, Target, Zap, Shield, CheckCircle2, Star, TrendingUp, Play } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  ArrowRight,
+  Sparkles,
+  Zap,
+  Shield,
+  TrendingUp,
+  BarChart3,
+  Network,
+  CheckCircle2,
+  Play,
+  FileText,
+  Target,
+  Briefcase,
+  Search,
+  PenTool,
+} from "lucide-react";
 
 export default async function HomePage() {
-  // If already logged in, go straight to dashboard
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,292 +30,575 @@ export default async function HomePage() {
     redirect("/dashboard");
   }
 
+  const features = [
+    {
+      title: "AI Resume Builder",
+      description:
+        "Craft premium resumes with guided structure, ATS-ready formatting, and instant clarity scoring.",
+      icon: FileText,
+    },
+    {
+      title: "Job Analyzer",
+      description:
+        "Paste any job description to get match scores, keyword gaps, and tailored improvements.",
+      icon: Target,
+    },
+    {
+      title: "Application Tracker",
+      description:
+        "Manage every opportunity from applied to offer with a visual pipeline and smart follow-ups.",
+      icon: Briefcase,
+    },
+    {
+      title: "Cover Letter Studio",
+      description:
+        "Generate refined cover letters that mirror your resume and the role in seconds.",
+      icon: PenTool,
+    },
+    {
+      title: "Job Search Radar",
+      description:
+        "Discover opportunities faster with AI-assisted search and auto-apply queueing.",
+      icon: Search,
+    },
+    {
+      title: "Career Intelligence",
+      description:
+        "Track momentum, interview rates, and next-best actions from a unified dashboard.",
+      icon: BarChart3,
+    },
+  ];
+
+  const platformSteps = [
+    "Upload your resume. ORBIT extracts every signal instantly.",
+    "Analyze job descriptions and get precision match scores.",
+    "Tailor resumes and cover letters in one click.",
+    "Track applications and optimize each follow-up.",
+  ];
+
+  const integrations = [
+    {
+      name: "ATS Ready",
+      description: "Formatting tuned for ATS parsing and clean exports.",
+      src: "/file.svg",
+      invert: true,
+    },
+    {
+      name: "Global Boards",
+      description: "Apply confidently across top job boards and portals.",
+      src: "/globe.svg",
+      invert: true,
+    },
+    {
+      name: "Smart Workflows",
+      description: "Auto-apply queue and follow-ups in one flow.",
+      src: "/window.svg",
+      invert: true,
+    },
+    {
+      name: "NEXTZEN",
+      description: "Powered by the NEXTZEN orbit engine.",
+      src: "/only%20logo.png",
+      invert: false,
+    },
+  ];
+
+  const pricing = [
+    {
+      name: "Free",
+      price: "$0",
+      description: "Launch-ready essentials to get started.",
+      features: ["1 resume", "Basic analyzer", "Application tracker", "Community support"],
+    },
+    {
+      name: "Pro",
+      price: "$12",
+      description: "For serious job seekers ready to move fast.",
+      features: [
+        "Unlimited resumes",
+        "Advanced AI tailoring",
+        "Cover letter studio",
+        "Priority support",
+      ],
+      highlight: true,
+    },
+    {
+      name: "Elite",
+      price: "$29",
+      description: "Career acceleration with full automation.",
+      features: ["Auto-apply queue", "Premium templates", "Deep insights", "Concierge support"],
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* ── Nav ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-6 py-4 lg:px-12">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-light shadow-lg shadow-primary/20">
-            <Zap className="h-5 w-5 text-white" />
+    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/Nextzen%20Orbit%20white.png"
+              alt="NEXTZEN ORBIT"
+              width={170}
+              height={26}
+              className="h-5 w-auto"
+            />
+          </Link>
+
+          <div className="hidden items-center gap-8 text-sm text-text-secondary lg:flex">
+            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link href="#platform" className="hover:text-foreground transition-colors">AI Platform</Link>
+            <Link href="#analytics" className="hover:text-foreground transition-colors">Analytics</Link>
+            <Link href="#integrations" className="hover:text-foreground transition-colors">Integrations</Link>
+            <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
           </div>
-          <span className="text-base font-bold text-foreground tracking-tight">
-            Nextzen Orbit
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <Link
-            href="/login"
-            className="hidden sm:inline-flex text-sm font-medium text-text-secondary hover:text-foreground transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-light px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg hover:shadow-primary/25 transition-all"
-          >
-            Get Started
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle className="hidden sm:inline-flex" />
+            <Link
+              href="/login"
+              className="hidden text-sm font-medium text-text-secondary transition-colors hover:text-foreground sm:inline-flex"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-light px-5 py-2 text-sm font-semibold text-white shadow-[0_15px_35px_rgba(255,0,61,0.35)] transition-transform duration-300 hover:-translate-y-0.5"
+            >
+              Start Free Trial
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* ── Hero Section ── */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 pt-20">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-          <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary-light/10 to-secondary/10 rounded-full blur-3xl" />
-        </div>
+      <main>
+        <section className="relative overflow-hidden pb-24 pt-4 sm:pt-6">
+          <div className="absolute inset-0 hidden bg-space opacity-70 dark:block" />
+          <div className="pointer-events-none absolute -left-28 top-12 hidden h-80 w-80 rounded-full bg-primary/20 blur-3xl dark:block" />
+          <div className="pointer-events-none absolute -right-24 top-16 hidden h-96 w-96 rounded-full bg-secondary/20 blur-3xl dark:block" />
 
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
-
-        <div className="relative z-10 mx-auto max-w-5xl text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary mb-8">
-            <Sparkles className="h-4 w-4" />
-            <span>AI-Powered Job Search Platform</span>
-            <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.1]">
-            Land your dream job
-            <br />
-            <span className="bg-gradient-to-r from-primary via-primary-light to-secondary bg-clip-text text-transparent">
-              10x faster
-            </span>
-          </h1>
-
-          {/* Subheadline */}
-          <p className="mx-auto mt-8 max-w-2xl text-lg text-text-secondary leading-relaxed">
-            AI-powered resume optimization, job matching, and application tracking.
-            Built for ambitious professionals who want to accelerate their career.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/register"
-              className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-primary to-primary-light px-8 py-4 text-base font-semibold text-white shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 transition-all duration-300"
-            >
-              Start Free Trial
-              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="#features"
-              className="inline-flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-8 py-4 text-base font-semibold text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
-            >
-              <Play className="h-5 w-5 text-primary" />
-              See How It Works
-            </Link>
-          </div>
-
-          {/* Trust badges */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-stone">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              <span>7-day free trial</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              <span>No credit card required</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              <span>Cancel anytime</span>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-foreground">10K+</p>
-              <p className="text-sm text-stone mt-1">Active Users</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-foreground">50K+</p>
-              <p className="text-sm text-stone mt-1">Resumes Created</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-foreground">85%</p>
-              <p className="text-sm text-stone mt-1">Interview Rate</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features Bento Grid ── */}
-      <section id="features" className="relative py-24 px-6">
-        <div className="mx-auto max-w-6xl">
-          {/* Section header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm font-medium text-secondary mb-6">
-              <Zap className="h-4 w-4" />
-              <span>Powerful Features</span>
-            </div>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              Everything you need to succeed
-            </h2>
-            <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-              From AI-powered resume optimization to intelligent job matching, we&apos;ve got you covered.
-            </p>
-          </div>
-
-          {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Feature 1 - Large */}
-            <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 p-8 hover:border-primary/40 transition-all duration-300">
-              <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors" />
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-light text-white mb-6 shadow-lg shadow-primary/25">
-                  <FileText className="h-7 w-7" />
+          <div className="relative z-10 mx-auto max-w-7xl px-6">
+            <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_0.95fr]">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-2 text-xs uppercase tracking-[0.4em] text-text-secondary">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Made for job seekers
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">AI Resume Parser</h3>
-                <p className="text-text-secondary leading-relaxed mb-6">
-                  Upload your resume in PDF or DOCX format. Our AI instantly extracts and structures every detail —
-                  contact info, work experience, skills, education, and more.
+
+                <h1 className="font-display mt-7 text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-6xl">
+                  Find your next role,
+                  <span className="block gradient-text">without the chaos.</span>
+                </h1>
+
+                <p className="mt-5 max-w-xl text-lg text-text-secondary">
+                  See your fit fast, tailor your resume, and track every application in one calm place.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">PDF Support</span>
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">DOCX Support</span>
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">Instant Parsing</span>
+
+                <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-primary to-primary-light px-8 py-4 text-base font-semibold text-white shadow-[0_20px_45px_rgba(255,0,61,0.35)] transition-transform duration-300 hover:-translate-y-0.5"
+                  >
+                    Start Free Trial
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                  <Link
+                    href="#pricing"
+                    className="inline-flex items-center justify-center gap-3 rounded-full border border-border bg-white/5 px-8 py-4 text-base font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-white"
+                  >
+                    See plans
+                    <Play className="h-5 w-5 text-primary" />
+                  </Link>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Free to start
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Resume export ready
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    Simple tracking
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Feature 2 */}
-            <div className="group relative overflow-hidden rounded-3xl bg-card border border-border p-8 hover:border-secondary/40 transition-all duration-300">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/5 rounded-full blur-2xl group-hover:bg-secondary/10 transition-colors" />
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 text-secondary mb-6">
-                  <Target className="h-7 w-7" />
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">Job Tailoring</h3>
-                <p className="text-text-secondary leading-relaxed">
-                  Paste any job description. AI rewrites your resume to match keywords and boost your ATS score significantly.
-                </p>
+              <div className="relative flex items-center justify-center">
+                <Image
+                  src="/hero-clean.png"
+                  alt="Job search illustration"
+                  width={720}
+                  height={900}
+                  className="h-auto w-full max-w-[520px] drop-shadow-none dark:drop-shadow-[0_35px_90px_rgba(0,0,0,0.5)]"
+                  priority
+                />
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* Feature 3 */}
-            <div className="group relative overflow-hidden rounded-3xl bg-card border border-border p-8 hover:border-success/40 transition-all duration-300">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-success/5 rounded-full blur-2xl group-hover:bg-success/10 transition-colors" />
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-success/10 text-success mb-6">
-                  <TrendingUp className="h-7 w-7" />
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">Application Tracker</h3>
-                <p className="text-text-secondary leading-relaxed">
-                  Track every application from applied to offer. Never lose track of where you stand in your job search.
-                </p>
+        <section id="features" className="relative py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-2 text-xs uppercase tracking-[0.35em] text-text-secondary">
+                <Zap className="h-4 w-4 text-primary" />
+                Premium Features
               </div>
+              <h2 className="font-display mt-6 text-4xl font-semibold text-foreground sm:text-5xl">
+                Everything you need to win your next role
+              </h2>
+              <p className="mt-4 text-lg text-text-secondary">
+                Build resumes, analyze roles, and track every application with premium tools designed for ambitious
+                professionals.
+              </p>
             </div>
 
-            {/* Feature 4 - Large */}
-            <div className="lg:col-span-2 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 dark:from-stone-950 dark:via-stone-900 dark:to-stone-950 border border-stone-700 p-8">
-              <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/20 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-40 h-40 bg-secondary/20 rounded-full blur-2xl" />
-              <div className="relative">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur text-white mb-6">
-                  <Shield className="h-7 w-7" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Built for Indian Professionals</h3>
-                <p className="text-stone-300 leading-relaxed mb-6">
-                  Seamless Razorpay and Cashfree payments, INR pricing, and resume formats that Indian recruiters expect.
-                  Optimized for the Indian job market.
-                </p>
-                <div className="flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {[1,2,3,4].map((i) => (
-                      <div key={i} className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/50 to-secondary/50 border-2 border-stone-800" />
+            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={feature.title}
+                    className="glass-card group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40"
+                  >
+                    <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-primary/10 blur-3xl transition-opacity duration-300 group-hover:opacity-80" />
+                    <div className="relative">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-primary shadow-[0_0_24px_rgba(255,0,61,0.3)]">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <h3 className="mt-6 text-xl font-semibold text-foreground">{feature.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section id="platform" className="relative py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="relative overflow-hidden rounded-[40px] border border-border bg-surface/80 p-10 md:p-14">
+              <div className="absolute inset-0 bg-space opacity-50" />
+              <div className="relative grid items-center gap-12 lg:grid-cols-[1fr_0.9fr]">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.35em] text-text-secondary">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    AI Platform
+                  </div>
+                  <h2 className="font-display mt-6 text-4xl font-semibold text-foreground">
+                    The intelligence layer for job search excellence
+                  </h2>
+                  <p className="mt-4 text-lg text-text-secondary">
+                    NEXTZEN ORBIT unifies resume intelligence, job analysis, and application tracking so you can move at
+                    orbital speed without losing precision.
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    {platformSteps.map((step) => (
+                      <div key={step} className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 text-primary" />
+                        <p className="text-sm text-text-secondary">{step}</p>
+                      </div>
                     ))}
                   </div>
-                  <span className="text-sm text-stone-400">Join 10,000+ professionals</span>
+                  <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      Resume intelligence
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-secondary" />
+                      AI job analysis
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-accent" />
+                      Pipeline tracking
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-card relative rounded-3xl p-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-[0.3em] text-text-secondary">Orbit Modules</p>
+                    <div className="rounded-full border border-border bg-white/5 px-3 py-1 text-xs text-text-secondary">
+                      6 Modules
+                    </div>
+                  </div>
+                  <div className="mt-6 space-y-4">
+                    {[
+                      { name: "Resume Studio", detail: "Build premium templates" },
+                      { name: "Job Analyzer", detail: "Match score and insights" },
+                      { name: "Cover Letters", detail: "Personalized in seconds" },
+                      { name: "Application Tracker", detail: "Pipeline clarity" },
+                    ].map((item) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between rounded-2xl border border-border bg-white/5 px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                          <p className="text-xs text-text-secondary">{item.detail}</p>
+                        </div>
+                        <div className="h-2 w-16 rounded-full bg-gradient-to-r from-primary/60 to-accent/60" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 rounded-2xl border border-border bg-white/5 p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">Automation coverage</span>
+                      <span className="text-foreground">91%</span>
+                    </div>
+                    <div className="mt-3 h-2 w-full rounded-full bg-white/5">
+                      <div className="h-2 w-[91%] rounded-full bg-gradient-to-r from-primary to-primary-light" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Testimonial Section ── */}
-      <section className="py-24 px-6 bg-muted/50">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary mb-6">
-            <Star className="h-4 w-4" />
-            <span>Loved by thousands</span>
-          </div>
-          <h2 className="text-4xl font-bold text-foreground mb-12">
-            What our users say
-          </h2>
+        <section id="analytics" className="relative py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-2 text-xs uppercase tracking-[0.35em] text-text-secondary">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Analytics
+                </div>
+                <h2 className="font-display mt-6 text-4xl font-semibold text-foreground">
+                  Command your job search momentum
+                </h2>
+                <p className="mt-4 text-lg text-text-secondary">
+                  Track match scores, interview rates, and pipeline velocity with cinematic clarity.
+                </p>
+                <div className="mt-8 space-y-4">
+                  {[
+                    "Live match score monitoring across roles.",
+                    "Application pipeline health with follow-up alerts.",
+                    "Outcome analytics to optimize every resume iteration.",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-3">
+                      <TrendingUp className="mt-0.5 h-5 w-5 text-primary" />
+                      <p className="text-sm text-text-secondary">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-          <div className="relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-8xl text-primary/10 font-serif">&ldquo;</div>
-            <blockquote className="relative z-10 text-2xl text-foreground font-medium leading-relaxed mb-8">
-              JobSearch AI helped me land interviews at 3 top companies within 2 weeks.
-              The AI-tailored resume made all the difference!
-            </blockquote>
-            <div className="flex items-center justify-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-secondary" />
-              <div className="text-left">
-                <p className="font-semibold text-foreground">Priya Sharma</p>
-                <p className="text-sm text-stone">Software Engineer at Google</p>
+              <div className="glass-card relative rounded-[32px] p-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-text-secondary">Orbit Analytics</p>
+                    <p className="text-lg font-semibold text-foreground">Interview Momentum</p>
+                  </div>
+                  <div className="rounded-full border border-border bg-white/5 px-3 py-1 text-xs text-text-secondary">
+                    Live
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-3xl border border-border bg-white/5 p-6">
+                  <svg viewBox="0 0 320 120" className="h-32 w-full">
+                    <defs>
+                      <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#FF003D" />
+                        <stop offset="60%" stopColor="#FF2B6A" />
+                        <stop offset="100%" stopColor="#00D1FF" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M5 95 C40 70, 70 35, 110 40 C150 45, 170 85, 210 75 C250 65, 270 30, 315 25"
+                      fill="none"
+                      stroke="url(#lineGradient)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M5 95 C40 70, 70 35, 110 40 C150 45, 170 85, 210 75 C250 65, 270 30, 315 25"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.08)"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="mt-4 flex items-center justify-between text-xs text-text-secondary">
+                    <span>Week 1</span>
+                    <span>Week 2</span>
+                    <span>Week 3</span>
+                    <span>Week 4</span>
+                    <span>Week 5</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  {[
+                    { label: "Interview rate", value: "+41%" },
+                    { label: "Response time", value: "3.2d" },
+                    { label: "Active roles", value: "18" },
+                  ].map((metric) => (
+                    <div key={metric.label} className="rounded-2xl border border-border bg-white/5 p-4">
+                      <p className="text-xs text-text-secondary">{metric.label}</p>
+                      <p className="text-lg font-semibold text-foreground">{metric.value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── CTA Section ── */}
-      <section className="py-24 px-6">
-        <div className="mx-auto max-w-4xl">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 dark:from-stone-950 dark:via-stone-900 dark:to-stone-950 p-12 text-center">
-            {/* Decorative elements */}
-            <div className="absolute top-0 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-secondary/20 rounded-full blur-2xl" />
+        <section id="integrations" className="relative py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-2 text-xs uppercase tracking-[0.35em] text-text-secondary">
+                  <Network className="h-4 w-4 text-primary" />
+                  Integrations
+                </div>
+                <h2 className="font-display mt-6 text-4xl font-semibold text-foreground">Connected to every workflow</h2>
+                <p className="mt-4 text-lg text-text-secondary">
+                  Export-ready resumes, ATS-friendly formatting, and seamless compatibility across your stack.
+                </p>
+                <div className="mt-6 space-y-3 text-sm text-text-secondary">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    PDF and DOCX exports that stay clean across platforms.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-secondary" />
+                    ATS parsing that keeps your formatting intact.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-accent" />
+                    Auto-apply and follow-up flows in one place.
+                  </div>
+                </div>
+              </div>
 
-            <div className="relative z-10">
-              <h2 className="text-4xl font-bold text-white mb-4">
-                Ready to accelerate your career?
-              </h2>
-              <p className="text-lg text-stone-300 mb-8 max-w-xl mx-auto">
-                Join thousands of professionals who&apos;ve already transformed their job search with AI.
-              </p>
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-primary to-primary-light px-10 py-4 text-lg font-semibold text-white shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 transition-all"
-              >
-                Start Your Free Trial
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-              <p className="mt-4 text-sm text-stone-400">
-                No credit card required · Cancel anytime
-              </p>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {integrations.map((integration) => (
+                  <div
+                    key={integration.name}
+                    className="glass-card flex flex-col items-start gap-3 rounded-2xl px-5 py-5"
+                  >
+                    <Image
+                      src={integration.src}
+                      alt={integration.name}
+                      width={80}
+                      height={32}
+                      className={`h-7 w-auto opacity-80 ${integration.invert ? "invert" : ""}`}
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{integration.name}</p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        {integration.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-border px-6 py-12">
-        <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <section id="pricing" className="relative py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-2 text-xs uppercase tracking-[0.35em] text-text-secondary">
+                <Shield className="h-4 w-4 text-primary" />
+                Pricing
+              </div>
+              <h2 className="font-display mt-6 text-4xl font-semibold text-foreground">Plans for every career orbit</h2>
+              <p className="mt-4 text-lg text-text-secondary">
+                Choose the tier that matches your ambition. Upgrade anytime.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-6 lg:grid-cols-3">
+              {pricing.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={`relative rounded-3xl border border-border p-8 ${
+                    plan.highlight
+                      ? "glass-card shadow-[0_0_60px_rgba(255,0,61,0.3)]"
+                      : "glass-card"
+                  }`}
+                >
+                  {plan.highlight ? (
+                    <div className="absolute right-6 top-6 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-primary">
+                      Most Popular
+                    </div>
+                  ) : null}
+                  <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
+                  <p className="mt-2 text-sm text-text-secondary">{plan.description}</p>
+                  <p className="mt-6 text-4xl font-semibold text-foreground">{plan.price}</p>
+                  {plan.price !== "Custom" ? (
+                    <p className="mt-2 text-xs uppercase tracking-[0.3em] text-text-secondary">Per month</p>
+                  ) : null}
+
+                  <div className="mt-6 space-y-3 text-sm text-text-secondary">
+                    {plan.features.map((feature) => (
+                      <div key={feature} className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link
+                    href="/register"
+                    className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5 ${
+                      plan.highlight
+                        ? "bg-gradient-to-r from-primary to-primary-light text-white"
+                        : "border border-border bg-white/5 text-foreground"
+                    }`}
+                  >
+                    Get Started
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-border bg-surface/80">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-light">
-              <Zap className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20">
+              <Image src="/only%20logo.png" alt="NEXTZEN ORBIT" width={22} height={22} />
             </div>
-            <span className="text-base font-bold text-foreground">JobSearch AI</span>
+            <div>
+              <Image
+                src="/Nextzen%20Orbit%20white.png"
+                alt="NEXTZEN ORBIT"
+                width={160}
+                height={24}
+                className="h-4 w-auto"
+              />
+              <p className="text-xs text-text-secondary">Build Beyond Limits.</p>
+            </div>
           </div>
-          <p className="text-sm text-stone">
-            &copy; {new Date().getFullYear()} JobSearch AI · Built for ambitious professionals
+
+          <div className="flex flex-wrap items-center gap-6 text-sm text-text-secondary">
+            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link href="#platform" className="hover:text-foreground transition-colors">AI Platform</Link>
+            <Link href="#analytics" className="hover:text-foreground transition-colors">Analytics</Link>
+            <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="#" className="hover:text-foreground transition-colors">Security</Link>
+          </div>
+
+          <p className="text-xs text-text-secondary">
+            {new Date().getFullYear()} NEXTZEN ORBIT. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-sm text-stone">
-            <Link href="#" className="hover:text-foreground transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-foreground transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-foreground transition-colors">Support</Link>
-          </div>
         </div>
       </footer>
     </div>

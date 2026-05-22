@@ -42,14 +42,14 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-invalid={!!error}
           aria-describedby={describedBy}
           className={cn(
-            "flex min-h-[80px] w-full rounded-sm border bg-transparent px-3 py-2 text-sm",
-            "text-foreground placeholder:text-granite",
+            "flex min-h-[100px] w-full rounded-2xl border bg-white/5 px-4 py-3 text-sm",
+            "text-foreground placeholder:text-text-secondary",
             "transition-colors duration-150 resize-y",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+            "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 focus:bg-white/10",
             "disabled:cursor-not-allowed disabled:opacity-40",
             error
               ? "border-error focus:ring-error/40"
-              : "border-granite hover:border-border-hover",
+              : "border-border hover:border-border-hover",
             className
           )}
           {...props}

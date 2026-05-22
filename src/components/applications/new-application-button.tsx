@@ -98,7 +98,7 @@ export function NewApplicationButton() {
               type="text"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              className="w-full h-10 rounded-sm border border-granite bg-transparent px-3 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors"
+              className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
               placeholder="e.g. Razorpay"
               required
             />
@@ -111,7 +111,7 @@ export function NewApplicationButton() {
               type="text"
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              className="w-full h-10 rounded-sm border border-granite bg-transparent px-3 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors"
+              className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
               placeholder="e.g. Senior Frontend Engineer"
               required
             />
@@ -124,7 +124,7 @@ export function NewApplicationButton() {
               type="url"
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
-              className="w-full h-10 rounded-sm border border-granite bg-transparent px-3 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors"
+              className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
               placeholder="https://..."
             />
           </div>
@@ -135,7 +135,7 @@ export function NewApplicationButton() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ApplicationStatus)}
-              className="w-full h-10 rounded-sm border border-granite bg-transparent px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors"
+              className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
             >
               <option value="applied">Applied</option>
               <option value="screening">Screening</option>
@@ -152,7 +152,7 @@ export function NewApplicationButton() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full rounded-sm border border-granite bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors resize-none"
+              className="w-full rounded-2xl border border-border bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none"
               placeholder="Any notes about this application..."
             />
           </div>

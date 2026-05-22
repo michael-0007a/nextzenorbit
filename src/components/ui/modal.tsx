@@ -112,7 +112,7 @@ export function Modal({
             tabIndex={-1}
             onKeyDown={handleKeyDown}
             className={cn(
-              "relative z-10 w-full rounded-sm border border-granite bg-surface-elevated",
+              "relative z-10 w-full rounded-3xl border border-border/70 bg-surface-elevated/90 backdrop-blur-2xl",
               "focus:outline-none",
               "max-h-[90vh] flex flex-col",
               modalSizes[size],
@@ -121,7 +121,7 @@ export function Modal({
           >
             {/* Header */}
             {(title || true) && (
-              <div className="flex items-center justify-between border-b border-granite p-6 pb-4 shrink-0">
+              <div className="flex items-center justify-between border-b border-border/60 p-6 pb-4 shrink-0">
                 <div>
                   {title && (
                     <h2 className="text-lg font-semibold text-foreground">
@@ -140,8 +140,8 @@ export function Modal({
                 <button
                   onClick={onClose}
                   className={cn(
-                    "inline-flex h-8 w-8 items-center justify-center rounded-sm",
-                    "text-granite hover:text-foreground hover:bg-muted",
+                    "inline-flex h-8 w-8 items-center justify-center rounded-full",
+                    "text-text-secondary hover:text-foreground hover:bg-white/10",
                     "transition-colors duration-150"
                   )}
                   aria-label="Close dialog"

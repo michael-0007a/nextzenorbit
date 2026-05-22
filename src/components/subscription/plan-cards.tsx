@@ -58,7 +58,7 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
           return (
             <Card
               key={planId}
-              className={isCurrent ? "border-mint ring-1 ring-mint/20" : ""}
+              className={isCurrent ? "border-primary ring-1 ring-primary/20" : ""}
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -81,11 +81,11 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                   {features.map((feature) => (
                     <li key={feature.label} className="flex items-center gap-2 text-sm">
                       {feature.included ? (
-                        <Check className="h-3.5 w-3.5 text-mint shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-granite shrink-0" />
+                        <X className="h-3.5 w-3.5 text-text-secondary shrink-0" />
                       )}
-                      <span className={feature.included ? "text-foreground" : "text-granite"}>
+                      <span className={feature.included ? "text-foreground" : "text-text-secondary"}>
                         {feature.label}
                       </span>
                     </li>
@@ -96,13 +96,13 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                 {isCurrent ? (
                   <button
                     disabled
-                    className="w-full h-10 rounded-sm border border-granite text-sm font-medium text-granite cursor-not-allowed"
+                    className="w-full h-10 rounded-full border border-border text-sm font-medium text-text-secondary bg-white/5 cursor-not-allowed"
                   >
                     Current Plan
                   </button>
                 ) : (
                   <button
-                    className="w-full h-10 rounded-sm bg-midnight text-white text-sm font-medium hover:bg-midnight/90 dark:bg-mint dark:text-midnight dark:hover:bg-leaf transition-colors"
+                    className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5"
                     onClick={() => {
                       // Payment integration will be handled in a later phase
                     }}

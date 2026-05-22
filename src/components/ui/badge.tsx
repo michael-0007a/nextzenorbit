@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 // === Variant & Size Definitions ===
 const badgeVariants = {
-  default: "border-border text-stone bg-muted/50",
+  default: "border-border text-text-secondary bg-white/5",
   success: "border-success/30 text-success bg-success/10",
   warning: "border-warning/30 text-warning bg-warning/10",
   error: "border-error/30 text-error bg-error/10",

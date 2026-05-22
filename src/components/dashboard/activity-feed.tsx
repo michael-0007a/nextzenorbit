@@ -21,20 +21,20 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     return (
       <div
         className={cn(
-          "relative overflow-hidden rounded-sm border border-granite p-10 text-center space-y-5",
+          "relative overflow-hidden rounded-3xl glass-card p-10 text-center space-y-5",
           className
         )}
       >
         {/* Decorative background elements */}
-        <div className="absolute top-4 left-4 w-2 h-2 rounded-full bg-mint/20" />
-        <div className="absolute top-8 left-12 w-1 h-1 rounded-full bg-leaf/30" />
-        <div className="absolute bottom-6 right-8 w-3 h-3 rounded-full bg-shadow/20" />
-        <div className="absolute bottom-10 right-16 w-1.5 h-1.5 rounded-full bg-midnight/20" />
+        <div className="absolute top-4 left-4 w-2 h-2 rounded-full bg-primary/30" />
+        <div className="absolute top-8 left-12 w-1 h-1 rounded-full bg-secondary/30" />
+        <div className="absolute bottom-6 right-8 w-3 h-3 rounded-full bg-accent/25" />
+        <div className="absolute bottom-10 right-16 w-1.5 h-1.5 rounded-full bg-white/20" />
 
-        <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-sm border border-granite bg-gradient-to-br from-mint/5 to-leaf/5">
-          <FileText className="h-7 w-7 text-granite" />
-          <div className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-mint/10 border border-mint/20">
-            <Sparkles className="h-2.5 w-2.5 text-mint" />
+        <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-white/5">
+          <FileText className="h-7 w-7 text-text-secondary" />
+          <div className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 border border-primary/30">
+            <Sparkles className="h-2.5 w-2.5 text-primary" />
           </div>
         </div>
         <div className="relative">
@@ -47,7 +47,7 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
         </div>
         <Link
           href="/resumes"
-          className="relative inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-midnight dark:text-midnight bg-mint hover:bg-leaf rounded-sm transition-colors shadow-[0_0_15px_rgba(86,227,159,0.2)]"
+          className="relative inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary to-primary-light rounded-full transition-transform duration-300 hover:-translate-y-0.5 shadow-[0_18px_35px_rgba(255,0,61,0.3)]"
         >
           Upload your first resume <ArrowRight className="h-4 w-4" />
         </Link>

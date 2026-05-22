@@ -76,30 +76,30 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
     <div className="space-y-6">
       {/* Account Info */}
       <Card className="relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-mint via-leaf to-shadow" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary-light to-accent" />
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-mint/10">
-              <Mail className="h-4 w-4 text-mint" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <Mail className="h-4 w-4 text-primary" />
             </div>
             Account
           </CardTitle>
           <CardDescription>Your account information and login method.</CardDescription>
         </CardHeader>
         <CardBody className="space-y-4">
-          <div className="flex items-center justify-between p-3 rounded-sm bg-muted/50 border border-granite/50">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Email</p>
               <p className="text-sm text-text-secondary">{userEmail}</p>
             </div>
-            <Badge variant={provider === "google" ? "primary" : "default"} className={provider === "google" ? "bg-mint/10 text-mint border-mint/20" : ""}>
+            <Badge variant={provider === "google" ? "primary" : "default"} className={provider === "google" ? "bg-primary/10 text-primary border-primary/20" : ""}>
               {provider === "google" ? "Google" : "Email"}
             </Badge>
           </div>
-          <div className="flex items-center justify-between p-3 rounded-sm bg-muted/50 border border-granite/50">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-border">
             <div>
               <p className="text-sm font-medium text-foreground">User ID</p>
-              <p className="text-xs text-granite font-mono truncate max-w-[200px]">{userId}</p>
+              <p className="text-xs text-text-secondary font-mono truncate max-w-[200px]">{userId}</p>
             </div>
           </div>
         </CardBody>
@@ -110,8 +110,8 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-leaf/10">
-                <Key className="h-4 w-4 text-leaf" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary/10">
+                <Key className="h-4 w-4 text-secondary" />
               </div>
               Password
             </CardTitle>
@@ -136,7 +136,7 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full h-10 rounded-sm border border-granite bg-transparent px-3 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors"
+                    className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
                     placeholder="At least 8 characters"
                     required
                     minLength={8}
@@ -150,7 +150,7 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full h-10 rounded-sm border border-granite bg-transparent px-3 text-sm text-foreground placeholder:text-granite focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-colors"
+                    className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
                     placeholder="Repeat password"
                     required
                     minLength={8}
@@ -183,8 +183,8 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-shadow/20 dark:bg-shadow/40">
-              <Shield className="h-4 w-4 text-shadow dark:text-leaf" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10">
+              <Shield className="h-4 w-4 text-primary" />
             </div>
             Session
           </CardTitle>
@@ -197,7 +197,7 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
               variant="secondary"
               size="sm"
               leftIcon={<LogOut className="h-4 w-4" />}
-              className="hover:border-leaf hover:text-leaf"
+              className="hover:border-primary/40 hover:text-primary"
             >
               Sign Out
             </Button>

@@ -100,6 +100,8 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
   const [optimizeResult, setOptimizeResult] = useState<{
     matchScore: number;
     changesApplied: string[];
+    keywordsIncorporated: string[];
+    keywordsMissing: string[];
   } | null>(null);
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -202,6 +204,8 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
         setOptimizeResult({
           matchScore: data.data.matchScore,
           changesApplied: data.data.changesApplied || [],
+          keywordsIncorporated: data.data.keywordsIncorporated || [],
+          keywordsMissing: data.data.keywordsMissing || [],
         });
         toast.success(`Resume optimized! New match score: ${data.data.matchScore}%`);
       } else {
@@ -682,17 +686,43 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
 
                 {/* Optimize Result */}
                 {optimizeResult && (
-                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/30">
-                    <div className="flex items-center gap-3 mb-3">
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/30 space-y-4">
+                    <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-primary" />
                       <span className="font-medium text-foreground">
                         Optimization Complete! New Match Score: {optimizeResult.matchScore}%
                       </span>
                     </div>
+
+                    {/* Keywords Incorporated */}
+                    {optimizeResult.keywordsIncorporated.length > 0 && (
+                      <div>
+                        <p className="text-xs text-text-secondary font-medium mb-2">Keywords added to resume:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {optimizeResult.keywordsIncorporated.map((kw, i) => (
+                            <Badge key={i} variant="success" size="sm">{kw}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Keywords Missing */}
+                    {optimizeResult.keywordsMissing.length > 0 && (
+                      <div>
+                        <p className="text-xs text-text-secondary font-medium mb-2">Could not add (no relevant experience):</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {optimizeResult.keywordsMissing.map((kw, i) => (
+                            <Badge key={i} variant="warning" size="sm">{kw}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Changes Applied */}
                     {optimizeResult.changesApplied.length > 0 && (
-                      <div className="space-y-1">
+                      <div>
                         <p className="text-xs text-text-secondary font-medium">Changes applied:</p>
-                        <ul className="text-sm text-text-secondary space-y-1">
+                        <ul className="text-sm text-text-secondary space-y-1 mt-1">
                           {optimizeResult.changesApplied.slice(0, 5).map((change, i) => (
                             <li key={i} className="flex items-start gap-2">
                               <ArrowRight className="h-3 w-3 mt-1 shrink-0 text-primary" />
@@ -702,9 +732,10 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
                         </ul>
                       </div>
                     )}
+
                     <Link
                       href={`/resumes/${selectedResumeId}`}
-                      className="inline-flex items-center gap-1.5 mt-3 text-sm text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
                     >
                       View optimized resume
                       <ExternalLink className="h-3 w-3" />

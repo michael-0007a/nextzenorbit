@@ -22,33 +22,33 @@ export interface MetricCardProps {
 
 const accentStyles = {
   mint: {
-    border: "border-t-mint border-t-2",
-    iconBg: "bg-mint/10 dark:bg-mint/15",
-    iconColor: "text-mint",
-    glow: "shadow-[0_0_15px_rgba(86,227,159,0.15)]",
+    border: "border-t-primary border-t-2",
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    glow: "shadow-[0_0_20px_rgba(255,0,61,0.2)]",
   },
   leaf: {
-    border: "border-t-leaf border-t-2",
-    iconBg: "bg-leaf/10 dark:bg-leaf/15",
-    iconColor: "text-leaf",
-    glow: "shadow-[0_0_15px_rgba(89,201,165,0.15)]",
+    border: "border-t-secondary border-t-2",
+    iconBg: "bg-secondary/10",
+    iconColor: "text-secondary",
+    glow: "shadow-[0_0_20px_rgba(124,58,237,0.2)]",
   },
   shadow: {
-    border: "border-t-shadow border-t-2",
-    iconBg: "bg-shadow/20 dark:bg-shadow/30",
-    iconColor: "text-shadow dark:text-leaf",
+    border: "border-t-accent border-t-2",
+    iconBg: "bg-accent/10",
+    iconColor: "text-accent",
     glow: "",
   },
   midnight: {
-    border: "border-t-midnight border-t-2",
-    iconBg: "bg-midnight/10 dark:bg-midnight/50",
-    iconColor: "text-midnight dark:text-mint",
+    border: "border-t-border border-t-2",
+    iconBg: "bg-white/5",
+    iconColor: "text-foreground",
     glow: "",
   },
   granite: {
     border: "",
-    iconBg: "bg-muted",
-    iconColor: "text-granite",
+    iconBg: "bg-white/5",
+    iconColor: "text-text-secondary",
     glow: "",
   },
 };
@@ -66,8 +66,8 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        "rounded-sm border border-granite p-5 space-y-3 transition-all duration-200",
-        "hover:border-border-hover hover:shadow-md",
+        "rounded-3xl glass-card p-5 space-y-3 transition-all duration-200",
+        "hover:border-border-hover hover:shadow-[0_20px_40px_rgba(0,0,0,0.35)]",
         styles.border,
         styles.glow,
         className
@@ -85,7 +85,7 @@ export function MetricCard({
             className={cn(
               "text-xs font-medium px-2 py-0.5 rounded-full",
               trend.positive
-                ? "text-mint bg-mint/10"
+                ? "text-primary bg-primary/10"
                 : "text-error bg-error/10"
             )}
           >
@@ -104,11 +104,11 @@ export function MetricCard({
 // ── Skeleton version ──
 export function MetricCardSkeleton() {
   return (
-    <div className="rounded-sm border border-granite border-t-2 border-t-granite/50 p-5 space-y-3 animate-pulse">
-      <div className="h-10 w-10 rounded-sm bg-muted" />
+    <div className="rounded-3xl border border-border/60 p-5 space-y-3 animate-pulse">
+      <div className="h-10 w-10 rounded-2xl bg-white/5" />
       <div className="space-y-2">
-        <div className="h-8 w-20 rounded-sm bg-muted" />
-        <div className="h-4 w-28 rounded-sm bg-muted" />
+        <div className="h-8 w-20 rounded-xl bg-white/5" />
+        <div className="h-4 w-28 rounded-xl bg-white/5" />
       </div>
     </div>
   );

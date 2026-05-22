@@ -1,35 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, Sora } from "next/font/google";
 import { Providers } from "@/components/providers/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sora = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Nextzen Orbit — Smart Resume Builder & Job Tracker",
-    template: "%s | Nextzen Orbit",
+    default: "NEXTZEN ORBIT - AI Resume Builder & Job Tracker",
+    template: "%s | NEXTZEN ORBIT",
   },
   description:
-    "AI-powered resume optimization, job description analysis, and application tracking for the Indian job market.",
+    "AI-powered resume optimization, job analysis, and application tracking for ambitious professionals.",
   keywords: [
+    "NEXTZEN ORBIT",
     "resume builder",
     "job search",
     "AI resume",
     "ATS optimization",
-    "India jobs",
-    "Naukri",
-    "LinkedIn",
+    "application tracker",
+    "career",
   ],
 };
 
@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${sora.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background text-foreground`}
       >
         <Providers>{children}</Providers>
       </body>

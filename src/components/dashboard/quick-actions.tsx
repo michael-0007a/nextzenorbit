@@ -35,25 +35,25 @@ const actions = [
 
 const colorStyles = {
   mint: {
-    iconBg: "bg-mint/10 group-hover:bg-mint/20",
-    iconColor: "text-mint",
-    borderHover: "group-hover:border-mint",
-    glow: "group-hover:shadow-[0_0_20px_rgba(86,227,159,0.15)]",
-    arrow: "text-mint",
+    iconBg: "bg-primary/10 group-hover:bg-primary/20",
+    iconColor: "text-primary",
+    borderHover: "group-hover:border-primary/40",
+    glow: "group-hover:shadow-[0_0_24px_rgba(255,0,61,0.2)]",
+    arrow: "text-primary",
   },
   leaf: {
-    iconBg: "bg-leaf/10 group-hover:bg-leaf/20",
-    iconColor: "text-leaf",
-    borderHover: "group-hover:border-leaf",
-    glow: "group-hover:shadow-[0_0_20px_rgba(89,201,165,0.15)]",
-    arrow: "text-leaf",
+    iconBg: "bg-secondary/10 group-hover:bg-secondary/20",
+    iconColor: "text-secondary",
+    borderHover: "group-hover:border-secondary/40",
+    glow: "group-hover:shadow-[0_0_24px_rgba(124,58,237,0.2)]",
+    arrow: "text-secondary",
   },
   shadow: {
-    iconBg: "bg-shadow/20 group-hover:bg-shadow/30 dark:bg-shadow/30 dark:group-hover:bg-shadow/50",
-    iconColor: "text-shadow dark:text-leaf",
-    borderHover: "group-hover:border-shadow dark:group-hover:border-leaf",
+    iconBg: "bg-accent/10 group-hover:bg-accent/20",
+    iconColor: "text-accent",
+    borderHover: "group-hover:border-accent/40",
     glow: "",
-    arrow: "text-shadow dark:text-leaf",
+    arrow: "text-accent",
   },
 };
 
@@ -72,7 +72,7 @@ export function QuickActions({ className }: QuickActionsProps) {
             key={action.href}
             href={action.href}
             className={cn(
-              "group relative rounded-sm border border-granite p-6",
+              "group relative rounded-3xl glass-card p-6",
               "transition-all duration-200",
               styles.borderHover,
               styles.glow,
@@ -80,11 +80,11 @@ export function QuickActions({ className }: QuickActionsProps) {
             )}
           >
             {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-sm bg-gradient-to-br from-transparent to-muted/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
             <div className="relative">
               <div className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-sm transition-colors",
+                "flex h-12 w-12 items-center justify-center rounded-2xl transition-colors",
                 styles.iconBg
               )}>
                 <Icon className={cn("h-6 w-6 transition-colors", styles.iconColor)} />

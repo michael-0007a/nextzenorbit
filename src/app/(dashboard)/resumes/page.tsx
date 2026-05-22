@@ -36,14 +36,15 @@ export default async function ResumesPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 p-6">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl" />
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 p-6">
+        <div className="absolute inset-0 bg-space opacity-50" />
+        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary/10 rounded-full blur-2xl" />
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <div className="h-5 w-1 rounded-full bg-primary" />
-              <h1 className="text-2xl font-bold text-foreground">My Resumes</h1>
+              <h1 className="font-display text-2xl font-semibold text-foreground">My Resumes</h1>
             </div>
             <p className="text-text-secondary">
               Create and manage your tailored resumes. Use AI to optimize for each job.

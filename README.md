@@ -13,7 +13,7 @@
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router, TypeScript strict)
+- **Framework:** Next.js 16 (App Router, TypeScript strict)
 - **Database:** Supabase (PostgreSQL + Auth + Storage)
 - **AI:** Groq API (LLaMA 3.3 70B Versatile)
 - **Payments:** Razorpay (primary), Cashfree (secondary)
@@ -54,7 +54,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd jobsearchai
+cd nextzenorbit
 
 # Install dependencies
 npm install
@@ -101,6 +101,8 @@ src/
 
 | Document | Description |
 |----------|-------------|
+| [TEAM_CONTEXT_BRIEF.md](docs/TEAM_CONTEXT_BRIEF.md) | Non-technical context for leadership and cross-functional team members |
+| [APP_DOCUMENTATION.md](docs/APP_DOCUMENTATION.md) | Code-grounded whole-app documentation (scope, implementation, file map, and gaps) |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and data flow |
 | [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Database schema and RLS |
 | [API_DOCS.md](docs/API_DOCS.md) | API endpoint documentation |

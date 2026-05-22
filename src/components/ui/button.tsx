@@ -9,19 +9,19 @@ import { tapScale } from "@/lib/animations";
 // === Variant & Size Definitions ===
 const buttonVariants = {
   primary:
-    "bg-gradient-to-r from-primary to-primary-light text-white hover:shadow-lg hover:shadow-primary/25 active:opacity-90",
+    "bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_20px_45px_rgba(255,0,61,0.35)] hover:shadow-[0_25px_55px_rgba(255,0,61,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:opacity-95",
   secondary:
-    "bg-transparent border-2 border-border text-foreground hover:border-primary hover:text-primary active:opacity-80",
+    "bg-white/5 border border-border text-foreground hover:border-primary/40 hover:text-white hover:bg-white/10 active:opacity-90",
   ghost:
-    "bg-transparent text-foreground hover:bg-muted active:opacity-80",
+    "bg-transparent text-text-secondary hover:text-foreground hover:bg-white/5 active:opacity-90",
   destructive:
-    "bg-error text-white hover:bg-error/90 hover:shadow-lg hover:shadow-error/25 active:opacity-90",
+    "bg-error text-white hover:bg-error/90 hover:shadow-[0_18px_35px_rgba(239,68,68,0.3)] active:opacity-95",
 };
 
 const buttonSizes = {
-  sm: "h-9 px-4 text-xs gap-1.5 rounded-lg",
-  md: "h-10 px-5 text-sm gap-2 rounded-xl",
-  lg: "h-12 px-6 text-base gap-2.5 rounded-xl",
+  sm: "h-9 px-4 text-xs gap-1.5 rounded-xl",
+  md: "h-11 px-6 text-sm gap-2 rounded-full",
+  lg: "h-12 px-7 text-base gap-2.5 rounded-full",
 };
 
 // === Types ===
@@ -67,7 +67,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         transition={tapScale.transition}
         className={cn(
           // Base styles
-          "inline-flex items-center justify-center font-medium",
+          "inline-flex items-center justify-center font-semibold",
           "transition-all duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "disabled:pointer-events-none disabled:opacity-40",

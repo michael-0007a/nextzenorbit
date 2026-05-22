@@ -37,16 +37,16 @@ function UsageMeter({ label, used, limit, icon: Icon }: { label: string; used: n
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-granite" />
+          <Icon className="h-4 w-4 text-text-secondary" />
           <span className="text-sm font-medium text-foreground">{label}</span>
         </div>
         <span className="text-xs text-text-secondary">
           {used.toLocaleString()} / {displayLimit}
         </span>
       </div>
-      <div className="h-1.5 w-full rounded-sm bg-muted overflow-hidden">
+      <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
         <div
-          className="h-full rounded-sm bg-mint transition-all duration-500"
+          className="h-full rounded-full bg-primary transition-all duration-500"
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -67,7 +67,7 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-mint" />
+            <CreditCard className="h-4 w-4 text-primary" />
             Current Plan
           </CardTitle>
           <CardDescription>Your subscription details and billing information.</CardDescription>
@@ -86,8 +86,8 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
           </div>
 
           {trialing && (
-            <div className="flex items-center gap-2 rounded-sm border border-mint-border bg-mint-muted p-3">
-              <Clock className="h-4 w-4 text-mint" />
+            <div className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 p-3">
+              <Clock className="h-4 w-4 text-primary" />
               <p className="text-sm text-foreground">
                 <span className="font-medium">{daysLeft} days</span> remaining in your free trial.
               </p>
@@ -108,7 +108,7 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
           )}
 
           {subscription?.cancel_at_period_end && (
-            <div className="flex items-center gap-2 rounded-sm border border-error/30 bg-error/5 p-3">
+            <div className="flex items-center gap-2 rounded-2xl border border-error/30 bg-error/10 p-3">
               <p className="text-sm text-error">
                 Your subscription will be cancelled at the end of the current billing period.
               </p>
@@ -121,7 +121,7 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-leaf" />
+            <Zap className="h-4 w-4 text-secondary" />
             Usage
           </CardTitle>
           <CardDescription>Resource usage for the current billing period.</CardDescription>
