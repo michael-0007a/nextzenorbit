@@ -11,7 +11,7 @@ The business goal is simple:
 - help users create strong resumes quickly
 - help users apply faster with better quality
 - reduce manual tracking work
-- eventually automate large parts of repetitive application work
+- accelerate manual applications with assisted autofill (no auto-submit)
 
 In one line: resume quality + application speed + tracking clarity.
 
@@ -24,12 +24,12 @@ In one line: resume quality + application speed + tracking clarity.
 - AI support for resume improvement and job-description matching
 - Cover letter generation and export
 - Application tracking board (kanban/table)
-- External job search and queueing jobs for auto-apply
+- External job search (Adzuna) and application tracking
 
 ### Working, but not production-ready
 
 - Subscription and paid upgrade flow
-- Auto-apply reliability across different employer portals
+- Assisted autofill coverage across different employer portals
 
 ### Not complete yet
 
@@ -39,43 +39,40 @@ In one line: resume quality + application speed + tracking clarity.
 
 ## 3. Key Blocker Right Now
 
-Auto-apply is not reliably completing end-to-end across career portals.
+Assisted autofill is not yet reliable across career portals.
 
 Current reason:
-- every employer portal has a different flow
-- many have multi-step navigation before the real form
-- some include dynamic elements, redirects, or anti-bot checks
-- current worker logic handles only a limited set of navigation patterns
+- every employer portal has different field structures and naming
+- many forms are multi-step with dynamic renders
+- some include anti-bot checks or iframe-based inputs
+- field detection and mapping logic is not yet fully implemented
 
 Business impact:
-- queue-to-application conversion is lower than expected
-- users still need manual intervention
-- trust in the "auto-apply" promise is affected
+- users still spend time correcting autofill
+- trust in the "application copilot" promise is affected
 
 ## 4. What Has Been Done So Far
 
-- Built a separate worker service for browser automation
-- Implemented queue polling, processing states, and proof screenshots
-- Added site-specific handling for Indeed
-- Added generic AI-assisted form filling for non-Indeed pages
-- Added screenshot access and cleanup flows
+- Job search + application tracking foundation
+- Legacy queue + worker exist (deprecated)
+- Assisted autofill extension architecture and portal targets defined
 
-This means the foundation exists, but reliability work is still required.
+This means the product direction is clear, but the extension still needs full implementation.
 
 ## 5. Next 2 Sprint Focus (Recommended)
 
-### Priority 1: Auto-apply completion reliability
+### Priority 1: Assisted autofill reliability
 
-- Add robust multi-step navigation handling
-- Add portal-specific adapters for top target portals
-- Add safer retries and better failure categorization
-- Capture step-level evidence (where exactly it failed)
+- Build portal-specific adapters for top target portals
+- Improve field detection and mapping accuracy
+- Add a clear review UI before filling
+- Track portal-level coverage and failure reasons
 
 ### Priority 2: User-facing confidence
 
-- Show precise failure reason in UI (not just "failed")
-- Offer fallback action when automation cannot continue
-- Improve queue status visibility
+- Show precise field mapping status in the UI
+- Offer guided fallback when a field cannot be detected
+- Make it clear that submission remains manual
 
 ### Priority 3: Monetization readiness
 
@@ -85,9 +82,9 @@ This means the foundation exists, but reliability work is still required.
 
 ## 6. Success Metrics To Track
 
-- Auto-apply completion rate
-- Queue success vs failure by portal
-- Manual intervention rate
+- Assisted autofill completion rate
+- Autofill success vs correction rate by portal
+- Manual correction rate
 - Time saved per user per week
 - Upgrade conversion after reliability improvements
 
@@ -95,8 +92,8 @@ This means the foundation exists, but reliability work is still required.
 
 1. Approve top 3-5 portals to prioritize first.
 2. Confirm whether reliability or monetization is sprint priority #1.
-3. Decide acceptable MVP definition for "auto-apply working" (for launch messaging).
+3. Decide acceptable MVP definition for "assisted autofill working" (for launch messaging).
 
 ## 8. One-Sentence Status
 
-Nextzen Orbit already delivers strong resume and tracking value, but auto-apply needs focused portal reliability work before it can be positioned as fully dependable at scale.
+Nextzen Orbit already delivers strong resume and tracking value, but assisted autofill needs focused portal coverage and field-mapping reliability work before it can be positioned as fully dependable at scale.

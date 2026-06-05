@@ -64,7 +64,7 @@ Job application tracking (Kanban board).
 | `updated_at` | timestamptz | now() | — |
 
 ### `job_queue`
-Auto-apply queue. Worker processes jobs with status `pending`.
+Legacy auto-apply queue (deprecated). Kept for historical data.
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -135,7 +135,7 @@ Payment webhook audit log.
 | Bucket | Access | Contents |
 |--------|--------|----------|
 | `resumes` | Private | User resume PDF uploads |
-| `screenshots` | Private | Auto-apply proof screenshots (7-day TTL) |
+| `screenshots` | Private | Legacy auto-apply proof screenshots (7-day TTL) |
 
 ---
 

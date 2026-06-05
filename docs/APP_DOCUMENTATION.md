@@ -27,11 +27,11 @@ The intended product flow is:
 5. The user generates cover letters.
 6. The user tracks applications in a Kanban/table tracker.
 7. The user searches jobs from external sources.
-8. Matching jobs can be added to an auto-apply queue.
-9. A separate Playwright worker processes the queue, fills forms, and stores screenshot proof.
+8. Matching jobs are surfaced for manual applications.
+9. An assisted autofill extension helps fill application forms while the user controls submission.
 10. Subscription and usage tracking support a future paid product model.
 
-In short: resume builder + AI application copilot + job tracker + early auto-apply system.
+In short: resume builder + AI application copilot + job tracker + assisted autofill.
 
 ## 2. What is already built
 
@@ -40,7 +40,7 @@ In short: resume builder + AI application copilot + job tracker + early auto-app
 - Public landing page and marketing shell
 - Google OAuth login/register flow with Supabase
 - Auth-protected dashboard shell
-- Profile CRUD, including job preferences for auto-apply
+- Profile CRUD, including job preferences for assisted autofill
 - Resume CRUD
 - Resume upload from PDF/DOCX
 - AI resume parsing into structured JSON
@@ -56,9 +56,9 @@ In short: resume builder + AI application copilot + job tracker + early auto-app
 - Application tracker in Kanban and table forms
 - Subscription data model and payment order/webhook foundation
 - Adzuna-powered job search
-- Job queue for auto-apply
-- Screenshot viewing and screenshot cleanup cron
-- Standalone Playwright worker for background auto-apply
+- Legacy job queue for auto-apply (deprecated)
+- Screenshot viewing and screenshot cleanup cron (legacy worker support)
+- Legacy Playwright worker for background auto-apply (deprecated)
 
 ### Important architectural decisions already present
 
@@ -67,7 +67,7 @@ In short: resume builder + AI application copilot + job tracker + early auto-app
 - Groq is the AI provider.
 - Zod validates profile, resume, and API request data.
 - Service-role Supabase clients are used in server routes where RLS recursion or privileged access would otherwise block the flow.
-- The worker is separate from the Next.js app because browser automation should not run inside serverless route handlers.
+- Assisted autofill runs in a Chrome extension; no autonomous submission is allowed.
 
 ## 3. Current status by feature
 
@@ -79,14 +79,14 @@ In short: resume builder + AI application copilot + job tracker + early auto-app
 - AI resume analysis/improvement/tailoring flows
 - Cover letter generation UI and API
 - Application tracker
-- Job search UI and queue APIs
-- Worker prototype and screenshot proof flow
+- Job search UI (Adzuna)
+- Legacy job queue APIs (deprecated)
 
 ### Partly built / foundation exists but not fully finished
 
 - Subscription enforcement
 - Payment checkout UX
-- Auto-apply production hardening
+- Assisted autofill portal coverage and field mapping
 - Cover letter persistence and queue integration
 - Dashboard analytics and activity
 
@@ -95,7 +95,7 @@ In short: resume builder + AI application copilot + job tracker + early auto-app
 - Real notification system
 - Real search in top nav
 - Final subscription upgrade flow
-- Robust queue retries/locking/distributed worker behavior
+- Autofill adapter library and portal QA automation
 - Persistent cover-letter records despite having a table
 
 ## 4. How the app works
@@ -217,41 +217,25 @@ Note: `POST /api/cover-letter/export` currently does not enforce auth at the rou
    - status filtering
 5. All CRUD goes through `/api/applications` and `/api/applications/[id]`.
 
-## 4.6 Job search and auto-apply flow
+## 4.6 Job search and assisted autofill flow
 
-### Search and queue
+### Search
 
 1. Job search page preloads:
    - user profile defaults
    - available resumes
-   - current queue
 2. `JobSearchClient` submits to `POST /api/jobs/search`.
 3. `src/lib/jobs/adzuna.ts` calls Adzuna and normalizes results.
-4. User adds one or many jobs to the queue via `POST /api/jobs/queue`.
-5. Selected resume id is attached to queued jobs where available.
+4. User opens a job listing and applies manually (no auto-apply queue).
 
-### Worker processing
+### Assisted autofill (extension)
 
-1. Separate worker process starts from `worker/src/index.ts`.
-2. It loads worker env vars before importing the worker code.
-3. `worker/src/worker.ts` polls `job_queue` for pending rows.
-4. Job is marked `processing`.
-5. Worker loads:
-   - user profile
-   - user email
-   - chosen resume content
-6. Playwright opens the job URL.
-7. If it lands on Adzuna, the worker tries to click through to the employer page.
-8. The worker chooses a filler:
-   - `worker/src/fillers/indeed.ts` for Indeed
-   - `worker/src/fillers/generic.ts` for AI-based generic forms
-9. If fields are filled successfully:
-   - proof overlay is added
-   - screenshot is uploaded to Supabase Storage
-   - queue row is marked applied
-   - an `applications` record is created
-10. Screenshot viewing goes through `GET /api/jobs/screenshot`.
-11. `POST /api/cron/cleanup` removes expired screenshots and clears the DB columns.
+1. User opens a job portal with the extension active.
+2. The content script detects fields and maps them to profile/resume data.
+3. The extension requests the user's autofill profile from the app API.
+4. The user reviews and clicks "Fill"; final submission remains manual.
+
+Note: the legacy job_queue + worker flow is deprecated and retained only for historical data.
 
 ## 4.7 Subscription and payments flow
 
@@ -512,7 +496,9 @@ These are starter/static assets. There is currently no `public/templates/` direc
 - `src/types/database.ts` - application-wide typed view of the Supabase schema.
 - `src/types/api.ts` - standard API success/error helpers and codes.
 
-## 5.11 Worker
+## 5.11 Legacy worker (deprecated)
+
+This worker is kept for reference only and is not part of the assisted autofill roadmap.
 
 - `worker/package.json` - worker-only dependencies and scripts.
 - `worker/src/index.ts` - bootstrap loader for env vars.
@@ -558,14 +544,14 @@ Main tables used by the app:
 - `resume_versions` - resume snapshots for rollback/history.
 - `cover_letters` - schema exists but current generation flow does not save to it.
 - `applications` - tracked job applications.
-- `job_queue` - auto-apply queue.
+- `job_queue` - legacy auto-apply queue (deprecated).
 - `ai_usage` - token accounting per billing period.
 - `webhook_events` - webhook audit log.
 
 Storage buckets:
 
 - `resume-uploads` - uploaded PDF/DOCX source files
-- `screenshots` - proof images from worker submissions
+- `screenshots` - legacy proof images from worker submissions (deprecated)
 
 ## 7. External services and environment assumptions
 
@@ -579,7 +565,7 @@ The app currently depends on:
 - `NEXT_PUBLIC_APP_URL`
 - `CRON_SECRET` for screenshot cleanup route
 
-The worker additionally depends on:
+Legacy worker dependencies (deprecated):
 
 - its own `.env.local`
 - Playwright/Chromium runtime support
@@ -606,16 +592,13 @@ This section is based on the current code, not aspirational docs.
 - `activity-feed.tsx`, `metric-card.tsx`, and `quick-actions.tsx` exist but are not used by the current dashboard page.
 - Top-nav search and notifications are UI placeholders only.
 
-### Auto-apply gaps
+### Assisted autofill gaps
 
-- The worker is a prototype, not a hardened production queue worker.
-- `MAX_RETRIES` is defined in `worker/src/worker.ts` but no retry loop is implemented.
-- Queue claiming is simple polling plus status update; there is no robust distributed locking/lease model.
-- The generic filler marks success when it fills fields, not when an application is definitively submitted.
-- Resume file upload is skipped in both filler paths when a file input is detected.
-- Auto-generated cover letters are not inserted into forms.
-- No root-level scripts exist to start both app and worker together.
-- The main app `tsconfig.json` excludes `worker`, so the worker is maintained separately and must be run separately.
+- Field detection reliability across Workday, Greenhouse, Lever, and LinkedIn Easy Apply.
+- Portal-specific adapters and mapping coverage are not implemented yet.
+- Profile-to-form mapping review UI is still missing.
+- No end-to-end QA harness for autofill flows.
+- Extension packaging and distribution are not set up.
 
 ### Data/doc mismatches
 
@@ -653,7 +636,7 @@ If the goal is to make the app production-ready, the highest-value next steps ar
 1. Decide the true product scope.
    - Resume copilot only
    - Resume + tracker
-   - Full auto-apply platform
+   - Assisted autofill extension
 
 2. Finish subscription truth and pricing.
    - align `PLANS`
@@ -664,12 +647,11 @@ If the goal is to make the app production-ready, the highest-value next steps ar
    - connect plan cards to checkout
    - verify post-payment state transitions in the UI
 
-4. Harden auto-apply.
-   - real queue locking
-   - retries
-   - better success criteria
-   - upload actual resume files
-   - optional cover-letter injection
+4. Build assisted autofill.
+   - portal adapters and field maps
+   - user review + one-click fill
+   - per-portal QA and reliability tracking
+   - extension packaging + distribution
 
 5. Clean up docs and legacy files.
    - refresh README
@@ -682,4 +664,4 @@ If the goal is to make the app production-ready, the highest-value next steps ar
 
 ## 10. Short repo summary
 
-Nextzen Orbit is already a substantial app. The strongest parts today are the resume system, AI-assisted editing/analyzing, and the application tracker. The newest area is the Adzuna -> queue -> worker auto-apply pipeline, which is present and demonstrable but still needs production hardening, consistent subscription logic, and a more complete payment/usage story.
+Nextzen Orbit is already a substantial app. The strongest parts today are the resume system, AI-assisted editing/analyzing, and the application tracker. The platform is now shifting from legacy auto-apply toward an assisted autofill extension that keeps users in control of submission.

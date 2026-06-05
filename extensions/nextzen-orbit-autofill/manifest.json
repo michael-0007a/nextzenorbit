@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Nextzen Orbit Autofill",
+  "version": "0.1.0",
+  "description": "Assisted autofill for job applications. No auto-submit.",
+  "action": {
+    "default_popup": "build/popup.html"
+  },
+  "background": {
+    "service_worker": "build/background.js",
+    "type": "module"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://*.myworkdayjobs.com/*",
+    "https://*.greenhouse.io/*",
+    "https://*.lever.co/*",
+    "https://*.linkedin.com/*",
+    "https://apply.careers.microsoft.com/*",
+    "https://careers.microsoft.com/*",
+    "https://*.nextzenorbit.com/*",
+    "https://nextzenorbit.com/*",
+    "http://localhost:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.myworkdayjobs.com/*",
+        "https://*.greenhouse.io/*",
+        "https://*.lever.co/*",
+        "https://*.linkedin.com/*",
+        "https://apply.careers.microsoft.com/*",
+        "https://careers.microsoft.com/*"
+      ],
+      "js": ["build/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

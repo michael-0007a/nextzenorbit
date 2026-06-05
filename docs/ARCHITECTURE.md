@@ -2,14 +2,14 @@
 
 ## System Overview
 
-Nextzen Orbit is an AI-powered job application platform. It helps users build resumes, search for jobs, and auto-apply using browser automation.
+Nextzen Orbit is an AI-powered career workspace. It helps users build resumes, search for jobs, and apply faster using an assisted autofill extension (no autonomous auto-apply).
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         User (Browser)                          │
-└─────────────────┬───────────────────────────────────────────────┘
-                  │
-                  ▼
+│                 User (Browser + Extension)                      │
+└─────────────────┬───────────────────────┬───────────────────────┘
+                  │                       │
+                  ▼                       ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Next.js App (App Router)                      │
 │                                                                  │
@@ -20,7 +20,7 @@ Nextzen Orbit is an AI-powered job application platform. It helps users build re
 │       │              │             │                │            │
 │  ┌────▼──────────────▼─────────────▼────────────────▼──────────┐ │
 │  │                     API Routes (/api)                        │ │
-│  │  /auth   /profile   /resumes   /jobs/search   /jobs/queue   │ │
+│  │  /auth   /profile   /resumes   /jobs/search   /autofill      │ │
 │  │  /ai     /webhooks  /cron/cleanup                           │ │
 │  └──────────────────────────┬──────────────────────────────────┘ │
 └─────────────────────────────┼───────────────────────────────────┘
@@ -33,24 +33,15 @@ Nextzen Orbit is an AI-powered job application platform. It helps users build re
 │   - Database    │  │               │  │                     │
 │   - Storage     │  │   - Resume    │  │   - Free tier       │
 │     - resumes   │  │     parsing   │  │   - India market    │
-│     - shots     │  │   - Form      │  │                     │
-│                 │  │     detection │  │                     │
-└────────┬────────┘  └───────────────┘  └─────────────────────┘
-         │
-         │  polls job_queue
-         ▼
-┌──────────────────────────────────────┐
-│   Playwright Worker (background)     │
-│                                      │
-│   1. Poll Supabase for pending jobs  │
-│   2. Open job URL in browser         │
-│   3. Detect form (AI or hardcoded)   │
-│   4. Fill fields from user profile   │
-│   5. Take proof screenshot           │
-│   6. Upload to Supabase Storage      │
-│   7. Mark job as applied             │
-│   8. Create application record       │
-└──────────────────────────────────────┘
+│                 │  │               │  │                     │
+└─────────────────┘  └───────────────┘  └─────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ Chrome Extension (Manifest V3)                                   │
+│ - Content scripts detect fields                                  │
+│ - Assist panel + popup UI                                        │
+│ - User triggers fill; no auto-submit                             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -64,10 +55,10 @@ Nextzen Orbit is an AI-powered job application platform. It helps users build re
 | UI | Custom Yeldra design system | `src/components/ui/` |
 | Auth | Supabase Auth (Google OAuth) | Login/signup |
 | Database | Supabase PostgreSQL | All data storage |
-| Storage | Supabase Storage | Resumes + screenshots |
+| Storage | Supabase Storage | Resumes + uploads (legacy screenshots) |
 | AI | Groq (LLaMA 3.3 70B) | Resume parsing, form detection |
 | Job Search | Adzuna API (free) | India job listings |
-| Automation | Playwright | Browser automation |
+| Extension | Chrome Extension (MV3) | Assisted autofill |
 | Payments | Razorpay | Subscription billing |
 
 ---
@@ -90,9 +81,10 @@ nextzenorbit/
 │   │       ├── profile/        # Profile CRUD
 │   │       ├── resumes/        # Resume CRUD
 │   │       ├── ai/             # AI endpoints
-│   │       ├── jobs/           # Job search + queue
+│   │       ├── jobs/           # Job search + legacy queue
 │   │       │   ├── search/     # Adzuna search
-│   │       │   └── queue/      # Queue management
+│   │       │   └── queue/      # Legacy queue management
+│   │       ├── autofill/       # Extension profile endpoints
 │   │       ├── webhooks/       # Payment webhooks
 │   │       └── cron/           # Scheduled cleanup
 │   ├── components/
@@ -106,25 +98,16 @@ nextzenorbit/
 │   │   ├── jobs/               # Adzuna API client
 │   │   └── validations/        # Zod schemas
 │   └── types/                  # TypeScript types (database.ts)
-├── worker/                     # Standalone Playwright worker
-│   ├── src/
-│   │   ├── index.ts            # Bootstrap (loads env)
-│   │   ├── worker.ts           # Main polling loop
-│   │   ├── supabase.ts         # Worker Supabase client
-│   │   ├── browser.ts          # Playwright manager
-│   │   └── fillers/
-│   │       ├── indeed.ts       # Indeed form selectors
-│   │       └── generic.ts      # AI-powered form filler
-│   ├── package.json
-│   └── tsconfig.json
 ├── supabase/
 │   └── migrations/             # SQL migrations (001-013)
+├── extensions/                 # Chrome extension (assisted autofill)
+│   └── nextzen-orbit-autofill/
 └── docs/                       # Documentation
 ```
 
 ---
 
-## Data Flow: Auto-Apply Pipeline
+## Data Flow: Assisted Autofill
 
 ```
 User searches jobs on /dashboard/job-search
@@ -133,45 +116,30 @@ User searches jobs on /dashboard/job-search
 POST /api/jobs/search   →  Adzuna API  →  job results
         │
         ▼
-User clicks "Add to Queue"
+User opens job listing in a portal
         │
         ▼
-POST /api/jobs/queue    →  INSERT into job_queue (status: pending)
+Extension detects fields → requests profile from /api/autofill/profile
         │
         ▼
-Worker polls job_queue  →  picks job   →  status: processing
+User clicks "Fill" → form populated with profile data
         │
         ▼
-Playwright opens job URL → detects form → fills fields
-        │
-        ▼
-Screenshot captured     →  uploaded to Supabase Storage
-        │
-        ▼
-job_queue updated       →  status: applied
-                        →  screenshot_url + 7-day expiry
-        │
-        ▼
-Application record created in applications table
-        │
-        ▼
-User sees result on dashboard + screenshot proof in queue panel
+User submits manually (no auto-submit)
 ```
 
 ---
 
 ## Key Design Decisions
 
-1. **Worker is separate from Next.js** — Playwright needs system-level Chromium, doesn't work in serverless. Runs as a standalone process.
+1. **Assisted autofill only** — No autonomous submission; the user stays in control.
 
-2. **Lazy Supabase client in worker** — ESM imports execute before module-level code, so dotenv must load in a bootstrap file (`index.ts`) that dynamically imports the worker.
+2. **Extension-first UX** — Content scripts detect fields and the popup/assist panel drives user-triggered fills.
 
-3. **Indeed-first, AI-fallback** — Hardcoded Indeed selectors are fast and reliable. AI generic filler is the fallback for unknown job sites.
+3. **Portal adapters are modular** — Separate mapping logic for Workday, Greenhouse, Lever, and LinkedIn.
 
-4. **7-day screenshot TTL** — Screenshots are proof of submission, not permanent records. Signed URLs expire automatically. Cleanup cron removes the files.
-
-5. **Adzuna over scraping** — Adzuna API is free, legal, and returns structured data. Playwright scraping is reserved for the apply step, not job discovery.
+4. **Adzuna over scraping** — Adzuna API is free, legal, and returns structured data for search.
 
 ---
 
-*Last updated: 2026-03-20*
+*Last updated: 2026-05-23*

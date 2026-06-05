@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Tell TailwindCSS v4 to use .dark class (set by next-themes) instead of prefers-color-scheme */
 @custom-variant dark (&:where(.dark, .dark *));

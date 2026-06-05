@@ -43,6 +43,7 @@ const mainNavItems: NavItem[] = [
   { label: "Job Analyzer", href: "/analyzer", icon: Search, badge: "AI" },
   { label: "Job Search", href: "/job-search", icon: Rocket, badge: "NEW", isNew: true },
   { label: "Applications", href: "/applications", icon: Briefcase },
+  { label: "Careers", href: "/career", icon: Sparkles, badge: "NEW", isNew: true },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -130,7 +131,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Logo Section */}
       <div className="flex h-[78px] items-center justify-center px-5 border-b border-border/60">
         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20 shadow-[0_0_24px_rgba(255,0,61,0.25)]">
-          <Image src="/only%20logo.png" alt="NEXTZEN ORBIT" width={22} height={22} />
+          <Sparkles className="h-5 w-5 text-primary" />
           <div className="absolute inset-0 rounded-xl animate-ping bg-primary/15" style={{ animationDuration: "3s" }} />
         </div>
       </div>

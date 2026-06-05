@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nextzen Orbit Autofill</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: radial-gradient(circle at top, #1b1f2b 0%, #0f1016 60%, #0b0c11 100%);
+        color: #f5f7fa;
+      }
+      .panel {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .title {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .muted {
+        font-size: 12px;
+        color: #a7b0c0;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .input {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid #2a2f3c;
+        background: #141822;
+        color: #f5f7fa;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .button {
+        width: 100%;
+        border-radius: 10px;
+        border: none;
+        padding: 10px 12px;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(135deg, #ff003d, #ff2b6a);
+        color: #fff;
+      }
+      .button.secondary {
+        background: #1b1f2b;
+        color: #f5f7fa;
+        border: 1px solid #2a2f3c;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        border: 1px solid #2a2f3c;
+        padding: 4px 8px;
+        font-size: 11px;
+        color: #a7b0c0;
+      }
+      .status {
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: #141822;
+        border: 1px solid #2a2f3c;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <div class="row">
+        <div>
+          <div class="title">Nextzen Autofill</div>
+          <div class="muted">User-controlled form filling</div>
+        </div>
+        <span id="portal-pill" class="pill">Detecting...</span>
+      </div>
+
+      <label class="muted" for="api-base-url">App URL</label>
+      <input id="api-base-url" class="input" placeholder="https://app.nextzenorbit.com" />
+
+      <div class="row">
+        <span class="muted">Autofill enabled</span>
+        <input id="toggle-enabled" type="checkbox" />
+      </div>
+
+      <div id="status" class="status">Waiting for page data...</div>
+
+      <button id="fill-button" class="button">Fill on this page</button>
+      <button id="refresh-button" class="button secondary">Refresh status</button>
+
+      <div class="muted">We never submit forms. You stay in control.</div>
+    </div>
+    <script src="./popup.js"></script>
+  </body>
+</html>

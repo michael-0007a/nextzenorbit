@@ -2,14 +2,16 @@
 
 ## Architecture Overview
 
+> Note: The Playwright worker is deprecated in favor of the assisted autofill Chrome extension.
+
 ```
 ┌───────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│   Next.js App     │     │  Playwright       │     │  Supabase        │
-│  (Fly.io/Vercel)  │────▶│  Worker (Fly.io)  │────▶│  (Cloud)         │
-│                   │     │                   │     │  - Auth           │
-│  - Dashboard      │     │  - Auto-apply     │     │  - Database       │
-│  - Job Search     │     │  - Screenshot     │     │  - Storage        │
-│  - Resume Builder │     │  - Form Filler    │     │                   │
+│   Next.js App     │     │ Chrome Extension │     │  Supabase        │
+│  (Fly.io/Vercel)  │◀────│  (MV3, user)     │────▶│  (Cloud)         │
+│                   │     │  - Autofill UI   │     │  - Auth           │
+│  - Dashboard      │     │  - Field Detect  │     │  - Database       │
+│  - Job Search     │     │  - User-Control  │     │  - Storage        │
+│  - Resume Builder │     │                  │     │                   │
 └───────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
@@ -129,9 +131,9 @@ flyctl logs  # Check logs
 
 ---
 
-## Part 3: Worker (Fly.io)
+## Part 3: Worker (legacy, deprecated)
 
-The worker runs as a **separate Fly app** (no HTTP — just a background process).
+The Playwright worker is deprecated. New deployments should skip this section.
 
 ### 3.1 Initialize Worker App
 ```bash

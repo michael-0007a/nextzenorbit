@@ -122,7 +122,7 @@ Search for jobs using the Adzuna API.
 ```
 
 ### `GET /api/jobs/queue`
-Get the authenticated user's job queue (last 100 jobs).
+Legacy job queue (last 100 jobs).
 
 **Response:**
 ```json
@@ -142,7 +142,7 @@ Get the authenticated user's job queue (last 100 jobs).
 ```
 
 ### `POST /api/jobs/queue`
-Add jobs to the auto-apply queue. Deduplicates by `job_url`.
+Legacy: add jobs to the auto-apply queue (deprecated). Deduplicates by `job_url`.
 
 **Body:**
 ```json
