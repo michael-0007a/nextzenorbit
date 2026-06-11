@@ -62,6 +62,8 @@ interface SubscriptionCheckoutProps {
   userName?: string;
   onSuccess?: (response: RazorpayResponse) => void;
   onFailure?: (error: string) => void;
+  className?: string;
+  children?: React.ReactNode;
 }
 
 const PLAN_DISPLAY = {
@@ -81,6 +83,8 @@ export default function SubscriptionCheckout({
   userName,
   onSuccess,
   onFailure,
+  className,
+  children,
 }: SubscriptionCheckoutProps) {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -187,7 +191,8 @@ export default function SubscriptionCheckout({
     <button
       onClick={handleSubscribe}
       disabled={loading || !scriptLoaded}
-      style={{
+      className={className}
+      style={!className ? {
         padding: "12px 32px",
         fontSize: "16px",
         fontWeight: 600,
@@ -200,11 +205,11 @@ export default function SubscriptionCheckout({
         color: "#fff",
         opacity: loading ? 0.7 : 1,
         transition: "all 0.2s ease",
-      }}
+      } : undefined}
     >
-      {loading
+      {children || (loading
         ? "Processing..."
-        : `Subscribe to ${display.name} — ${currency === "INR" ? "₹" + PLANS[plan].price_inr : "$" + PLANS[plan].price_usd}/mo`}
+        : `Subscribe to ${display.name} — ${currency === "INR" ? "₹" + PLANS[plan].price_inr : "$" + PLANS[plan].price_usd}/mo`)}
     </button>
   );
 }

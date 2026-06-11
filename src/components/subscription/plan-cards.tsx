@@ -12,6 +12,7 @@ import { PLANS } from "@/lib/subscription";
 import { Check, X } from "lucide-react";
 import type { PlanId } from "@/types/database";
 import { useEffect, useState } from "react";
+import SubscriptionCheckout from "@/components/SubscriptionCheckout";
 
 interface PlanCardsProps {
   currentPlanId: PlanId;
@@ -117,15 +118,22 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                   >
                     Current Plan
                   </button>
-                ) : (
+                ) : planId === "free" ? (
                   <button
-                    className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5"
+                    className="w-full h-10 rounded-full border border-border text-sm font-medium text-text-secondary bg-white/5 hover:bg-white/10 transition-colors duration-300"
                     onClick={() => {
-                      // Payment integration will be handled in a later phase
+                      alert("To downgrade to Free, please cancel your subscription. Your plan will revert to Free at the end of the billing cycle.");
                     }}
                   >
-                    {planId === "free" ? "Downgrade" : "Upgrade"}
+                    Downgrade
                   </button>
+                ) : (
+                  <SubscriptionCheckout
+                    plan={planId as "pro" | "elite"}
+                    className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Upgrade
+                  </SubscriptionCheckout>
                 )}
               </CardFooter>
             </Card>
