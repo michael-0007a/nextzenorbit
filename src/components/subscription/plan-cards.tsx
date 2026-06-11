@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PLANS } from "@/lib/subscription";
 import { Check, X } from "lucide-react";
 import type { PlanId } from "@/types/database";
+import { useEffect, useState } from "react";
 
 interface PlanCardsProps {
   currentPlanId: PlanId;
@@ -45,6 +46,18 @@ const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {
 
 export function PlanCards({ currentPlanId }: PlanCardsProps) {
   const plans: PlanId[] = ["free", "pro", "elite"];
+  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
+
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") {
+        setCurrency("INR");
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, []);
 
   return (
     <div>
@@ -70,7 +83,11 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                     <span className="text-2xl font-bold text-foreground">Free</span>
                   ) : (
                     <>
-                      <span className="text-2xl font-bold text-foreground">₹{plan.price_inr}</span>
+                      {currency === "INR" ? (
+                        <span className="text-2xl font-bold text-foreground">₹{plan.price_inr}</span>
+                      ) : (
+                        <span className="text-2xl font-bold text-foreground">${plan.price_usd}</span>
+                      )}
                       <span className="text-text-secondary">/month</span>
                     </>
                   )}

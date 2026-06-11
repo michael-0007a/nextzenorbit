@@ -1,5 +1,7 @@
+"use client";
+
 /**
- * Subscription Details — Server Component
+ * Subscription Details — Client Component
  *
  * Shows current plan status, trial info, and usage meters.
  */
@@ -9,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { isTrialActive, getTrialDaysRemaining, getPlanLimits, PLANS } from "@/lib/subscription";
 import { CreditCard, Zap, FileText, Clock } from "lucide-react";
 import type { SubscriptionRow, AiUsageRow } from "@/types/database";
+import { useEffect, useState } from "react";
 
 interface SubscriptionDetailsProps {
   subscription: SubscriptionRow | null;
@@ -61,6 +64,19 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
   const daysLeft = getTrialDaysRemaining(subscription);
   const tokensUsed = aiUsage?.tokens_used ?? 0;
 
+  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
+
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") {
+        setCurrency("INR");
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Current Plan Card */}
@@ -78,7 +94,7 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
               <p className="text-xl font-bold text-foreground">{planName}</p>
               {subscription && (
                 <p className="text-sm text-text-secondary mt-0.5">
-                  {plan.price_inr === 0 ? "Free" : `₹${plan.price_inr}/month`}
+                  {plan.price_inr === 0 ? "Free" : (currency === "INR" ? `₹${plan.price_inr}/month` : `$${plan.price_usd}/month`)}
                 </p>
               )}
             </div>

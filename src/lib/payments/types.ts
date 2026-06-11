@@ -5,8 +5,6 @@
  * Both providers implement the PaymentProvider interface.
  */
 
-import type { PlanId } from "@/types/database";
-
 // ── Provider Interface ──
 
 export interface PaymentProvider {
@@ -49,7 +47,7 @@ export interface VerificationResult {
 // ── Subscription ──
 
 export interface SubscriptionParams {
-  planId: PlanId;
+  planId: string;
   customerId: string;
   email: string;
   totalAmountPaise: number;
