@@ -148,7 +148,28 @@ export default function SubscriptionCheckout({
         return;
       }
 
-      const { subscriptionId, razorpayKey } = json.data;
+      const { data } = json;
+
+      if (data.payu) {
+        // PayU Flow: Create a hidden form and submit it
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = process.env.NEXT_PUBLIC_PAYU_URL || "https://test.payu.in/_payment";
+
+        Object.entries(data.payu).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
+      const { subscriptionId, razorpayKey } = data;
 
       // 2. Open Razorpay checkout modal
       const options: RazorpayOptions = {

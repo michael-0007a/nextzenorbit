@@ -24,7 +24,7 @@ const groq = new Groq({
 // Request schema
 const generateCoverLetterSchema = z.object({
   resumeId: z.string().uuid(),
-  jobDescription: z.string().min(50, "Job description too short").max(5000),
+  jobDescription: z.string().min(50, "Job description too short").max(10000),
   companyName: z.string().min(1, "Company name required").max(200),
   jobTitle: z.string().min(1, "Job title required").max(200),
   hiringManager: z.string().max(100).optional(),
@@ -46,7 +46,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     const parsed = generateCoverLetterSchema.safeParse(body);
 
     if (!parsed.success) {
-      return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid request.", 400, parsed.error.flatten());
+      console.error("Cover letter validation failed:", parsed.error.flatten());
+      return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid request details.", 400, parsed.error.flatten());
     }
 
     const { resumeId, jobDescription, companyName, jobTitle, hiringManager } = parsed.data;

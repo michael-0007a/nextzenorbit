@@ -53,72 +53,97 @@ export async function hasActiveSubscription(
 // ── Mutation helpers (use admin/service-role client) ──
 
 /**
- * Create or update a subscription row when a new Razorpay subscription is created.
+ * Create or update a subscription row when a new subscription is created.
  * Uses upsert semantics — if the user already has a subscription row, it's updated.
  */
 export async function upsertSubscriptionCreated(
   admin: SupabaseClient<Database>,
   userId: string,
   data: {
-    razorpaySubscriptionId: string;
-    razorpayPlanId: string;
+    subscriptionId: string;
     planId: PlanId;
+    provider?: "razorpay" | "payu";
+    razorpayPlanId?: string;
   }
 ): Promise<void> {
   const existing = await getSubscription(admin, userId);
+  const provider = data.provider || "razorpay";
+
+  const updateData: any = {
+    provider,
+    plan_id: data.planId,
+    status: "inactive", // Initially inactive until webhook/callback
+  };
+
+  if (provider === "razorpay") {
+    updateData.razorpay_subscription_id = data.subscriptionId;
+    updateData.razorpay_plan_id = data.razorpayPlanId;
+  } else {
+    updateData.payu_subscription_id = data.subscriptionId;
+  }
 
   if (existing) {
     // Update existing row
-    await dbUpdate(admin, "subscriptions", {
-      provider: "razorpay",
-      plan_id: data.planId,
-      razorpay_subscription_id: data.razorpaySubscriptionId,
-      razorpay_plan_id: data.razorpayPlanId,
-      status: "active",
-    }).eq("user_id", userId);
+    await dbUpdate(admin, "subscriptions", updateData).eq("user_id", userId);
   } else {
     // Insert new row
     await dbInsert(admin, "subscriptions", {
       user_id: userId,
-      provider: "razorpay",
-      plan_id: data.planId,
-      razorpay_subscription_id: data.razorpaySubscriptionId,
-      razorpay_plan_id: data.razorpayPlanId,
-      status: "active",
+      ...updateData,
     });
   }
 
   console.log(
-    `[subscription-service] Subscription created for user=${userId} plan=${data.planId} sub=${data.razorpaySubscriptionId}`
+    `[subscription-service] Subscription created for user=${userId} plan=${data.planId} sub=${data.subscriptionId} provider=${provider}`
   );
 }
 
 /**
- * Activate a subscription when `subscription.authenticated` webhook fires.
- * Marks the subscription as active and saves the Razorpay subscription ID.
+ * Activate a subscription when payment is successful.
+ * Marks the subscription as active.
  */
 export async function activateSubscription(
   admin: SupabaseClient<Database>,
-  razorpaySubscriptionId: string,
+  subscriptionIdOrUserId: string,
   data: {
     planId?: PlanId;
     currentPeriodStart?: string;
     currentPeriodEnd?: string;
+    provider?: "razorpay" | "payu";
+    status?: "active" | "trialing" | "past_due" | "canceled" | "unpaid";
+    subscriptionId?: string; // Optional if you want to use it instead of subscriptionIdOrUserId
   }
 ): Promise<void> {
   const updatePayload: Record<string, unknown> = {
-    status: "active",
+    status: data.status || "active",
   };
 
   if (data.planId) updatePayload.plan_id = data.planId;
   if (data.currentPeriodStart) updatePayload.current_period_start = data.currentPeriodStart;
   if (data.currentPeriodEnd) updatePayload.current_period_end = data.currentPeriodEnd;
 
-  await dbUpdate(admin, "subscriptions", updatePayload as Database["public"]["Tables"]["subscriptions"]["Update"])
-    .eq("razorpay_subscription_id", razorpaySubscriptionId);
+  const provider = data.provider || "razorpay";
+  let query = dbUpdate(admin, "subscriptions", updatePayload as any);
+
+  if (provider === "razorpay") {
+    query = query.eq("razorpay_subscription_id", subscriptionIdOrUserId);
+  } else if (provider === "payu") {
+    // For PayU, we might activate by user_id if that's what we passed, or by payu_subscription_id
+    if (data.subscriptionId) {
+        query = query.eq("payu_subscription_id", data.subscriptionId);
+    } else {
+        query = query.eq("user_id", subscriptionIdOrUserId);
+    }
+  }
+
+  const { error } = await query;
+  if (error) {
+    console.error(`[subscription-service] activateSubscription error:`, error);
+    throw error;
+  }
 
   console.log(
-    `[subscription-service] Subscription activated: sub=${razorpaySubscriptionId}`
+    `[subscription-service] Subscription activated: id=${subscriptionIdOrUserId} provider=${provider}`
   );
 }
 

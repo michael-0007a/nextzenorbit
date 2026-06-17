@@ -12,17 +12,20 @@
 
 import { razorpayProvider } from "./razorpay";
 import { cashfreeProvider } from "./cashfree";
+import { payuProvider } from "./payu";
 import type { PaymentProvider } from "./types";
 
 export function getPaymentProvider(): PaymentProvider {
-  const provider = process.env.PAYMENT_PROVIDER || "razorpay";
+  const provider = process.env.PAYMENT_PROVIDER || "payu";
 
   switch (provider) {
     case "cashfree":
       return cashfreeProvider;
     case "razorpay":
-    default:
       return razorpayProvider;
+    case "payu":
+    default:
+      return payuProvider;
   }
 }
 
@@ -39,4 +42,5 @@ export type {
 } from "./types";
 export { verifyRazorpayWebhook } from "./razorpay";
 export { verifyCashfreeWebhook } from "./cashfree";
+export { verifyPayUWebhook } from "./payu";
 

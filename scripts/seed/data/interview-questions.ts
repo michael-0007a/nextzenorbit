@@ -222,4 +222,193 @@ export const interviewQuestions: SeedInterviewQuestion[] = [
     answer:
       "Fine-tuning updates model weights to learn patterns, while RAG keeps the model fixed and retrieves external context at inference. RAG is faster to update and better for dynamic knowledge.",
   },
+  {
+    careerSlug: "software-engineer",
+    questions: [
+      { question: "Explain the difference between a process and a thread.", answer: "A process is an independent execution unit with its own memory space, while a thread is a subset of a process sharing the same memory space." },
+      { question: "What is Big O notation?", answer: "Big O notation describes the complexity of an algorithm in terms of time or space as the input size grows." },
+    ]
+  },
+  {
+    careerSlug: "product-manager",
+    questions: [
+      { question: "How do you prioritize a product backlog?", answer: "I use frameworks like RICE (Reach, Impact, Confidence, Effort) or MoSCoW to align with strategic goals." },
+      { question: "Tell me about a time a product failed.", answer: "Discuss the metrics, why it didn't meet goals, and the lessons learned for future iterations." },
+    ]
+  },
+  {
+    careerSlug: "data-scientist",
+    questions: [
+      { question: "What is overfitting?", answer: "Overfitting occurs when a model learns the noise in the training data rather than the signal, leading to poor generalization." },
+      { question: "Explain the Central Limit Theorem.", answer: "It states that the distribution of sample means will be approximately normal regardless of the population distribution, given a large enough sample size." },
+    ]
+  },
+  {
+    careerSlug: "ux-ui-designer",
+    questions: [
+      { question: "What is your design process?", answer: "Usually involves discovery, research, ideation, prototyping, and testing." },
+      { question: "How do you handle negative feedback on a design?", answer: "Focus on the goals and user needs rather than personal preference, and use it as data for improvement." },
+    ]
+  },
+  {
+    careerSlug: "cybersecurity-analyst",
+    questions: [
+      { question: "What is a DDoS attack?", answer: "A Distributed Denial of Service attack attempts to make an online service unavailable by overwhelming it with traffic from multiple sources." },
+      { question: "Explain Salting in password hashing.", answer: "Salting involves adding unique random data to each password before hashing to protect against rainbow table attacks." },
+    ]
+  },
+  {
+    careerSlug: "cloud-architect",
+    questions: [
+      { question: "What are the benefits of Serverless architecture?", answer: "Reduced operational overhead, automatic scaling, and pay-per-use billing." },
+      { question: "Explain High Availability (HA).", answer: "Designing a system to ensure a pre-agreed level of operational performance, usually through redundancy." },
+    ]
+  },
+  {
+    careerSlug: "mobile-app-developer",
+    questions: [
+      { question: "What is React Native?", answer: "A framework for building native apps using React and JavaScript." },
+      { question: "Explain the app lifecycle and state.", answer: "Foreground, background, and suspended states, and how to manage data persistence." },
+    ]
+  },
+  {
+    careerSlug: "blockchain-developer",
+    questions: [
+      { question: "What is a Smart Contract?", answer: "Self-executing contracts with the terms of the agreement directly written into code on the blockchain." },
+      { question: "Explain Proof of Work vs Proof of Stake.", answer: "PoW requires computational work to validate transactions, while PoS selects validators based on the number of coins they hold." },
+    ]
+  },
+  {
+    careerSlug: "machine-learning-engineer",
+    questions: [
+      { question: "What is Gradient Descent?", answer: "An optimization algorithm used to minimize a loss function by iteratively moving toward the steepest descent." },
+      { question: "Explain the difference between supervised and unsupervised learning.", answer: "Supervised learning uses labeled data to predict outcomes, while unsupervised learning finds patterns in unlabelled data." },
+    ]
+  },
+  {
+    careerSlug: "database-administrator",
+    questions: [
+      { question: "What is an index and why use it?", answer: "A data structure that improves the speed of data retrieval at the cost of slower writes and more storage." },
+      { question: "Explain ACID properties.", answer: "Atomicity, Consistency, Isolation, and Durability - the core requirements for reliable database transactions." },
+    ]
+  },
+  {
+    careerSlug: "financial-analyst",
+    questions: [
+      { question: "What is WACC?", answer: "Weighted Average Cost of Capital represents the average rate a company pays to finance its assets." },
+      { question: "How do you value a company?", answer: "Methods include DCF (Discounted Cash Flow), Comparable Company Analysis, and Precedent Transactions." },
+    ]
+  },
+  {
+    careerSlug: "marketing-manager",
+    questions: [
+      { question: "What is CAC and LTV?", answer: "Customer Acquisition Cost and Lifetime Value - critical metrics for measuring marketing ROI." },
+      { question: "How do you measure campaign success?", answer: "KPIs like conversion rate, traffic, engagement, and incremental sales." },
+    ]
+  },
+  {
+    careerSlug: "sales-representative",
+    questions: [
+      { question: "How do you handle 'No'?", answer: "View it as a starting point for discovery, identifying the real blocker or timing issue." },
+      { question: "Describe your sales process.", answer: "Prospecting, qualifying, presenting, handling objections, and closing." },
+    ]
+  },
+  {
+    careerSlug: "human-resources-manager",
+    questions: [
+      { question: "How do you resolve conflict between employees?", answer: "Mediating a conversation, focusing on facts and neutral solutions." },
+      { question: "What makes a good company culture?", answer: "Transparency, growth opportunities, and psychological safety." },
+    ]
+  },
+  {
+    careerSlug: "registered-nurse",
+    questions: [
+      { question: "How do you prioritize care for multiple patients?", answer: "Triage based on acuity and immediate needs." },
+      { question: "Dealing with a difficult patient/family member.", answer: "Active listening, empathy, and clear communication of care plans." },
+    ]
+  },
+  {
+    careerSlug: "pharmacist",
+    questions: [
+      { question: "How do you ensure medication safety?", answer: "Double-checking high-risk meds and counseling patients on interactions." },
+      { question: "Dealing with insurance rejections.", answer: "Verifying coverage and offering alternatives or assistance programs." },
+    ]
+  },
+  {
+    careerSlug: "biomedical-engineer",
+    questions: [
+      { question: "What is biomimicry?", answer: "Designing materials or systems modeled on biological entities and processes." },
+      { question: "Explain FDA Class I, II, III devices.", answer: "Risk-based classification for medical devices and their regulatory requirements." },
+    ]
+  },
+  {
+    careerSlug: "physical-therapist",
+    questions: [
+      { question: "How do you motivate a patient in pain?", answer: "Setting small, achievable goals and celebrating progress." },
+      { question: "Manual therapy vs exercise therapy.", answer: "Using both in tandem for optimal functional recovery." },
+    ]
+  },
+  {
+    careerSlug: "graphic-designer",
+    questions: [
+      { question: "What is your favorite design style?", answer: "Discuss your aesthetic and why it works for specific use cases." },
+      { question: "Explain the importance of typography.", answer: "It sets the tone and readability of the communication." },
+    ]
+  },
+  {
+    careerSlug: "copywriter",
+    questions: [
+      { question: "How do you write for different brand voices?", answer: "Developing a style guide and understanding the target audience." },
+      { question: "Short-form vs long-form copy.", answer: "Conciseness for impact vs depth for authority and SEO." },
+    ]
+  },
+  {
+    careerSlug: "video-editor",
+    questions: [
+      { question: "What is a jump cut and when to use it?", answer: "A cut between two shots of the same subject that creates an effect of 'jumping' forward in time." },
+      { question: "How do you manage large amounts of raw footage?", answer: "Organized folder structures, metadata tagging, and favoriting." },
+    ]
+  },
+  {
+    careerSlug: "architect-building",
+    questions: [
+      { question: "What is sustainable architecture?", answer: "Design that minimizes the negative environmental impact of buildings." },
+      { question: "Balancing aesthetics with function.", answer: "Form follows function, but beauty is a functional requirement for human spaces." },
+    ]
+  },
+  {
+    careerSlug: "corporate-lawyer",
+    questions: [
+      { question: "What is due diligence?", answer: "Comprehensive appraisal of a business by a prospective buyer." },
+      { question: "Explain fiduciary duty.", answer: "The legal obligation to act in the best interest of another party." },
+    ]
+  },
+  {
+    careerSlug: "high-school-teacher",
+    questions: [
+      { question: "How do you engage unmotivated students?", answer: "Finding their interests and connecting the subject matter to the real world." },
+      { question: "Differentiation in the classroom.", answer: "Adapting teaching techniques to meet diverse learning needs." },
+    ]
+  },
+  {
+    careerSlug: "commercial-pilot",
+    questions: [
+      { question: "What is Crew Resource Management (CRM)?", answer: "Optimizing the human-machine interface and interpersonal communication in the cockpit." },
+      { question: "Handling an emergency in flight.", answer: "Fly the plane, navigate, and communicate (Aviate, Navigate, Communicate)." },
+    ]
+  },
+  {
+    careerSlug: "mechanical-engineer",
+    questions: [
+      { question: "What is FMEA?", answer: "Failure Mode and Effects Analysis - identifying potential failure points in a design." },
+      { question: "Explain the difference between stress and strain.", answer: "Stress is the force per unit area; strain is the deformation result." },
+    ]
+  },
+  {
+    careerSlug: "real-estate-agent",
+    questions: [
+      { question: "How do you find new clients?", answer: "Networking, referrals, marketing, and local market presence." },
+      { question: "Handling a multi-offer situation.", answer: "Transparency, speed, and strategic advice for the client." },
+    ]
+  },
 ];

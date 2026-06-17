@@ -8,7 +8,7 @@ export const jobSchema = z.object({
   id: z.string().uuid(),
   company: z.string().min(1).max(200),
   title: z.string().min(1).max(200),
-  description: z.string().max(8000).optional().nullable(),
+  description: z.string().max(10000).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   apply_url: z.string().url().max(500).optional().nullable(),
   source: z.string().min(1).max(50),
@@ -21,7 +21,7 @@ export const jobSchema = z.object({
 export const createJobSchema = z.object({
   company: z.string().min(1).max(200),
   title: z.string().min(1).max(200),
-  description: z.string().max(8000).optional().nullable(),
+  description: z.string().max(10000).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   apply_url: z.string().url().max(500).optional().nullable(),
   source: z.string().min(1).max(50),

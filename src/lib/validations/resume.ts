@@ -33,7 +33,7 @@ export const contactInfoFormSchema = z.object({
 
 // ── Professional Summary ──
 export const summarySchema = z.object({
-  text: z.string().max(2000).optional().default(""),
+  text: z.string().max(10000).optional().default(""),
 });
 
 // ── Experience Entry ──

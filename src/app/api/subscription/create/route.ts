@@ -13,7 +13,6 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentProvider } from "@/lib/payments";
-import { getRazorpayPlanId } from "@/lib/payments/razorpay-plans";
 import { PLANS } from "@/lib/subscription";
 import { upsertSubscriptionCreated } from "@/services/subscription-service";
 import { apiError, ERROR_CODES } from "@/types/api";
@@ -64,10 +63,10 @@ export async function POST(request: Request) {
     const razorpayPlanId = getRazorpayPlanId(plan);
     const planConfig = PLANS[plan];
 
-    // 4. Create Razorpay subscription
+    // 4. Create subscription via provider
     const provider = getPaymentProvider();
     const result = await provider.createSubscription({
-      planId: razorpayPlanId,
+      planId: plan,
       customerId: user.id,
       email: user.email || "",
       totalAmountPaise: planConfig.price_paise,
@@ -76,12 +75,12 @@ export async function POST(request: Request) {
     // 5. Save to database (upsert subscription row)
     const admin = createAdminClient();
     await upsertSubscriptionCreated(admin, user.id, {
-      razorpaySubscriptionId: result.subscriptionId,
-      razorpayPlanId: razorpayPlanId,
+      subscriptionId: result.subscriptionId,
       planId: plan as PlanId,
+      provider: process.env.PAYMENT_PROVIDER as any || "payu",
     });
 
-    // 6. Return subscription ID and Razorpay key for frontend checkout
+    // 6. Return details for frontend checkout
     console.log(
       `[subscription/create] Created subscription for user=${user.id} plan=${plan} sub=${result.subscriptionId}`
     );
@@ -90,6 +89,8 @@ export async function POST(request: Request) {
       success: true,
       data: {
         subscriptionId: result.subscriptionId,
+        // For PayU, result might contain form fields
+        payu: result.payu,
         razorpayKey: process.env.RAZORPAY_KEY_ID,
       },
     });

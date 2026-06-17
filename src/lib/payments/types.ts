@@ -27,7 +27,8 @@ export interface OrderResult {
   orderId: string;
   amount: number;
   currency: string;
-  provider: "razorpay" | "cashfree";
+  provider: "razorpay" | "cashfree" | "payu";
+  payu?: Record<string, string>; // Add PayU specific redirect data
   raw: unknown;
 }
 
@@ -56,7 +57,8 @@ export interface SubscriptionParams {
 export interface SubscriptionResult {
   subscriptionId: string;
   status: string;
-  provider: "razorpay" | "cashfree";
+  provider: "razorpay" | "cashfree" | "payu";
+  payu?: Record<string, string>; // Add PayU specific redirect data
   raw: unknown;
 }
 

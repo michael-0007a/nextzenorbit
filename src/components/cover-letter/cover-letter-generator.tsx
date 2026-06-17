@@ -69,6 +69,11 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
       return;
     }
 
+    if (jobDescription.length > 10000) {
+      toast.error("Job description is too long (maximum 10,000 characters)");
+      return;
+    }
+
     setGenerating(true);
     setCoverLetter("");
 
@@ -91,11 +96,18 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
         setCoverLetter(data.data.coverLetter);
         toast.success("Cover letter generated!");
       } else {
+        // Handle validation errors specifically
+        if (data.error?.details?.fieldErrors) {
+          const fieldErrors = data.error.details.fieldErrors;
+          const firstField = Object.keys(fieldErrors)[0];
+          const firstError = fieldErrors[firstField][0];
+          throw new Error(`${firstField}: ${firstError}`);
+        }
         throw new Error(data.error?.message || "Generation failed");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Generation error:", error);
-      toast.error("Failed to generate cover letter. Please try again.");
+      toast.error(error.message || "Failed to generate cover letter. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -260,10 +272,12 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
             onChange={(e) => setJobDescription(e.target.value)}
             placeholder="Paste the full job description here..."
             rows={8}
+            maxLength={10000}
           />
           <p className="text-xs text-granite">
             {jobDescription.length} characters
             {jobDescription.length < 50 && " (minimum 50)"}
+            {jobDescription.length >= 10000 && " (maximum 10,000)"}
           </p>
         </div>
 
