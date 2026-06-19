@@ -1,5 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedUser, getCachedProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
@@ -18,27 +17,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getCachedUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  // Use admin client to bypass RLS issues
-  const admin = createAdminClient();
+  const profile = await getCachedProfile(user.id);
 
-  // Fetch profile for display name and avatar
-  const { data: profileData } = await admin
-    .from("profiles")
-    .select("full_name, avatar_url")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const profile = profileData as { full_name: string | null; avatar_url: string | null } | null;
+  if (profile && profile.has_agreed_to_terms === false) {
+    redirect("/onboarding/terms");
+  }
 
   // Always prefer profile name (user-edited) over Google metadata
   const userName = profile?.full_name

@@ -5,7 +5,7 @@
  * Premium design with animated hero, metric cards, and quick actions.
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { getCachedUser, getCachedProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { getTrialDaysRemaining, isTrialActive } from "@/lib/subscription";
@@ -25,24 +25,16 @@ function getGreeting(): string {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getCachedUser();
 
   if (!user) redirect("/login");
 
-  // Use admin client to bypass RLS issues
+  // Use admin client to bypass RLS issues for counts
   const admin = createAdminClient();
 
   // Fetch profile + subscription + counts in parallel
-  const [profileRes, subRes, resumeCountRes, appCountRes] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("full_name")
-      .eq("user_id", user.id)
-      .maybeSingle(),
+  const [profile, subRes, resumeCountRes, appCountRes] = await Promise.all([
+    getCachedProfile(user.id),
     admin
       .from("subscriptions")
       .select("*")
@@ -57,8 +49,6 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
   ]);
-
-  const profile = profileRes.data as ProfileRow | null;
 
   // Always prefer profile name (user-edited) over Google metadata
   const fullName = profile?.full_name

@@ -8,6 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -58,6 +59,9 @@ export async function GET(request: Request) {
       Date.now() + 7 * 24 * 60 * 60 * 1000
     ).toISOString();
 
+    const cookieStore = await cookies();
+    const hasAgreedToTerms = cookieStore.get("accepted_terms")?.value === "true";
+
     // Insert user
     await admin.from("users").insert({
       id: user.id,
@@ -70,6 +74,7 @@ export async function GET(request: Request) {
       user_id: user.id,
       full_name: googleName || user.email?.split("@")[0] || "",
       avatar_url: googleAvatar,
+      has_agreed_to_terms: hasAgreedToTerms,
     });
 
     // Insert subscription with 7-day trial

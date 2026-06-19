@@ -23,6 +23,7 @@ import {
     Rocket,
     AlertCircle,
     Camera,
+    Globe2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,7 @@ export function JobSearchClient({
 }: JobSearchClientProps) {
     const [query, setQuery] = useState(defaultRole);
     const [location, setLocation] = useState(defaultLocation);
+    const [country, setCountry] = useState("us");
     const [searching, setSearching] = useState(false);
     const [results, setResults] = useState<AdzunaJob[]>([]);
     const [totalResults, setTotalResults] = useState(0);
@@ -81,6 +83,7 @@ export function JobSearchClient({
                 body: JSON.stringify({
                     query: query.trim(),
                     location: location.trim() || undefined,
+                    country,
                     resultsPerPage: 20,
                 }),
             });
@@ -227,10 +230,37 @@ export function JobSearchClient({
                                 leftAddon={<MapPin className="h-4 w-4" />}
                             />
                         </div>
-
-                        {/* Resume selector */}
-                        {resumes.length > 0 && (
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Country Selector */}
                             <div className="space-y-1.5">
+                                <label className="block text-sm font-medium text-foreground">
+                                    Country
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
+                                        <Globe2 className="h-4 w-4" />
+                                    </div>
+                                    <select
+                                        value={country}
+                                        onChange={(e) => setCountry(e.target.value)}
+                                        className="w-full h-10 rounded-2xl border border-border bg-white/5 pl-10 pr-3 text-sm text-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/30 outline-none transition-colors"
+                                    >
+                                        <option value="us">United States</option>
+                                        <option value="gb">United Kingdom</option>
+                                        <option value="in">India</option>
+                                        <option value="ca">Canada</option>
+                                        <option value="au">Australia</option>
+                                        <option value="nz">New Zealand</option>
+                                        <option value="za">South Africa</option>
+                                        <option value="sg">Singapore</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Resume selector */}
+                            {resumes.length > 0 && (
+                                <div className="space-y-1.5">
                                 <label className="block text-sm font-medium text-foreground">
                                     Resume for auto-apply
                                 </label>
@@ -247,6 +277,7 @@ export function JobSearchClient({
                                 </select>
                             </div>
                         )}
+                        </div>
 
                         <div className="flex items-center justify-between">
                             <Button

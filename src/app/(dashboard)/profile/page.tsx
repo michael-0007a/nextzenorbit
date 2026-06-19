@@ -81,6 +81,7 @@ export default async function ProfilePage() {
       preferred_work_type: null,
       years_of_experience: null,
       preferred_portals: [],
+      has_agreed_to_terms: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

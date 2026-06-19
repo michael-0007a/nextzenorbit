@@ -8,6 +8,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database } from "@/types/database";
 
 export async function createClient() {
@@ -36,4 +37,20 @@ export async function createClient() {
     }
   );
 }
+
+export const getCachedUser = cache(async () => {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  return { user, error };
+});
+
+export const getCachedProfile = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return profile;
+});
 

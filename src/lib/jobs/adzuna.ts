@@ -31,6 +31,7 @@ export interface AdzunaSearchParams {
     salaryMax?: number;
     fullTime?: boolean;
     sortBy?: "date" | "relevance" | "salary";
+    country?: string;
 }
 
 export interface AdzunaSearchResult {
@@ -51,6 +52,7 @@ export const adzunaSearchSchema = z.object({
     salaryMax: z.number().int().min(0).optional(),
     fullTime: z.boolean().optional(),
     sortBy: z.enum(["date", "relevance", "salary"]).optional().default("relevance"),
+    country: z.string().optional().default("us"),
 });
 
 // ── API Client ──
@@ -58,7 +60,6 @@ export const adzunaSearchSchema = z.object({
 const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || "";
 const ADZUNA_APP_KEY = process.env.ADZUNA_APP_KEY || "";
 const ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs";
-const ADZUNA_COUNTRY = "in"; // India
 
 /**
  * Search for jobs using the Adzuna API.
@@ -75,6 +76,7 @@ export async function searchAdzunaJobs(
         salaryMax,
         fullTime,
         sortBy = "relevance",
+        country = "us",
     } = params;
 
     const searchParams = new URLSearchParams({
@@ -91,7 +93,7 @@ export async function searchAdzunaJobs(
     if (salaryMax) searchParams.set("salary_max", String(salaryMax));
     if (fullTime !== undefined) searchParams.set("full_time", fullTime ? "1" : "0");
 
-    const url = `${ADZUNA_BASE_URL}/${ADZUNA_COUNTRY}/search/${page}?${searchParams.toString()}`;
+    const url = `${ADZUNA_BASE_URL}/${country}/search/${page}?${searchParams.toString()}`;
 
     const response = await fetch(url, {
         headers: { "Accept": "application/json" },

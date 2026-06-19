@@ -69,7 +69,7 @@ export default function AuthLayout({
 
         <main className="flex flex-1 items-center justify-center px-4 py-16">
           <div className="w-full max-w-md space-y-8">
-            <div className={cn("glass-card rounded-3xl p-8", "space-y-6")}>
+            <div className={cn("glass-card rounded-3xl p-6 sm:p-8", "space-y-6")}>
               {children}
             </div>
           </div>

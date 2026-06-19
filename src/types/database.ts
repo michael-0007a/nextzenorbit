@@ -9,7 +9,7 @@ import type { ResumeContent } from "@/lib/validations/resume";
 
 // ── Enum types ──
 
-export type UserRole = "user" | "admin";
+export type UserRole = "user" | "sso_user" | "admin" | "super_admin";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "paused";
 export type PlanId = "free" | "pro" | "elite";
 export type PaymentProviderType = "razorpay" | "cashfree" | "payu";
@@ -48,6 +48,7 @@ export type ProfileRow = {
   preferred_work_type: WorkType | null;
   years_of_experience: number | null;
   preferred_portals: string[];
+  has_agreed_to_terms: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -170,6 +171,9 @@ export type JobQueueRow = {
   applied_at: string | null;
   screenshot_url: string | null;
   screenshot_expires_at: string | null;
+  assigned_to: string | null;
+  assigned_at: string | null;
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -295,8 +299,8 @@ export type Database = {
       };
       profiles: {
         Row: ProfileRow;
-        Insert: { user_id: string; full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[] };
-        Update: { full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[] };
+        Insert: { user_id: string; full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[]; has_agreed_to_terms?: boolean };
+        Update: { full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[]; has_agreed_to_terms?: boolean };
         Relationships: [{ foreignKeyName: "profiles_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
       subscriptions: {
@@ -343,8 +347,8 @@ export type Database = {
       };
       job_queue: {
         Row: JobQueueRow;
-        Insert: { user_id: string; title: string; company: string; job_url: string; location?: string | null; salary_text?: string | null; description?: string | null; source?: JobSource; status?: JobQueueStatus; resume_id?: string | null };
-        Update: { status?: JobQueueStatus; error_message?: string | null; cover_letter_id?: string | null; resume_id?: string | null; applied_at?: string | null; screenshot_url?: string | null; screenshot_expires_at?: string | null };
+        Insert: { user_id: string; title: string; company: string; job_url: string; location?: string | null; salary_text?: string | null; description?: string | null; source?: JobSource; status?: JobQueueStatus; resume_id?: string | null; assigned_to?: string | null };
+        Update: { status?: JobQueueStatus; error_message?: string | null; cover_letter_id?: string | null; resume_id?: string | null; applied_at?: string | null; screenshot_url?: string | null; screenshot_expires_at?: string | null; assigned_to?: string | null; assigned_at?: string | null; admin_notes?: string | null };
         Relationships: [{ foreignKeyName: "job_queue_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "job_queue_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }];
       };
       careers: {

@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   async function handleGoogleSignIn() {
+    if (!agreedToTerms) return;
     setLoading(true);
     setError(null);
+    document.cookie = "accepted_terms=true; path=/; max-age=3600";
     const result = await signInWithGoogle();
     if (result?.error) {
       setError(result.error);
@@ -34,11 +37,25 @@ export default function RegisterPage() {
         </div>
       )}
 
+      <div className="flex items-start gap-3 rounded-xl border border-border/40 bg-surface/30 p-4 mb-4 text-left">
+        <input 
+          type="checkbox" 
+          id="terms" 
+          checked={agreedToTerms}
+          onChange={(e) => setAgreedToTerms(e.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-border bg-white/5 text-primary focus:ring-primary focus:ring-offset-background"
+        />
+        <label htmlFor="terms" className="text-sm text-text-secondary leading-tight cursor-pointer">
+          I agree to the <a href="/terms" className="text-primary hover:underline" target="_blank">Terms of Service</a> and acknowledge the <a href="/privacy" className="text-primary hover:underline" target="_blank">Privacy Policy</a>.
+        </label>
+      </div>
+
       <form action={handleGoogleSignIn}>
         <Button
           type="submit"
           variant="secondary"
           isLoading={loading}
+          disabled={!agreedToTerms}
           leftIcon={
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path
@@ -65,10 +82,7 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <div className="space-y-3 text-center">
-        <p className="text-xs text-text-secondary">
-          By signing up, you agree to our Terms of Service and Privacy Policy.
-        </p>
+      <div className="space-y-3 text-center mt-6">
         <p className="text-sm text-text-secondary">
           Already have an account?{" "}
           <Link href="/login" className="font-medium text-primary hover:text-primary-light transition-colors">
