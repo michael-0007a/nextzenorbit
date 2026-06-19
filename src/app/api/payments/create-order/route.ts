@@ -64,6 +64,8 @@ export async function POST(request: Request) {
         billing_cycle: billingCycle,
         base_amount: String(base),
         gst_amount: String(gst),
+        firstname: user.user_metadata?.full_name || "Customer",
+        email: user.email || "",
       },
     });
 

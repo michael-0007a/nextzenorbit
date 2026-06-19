@@ -33,6 +33,7 @@ export const payuProvider: PaymentProvider = {
     const productinfo = params.notes?.productInfo || "Subscription";
     const firstname = params.notes?.firstname || "Customer";
     const email = params.notes?.email || "customer@example.com";
+    const phone = params.notes?.phone || "9999999999";
 
     // Hash Logic: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT)
     const hashString = `${PAYU_KEY}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${PAYU_SALT}`;
@@ -45,6 +46,7 @@ export const payuProvider: PaymentProvider = {
       productinfo,
       firstname,
       email,
+      phone,
       hash,
       surl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
       furl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
@@ -79,6 +81,7 @@ export const payuProvider: PaymentProvider = {
     const productinfo = `Subscription: ${params.planId}`;
     const firstname = "Customer";
     const email = params.email;
+    const phone = "9999999999";
 
     // Hash Logic: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT)
     const hashString = `${PAYU_KEY}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${PAYU_SALT}`;
@@ -91,6 +94,7 @@ export const payuProvider: PaymentProvider = {
       productinfo,
       firstname,
       email,
+      phone,
       hash,
       surl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
       furl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
