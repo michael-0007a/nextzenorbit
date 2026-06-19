@@ -31,7 +31,7 @@ async function seedCareers(client: ReturnType<typeof createSeedClient>) {
     throw new Error(`Failed to fetch career IDs: ${error?.message ?? "unknown"}`);
   }
 
-  const careerIdBySlug = new Map(data.map((row) => [row.slug, row.id]));
+  const careerIdBySlug = new Map<string, string>(data.map((row) => [row.slug, row.id]));
   return careerIdBySlug;
 }
 
@@ -97,8 +97,25 @@ async function seedInterviewQuestions(
 ) {
   logSection("Interview Questions");
 
+  const flattenedQuestions: any[] = [];
+  interviewQuestions.forEach((q) => {
+    if (q.questions) {
+      q.questions.forEach((nested) => {
+        flattenedQuestions.push({
+          ...q,
+          ...nested,
+          role: q.role || q.careerSlug.split("-").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" "),
+          difficulty: q.difficulty || "medium",
+          topic: q.topic || "General",
+        });
+      });
+    } else {
+      flattenedQuestions.push(q);
+    }
+  });
+
   const rows: Database["public"]["Tables"]["interview_questions"]["Insert"][] =
-    interviewQuestions.map((question) => ({
+    flattenedQuestions.map((question) => ({
       id: seedId("interview", `${question.role}:${question.topic}:${question.question}`),
       career_id: careerIdBySlug.get(question.careerSlug) ?? null,
       role: question.role,

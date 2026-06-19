@@ -13,6 +13,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentProvider } from "@/lib/payments";
+import { getRazorpayPlanId } from "@/lib/payments/razorpay-plans";
 import { PLANS } from "@/lib/subscription";
 import { upsertSubscriptionCreated } from "@/services/subscription-service";
 import { apiError, ERROR_CODES } from "@/types/api";

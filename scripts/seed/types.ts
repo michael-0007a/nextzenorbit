@@ -25,12 +25,13 @@ export type InterviewDifficulty = "easy" | "medium" | "hard";
 
 export type SeedInterviewQuestion = {
   careerSlug: string;
-  role: string;
-  difficulty: InterviewDifficulty;
-  topic: string;
-  question: string;
-  answer: string;
+  role?: string;
+  difficulty?: InterviewDifficulty;
+  topic?: string;
+  question?: string;
+  answer?: string;
   company?: string;
+  questions?: { question: string; answer: string }[];
 };
 
 export type ResourceDifficulty = "beginner" | "intermediate" | "advanced";
