@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSubscription } from "@/hooks/use-subscription";
 import {
   LayoutDashboard,
   FileText,
@@ -60,6 +61,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const { isActive: isSubActive, isPro, isElite } = useSubscription();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -174,27 +176,63 @@ export function Sidebar({ className }: SidebarProps) {
       {!collapsed && (
         <div className="px-3 pb-3">
           <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white/5 p-4">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/15 rounded-full blur-2xl" />
-            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-accent/10 rounded-full blur-xl" />
-
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light">
-                  <Crown className="h-4 w-4 text-white" />
+            {isSubActive ? (
+              <>
+                <div className={cn(
+                  "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl animate-pulse",
+                  isElite ? "bg-amber-500/10" : "bg-primary/10"
+                )} style={{ animationDuration: "6s" }} />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-lg shadow-lg",
+                      isElite 
+                        ? "bg-gradient-to-br from-amber-500 to-yellow-500 shadow-amber-500/20" 
+                        : "bg-gradient-to-br from-primary to-primary-light shadow-primary/20"
+                    )}>
+                      {isElite ? <Crown className="h-4 w-4 text-white" /> : <Zap className="h-4 w-4 text-white" />}
+                    </div>
+                    <span className="text-sm font-bold text-foreground">
+                      {isElite ? "Elite Member" : "Pro Member"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary mb-4 leading-relaxed">
+                    Thank you for subscribing! Enjoy all {isElite ? "Elite" : "Pro"} features.
+                  </p>
+                  <Link
+                    href="/subscription"
+                    className="flex items-center justify-center gap-1.5 w-full py-2 rounded-full text-xs font-semibold border border-border/60 bg-white/5 hover:bg-white/10 text-text-secondary hover:text-foreground transition-all duration-200"
+                  >
+                    Manage Billing
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
                 </div>
-                <span className="text-sm font-bold text-foreground">Go Pro</span>
-              </div>
-              <p className="text-xs text-text-secondary mb-4 leading-relaxed">
-                Unlimited AI analysis, premium templates & priority support
-              </p>
-              <Link
-                href="/subscription"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_18px_35px_rgba(255,0,61,0.3)] transition-transform duration-200 hover:-translate-y-0.5"
-              >
-                Upgrade Now
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/15 rounded-full blur-2xl" />
+                <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-accent/10 rounded-full blur-xl" />
+
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light">
+                      <Crown className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-sm font-bold text-foreground">Go Pro</span>
+                  </div>
+                  <p className="text-xs text-text-secondary mb-4 leading-relaxed">
+                    Unlimited AI analysis, premium templates & priority support
+                  </p>
+                  <Link
+                    href="/subscription"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_18px_35px_rgba(255,0,61,0.3)] transition-transform duration-200 hover:-translate-y-0.5"
+                  >
+                    Upgrade Now
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

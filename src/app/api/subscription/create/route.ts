@@ -13,7 +13,6 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentProvider } from "@/lib/payments";
-import { getRazorpayPlanId } from "@/lib/payments/razorpay-plans";
 import { PLANS } from "@/lib/subscription";
 import { upsertSubscriptionCreated } from "@/services/subscription-service";
 import { apiError, ERROR_CODES } from "@/types/api";
@@ -21,6 +20,7 @@ import type { PlanId } from "@/types/database";
 
 const createSubscriptionSchema = z.object({
   plan: z.enum(["pro", "elite"]),
+  currency: z.enum(["USD", "INR"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -52,17 +52,21 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return apiError(
         ERROR_CODES.VALIDATION_ERROR,
-        "Invalid request body. Expected { plan: \"pro\" | \"elite\" }.",
+        "Invalid request body. Expected { plan: \"pro\" | \"elite\", currency: \"USD\" | \"INR\" }.",
         400,
         parsed.error.flatten()
       );
     }
 
-    const { plan } = parsed.data;
+    const { plan, currency = "USD" } = parsed.data;
 
-    // 3. Resolve Razorpay plan ID
-    const razorpayPlanId = getRazorpayPlanId(plan);
+    // 3. Resolve plan pricing
     const planConfig = PLANS[plan];
+    
+    // Calculate total amount in paise/cents based on the currency
+    const totalAmountPaise = currency === "INR" 
+      ? planConfig.price_inr * 100 
+      : planConfig.price_usd * 100;
 
     // 4. Create subscription via provider
     const provider = getPaymentProvider();
@@ -70,7 +74,8 @@ export async function POST(request: Request) {
       planId: plan,
       customerId: user.id,
       email: user.email || "",
-      totalAmountPaise: planConfig.price_paise,
+      totalAmountPaise,
+      currency,
     });
 
     // 5. Save to database (upsert subscription row)
@@ -79,6 +84,8 @@ export async function POST(request: Request) {
       subscriptionId: result.subscriptionId,
       planId: plan as PlanId,
       provider: process.env.PAYMENT_PROVIDER as any || "payu",
+      currency,
+      amountPaise: totalAmountPaise,
     });
 
     // 6. Return details for frontend checkout

@@ -15,7 +15,9 @@ import { z } from "zod";
 import { COVER_LETTER_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { resumeContentSchema } from "@/lib/validations/resume";
 import { apiError, ERROR_CODES } from "@/types/api";
-import type { ResumeRow } from "@/types/database";
+import type { ResumeRow, SubscriptionRow } from "@/types/database";
+import { isSubscriptionActive, getPlanLimits } from "@/lib/subscription";
+import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -52,8 +54,37 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const { resumeId, jobDescription, companyName, jobTitle, hiringManager } = parsed.data;
 
-    // Fetch resume
     const admin = createAdminClient();
+
+    // Check plan constraints and token limits
+    const subRes = await admin
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const sub = subRes.data as SubscriptionRow | null;
+    const planId = isSubscriptionActive(sub) ? (sub?.plan_id ?? "free") : "free";
+    const limits = getPlanLimits(planId);
+
+    if (!limits.cover_letter) {
+      return apiError(
+        ERROR_CODES.SUBSCRIPTION_REQUIRED,
+        "Cover letter generation is only available on the Elite plan. Please upgrade your plan.",
+        403
+      );
+    }
+
+    const tokenCheck = await checkAiTokenUsage(user.id);
+    if (!tokenCheck.allowed) {
+      return apiError(
+        ERROR_CODES.SUBSCRIPTION_REQUIRED,
+        tokenCheck.error || "Monthly AI token limit reached. Please upgrade your plan.",
+        403
+      );
+    }
+
+    // Fetch resume
     const { data: resume, error } = await admin
       .from("resumes")
       .select("id, user_id, content")

@@ -62,25 +62,22 @@ export async function upsertSubscriptionCreated(
   data: {
     subscriptionId: string;
     planId: PlanId;
-    provider?: "razorpay" | "payu";
-    razorpayPlanId?: string;
+    provider?: "payu";
+    currency?: string;
+    amountPaise?: number;
   }
 ): Promise<void> {
   const existing = await getSubscription(admin, userId);
-  const provider = data.provider || "razorpay";
+  const provider = data.provider || "payu";
 
   const updateData: any = {
     provider,
     plan_id: data.planId,
     status: "inactive", // Initially inactive until webhook/callback
+    currency: data.currency || "INR",
+    amount_paise: data.amountPaise || null,
+    payu_subscription_id: data.subscriptionId,
   };
-
-  if (provider === "razorpay") {
-    updateData.razorpay_subscription_id = data.subscriptionId;
-    updateData.razorpay_plan_id = data.razorpayPlanId;
-  } else {
-    updateData.payu_subscription_id = data.subscriptionId;
-  }
 
   if (existing) {
     // Update existing row
@@ -109,7 +106,7 @@ export async function activateSubscription(
     planId?: PlanId;
     currentPeriodStart?: string;
     currentPeriodEnd?: string;
-    provider?: "razorpay" | "payu";
+    provider?: "payu";
     status?: "active" | "trialing" | "past_due" | "canceled" | "unpaid";
     subscriptionId?: string; // Optional if you want to use it instead of subscriptionIdOrUserId
   }
@@ -122,18 +119,12 @@ export async function activateSubscription(
   if (data.currentPeriodStart) updatePayload.current_period_start = data.currentPeriodStart;
   if (data.currentPeriodEnd) updatePayload.current_period_end = data.currentPeriodEnd;
 
-  const provider = data.provider || "razorpay";
   let query = dbUpdate(admin, "subscriptions", updatePayload as any);
 
-  if (provider === "razorpay") {
-    query = query.eq("razorpay_subscription_id", subscriptionIdOrUserId);
-  } else if (provider === "payu") {
-    // For PayU, we might activate by user_id if that's what we passed, or by payu_subscription_id
-    if (data.subscriptionId) {
-        query = query.eq("payu_subscription_id", data.subscriptionId);
-    } else {
-        query = query.eq("user_id", subscriptionIdOrUserId);
-    }
+  if (data.subscriptionId) {
+    query = query.eq("payu_subscription_id", data.subscriptionId);
+  } else {
+    query = query.eq("user_id", subscriptionIdOrUserId);
   }
 
   const { error } = await query;
@@ -143,16 +134,16 @@ export async function activateSubscription(
   }
 
   console.log(
-    `[subscription-service] Subscription activated: id=${subscriptionIdOrUserId} provider=${provider}`
+    `[subscription-service] Subscription activated: id=${subscriptionIdOrUserId} provider=payu`
   );
 }
 
 /**
- * Extend billing period when `subscription.charged` webhook fires.
+ * Extend billing period when subscription renewal webhook fires.
  */
 export async function extendBillingPeriod(
   admin: SupabaseClient<Database>,
-  razorpaySubscriptionId: string,
+  payuSubscriptionId: string,
   data: {
     currentPeriodStart: string;
     currentPeriodEnd: string;
@@ -162,44 +153,44 @@ export async function extendBillingPeriod(
     status: "active",
     current_period_start: data.currentPeriodStart,
     current_period_end: data.currentPeriodEnd,
-  }).eq("razorpay_subscription_id", razorpaySubscriptionId);
+  }).eq("payu_subscription_id", payuSubscriptionId);
 
   console.log(
-    `[subscription-service] Billing period extended: sub=${razorpaySubscriptionId}`
+    `[subscription-service] Billing period extended: sub=${payuSubscriptionId}`
   );
 }
 
 /**
- * Mark subscription as past_due when `payment.failed` fires.
+ * Mark subscription as past_due when payment fails.
  */
 export async function markPastDue(
   admin: SupabaseClient<Database>,
-  razorpaySubscriptionId: string
+  payuSubscriptionId: string
 ): Promise<void> {
   await dbUpdate(admin, "subscriptions", {
     status: "past_due",
-  }).eq("razorpay_subscription_id", razorpaySubscriptionId);
+  }).eq("payu_subscription_id", payuSubscriptionId);
 
   console.log(
-    `[subscription-service] Subscription marked past_due: sub=${razorpaySubscriptionId}`
+    `[subscription-service] Subscription marked past_due: sub=${payuSubscriptionId}`
   );
 }
 
 /**
- * Cancel subscription when `subscription.cancelled` or `subscription.completed` fires.
+ * Cancel subscription.
  * Reverts user to free plan.
  */
 export async function cancelSubscription(
   admin: SupabaseClient<Database>,
-  razorpaySubscriptionId: string
+  payuSubscriptionId: string
 ): Promise<void> {
   await dbUpdate(admin, "subscriptions", {
     status: "cancelled",
     plan_id: "free",
     cancelled_at: new Date().toISOString(),
-  }).eq("razorpay_subscription_id", razorpaySubscriptionId);
+  }).eq("payu_subscription_id", payuSubscriptionId);
 
   console.log(
-    `[subscription-service] Subscription cancelled: sub=${razorpaySubscriptionId}`
+    `[subscription-service] Subscription cancelled: sub=${payuSubscriptionId}`
   );
 }

@@ -18,9 +18,9 @@ import type {
 
 const PAYU_KEY = process.env.PAYU_MERCHANT_KEY!;
 const PAYU_SALT = process.env.PAYU_MERCHANT_SALT!;
-const PAYU_BASE_URL = process.env.NODE_ENV === "production"
+const PAYU_ACTION_URL = (process.env.NEXT_PUBLIC_PAYU_URL?.trim() || (process.env.NODE_ENV === "production"
   ? "https://secure.payu.in"
-  : "https://test.payu.in";
+  : "https://test.payu.in")).replace(/\/+$/, "") + "/_payment";
 
 export const payuProvider: PaymentProvider = {
   async createOrder(params: CreateOrderParams): Promise<OrderResult> {
@@ -50,6 +50,8 @@ export const payuProvider: PaymentProvider = {
       hash,
       surl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
       furl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
+      action: PAYU_ACTION_URL,
+      currency: params.currency || "INR",
     };
 
     return {
@@ -98,6 +100,8 @@ export const payuProvider: PaymentProvider = {
       hash,
       surl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
       furl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/payu`,
+      action: PAYU_ACTION_URL,
+      currency: params.currency || "INR",
     };
 
     return {
@@ -125,11 +129,20 @@ export function verifyPayUWebhook(
     firstname,
     email,
     status,
+    additionalCharges,
     hash: receivedHash,
   } = params;
 
   // Reverse Hash: sha512(SALT|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
-  const hashString = `${PAYU_SALT}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  // If additionalCharges is present, the formula changes to:
+  // sha512(additionalCharges|SALT|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
+  let hashString = "";
+  if (additionalCharges) {
+    hashString = `${additionalCharges}|${PAYU_SALT}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  } else {
+    hashString = `${PAYU_SALT}|${status}|||||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  }
+
   const calculatedHash = crypto.createHash("sha512").update(hashString).digest("hex");
 
   return calculatedHash === receivedHash;

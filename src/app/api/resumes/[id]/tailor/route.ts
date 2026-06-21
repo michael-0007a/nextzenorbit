@@ -15,6 +15,7 @@ import { z } from "zod";
 import { RESUME_TAILOR_PROMPT_V1, type TailoringResult } from "@/lib/ai/prompts/resume-tailor";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
+import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -39,6 +40,16 @@ export async function POST(
 
     if (!user) {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
+    }
+
+    // Check AI token limits
+    const tokenCheck = await checkAiTokenUsage(user.id);
+    if (!tokenCheck.allowed) {
+      return apiError(
+        ERROR_CODES.SUBSCRIPTION_REQUIRED,
+        tokenCheck.error || "Monthly AI token limit reached. Please upgrade your plan.",
+        403
+      );
     }
 
     const body = await request.json();

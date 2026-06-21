@@ -118,6 +118,13 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                   >
                     Current Plan
                   </button>
+                ) : currentPlanId === "elite" ? (
+                  <button
+                    disabled
+                    className="w-full h-10 rounded-full border border-border/40 text-sm font-medium text-text-secondary/40 bg-white/5 cursor-not-allowed"
+                  >
+                    Downgrade Disabled
+                  </button>
                 ) : planId === "free" ? (
                   <button
                     className="w-full h-10 rounded-full border border-border text-sm font-medium text-text-secondary bg-white/5 hover:bg-white/10 transition-colors duration-300"

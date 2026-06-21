@@ -8,7 +8,6 @@
 import type { SubscriptionRow, PlanId } from "@/types/database";
 
 // ── Plan configuration ──
-// NOTE: All limits set to Infinity for development. Re-enable before production.
 export const PLANS = {
   free: {
     name: "Free",
@@ -17,33 +16,33 @@ export const PLANS = {
     price_inr_annual: 0,
     price_usd: 0,
     price_usd_annual: 0,
-    ai_tokens_per_month: Infinity,
-    resumes: Infinity,
-    applications_per_day: Infinity,
-    cover_letter: true,
-    priority_ai: true,
+    ai_tokens_per_month: 50_000,
+    resumes: 2,
+    applications_per_day: 5,
+    cover_letter: false,
+    priority_ai: false,
   },
   pro: {
     name: "Pro",
-    price_inr: 499,
-    price_paise: 49_900,
+    price_inr: 1, // Keep test pricing
+    price_paise: 100,
     price_inr_annual: 3_999,
-    price_usd: 9,
+    price_usd: 1, // Set to $1 for testing
     price_usd_annual: 79,
-    ai_tokens_per_month: Infinity,
+    ai_tokens_per_month: 500_000,
     resumes: Infinity,
-    applications_per_day: Infinity,
-    cover_letter: true,
-    priority_ai: true,
+    applications_per_day: 50,
+    cover_letter: false,
+    priority_ai: false,
   },
   elite: {
     name: "Elite",
-    price_inr: 999,
-    price_paise: 99_900,
+    price_inr: 1, // Keep test pricing
+    price_paise: 100,
     price_inr_annual: 7_999,
-    price_usd: 19,
+    price_usd: 1, // Set to $1 for testing
     price_usd_annual: 149,
-    ai_tokens_per_month: Infinity,
+    ai_tokens_per_month: 2_000_000,
     resumes: Infinity,
     applications_per_day: Infinity,
     cover_letter: true,
@@ -64,7 +63,7 @@ export function isSubscriptionActive(sub: SubscriptionRow | null): boolean {
   if (!sub) return false;
   return (
     sub.status === "active" ||
-    sub.status === "trialing" && isTrialActive(sub)
+    (sub.status === "trialing" && isTrialActive(sub))
   );
 }
 
@@ -82,27 +81,17 @@ export function canCreateResume(
   sub: SubscriptionRow | null,
   currentCount: number
 ): boolean {
-  // DEV MODE: Always allow resume creation
-  void sub;
-  void currentCount;
-  return true;
-  // Production code:
-  // if (!sub || !isSubscriptionActive(sub)) return false;
-  // const limits = getPlanLimits(sub.plan_id);
-  // return currentCount < limits.resumes;
+  const planId = isSubscriptionActive(sub) ? (sub?.plan_id ?? "free") : "free";
+  const limits = getPlanLimits(planId);
+  return currentCount < limits.resumes;
 }
 
 export function canTrackApplication(
   sub: SubscriptionRow | null,
   todayCount: number
 ): boolean {
-  // DEV MODE: Always allow application tracking
-  void sub;
-  void todayCount;
-  return true;
-  // Production code:
-  // if (!sub || !isSubscriptionActive(sub)) return false;
-  // const limits = getPlanLimits(sub.plan_id);
-  // return todayCount < limits.applications_per_day;
+  const planId = isSubscriptionActive(sub) ? (sub?.plan_id ?? "free") : "free";
+  const limits = getPlanLimits(planId);
+  return todayCount < limits.applications_per_day;
 }
 

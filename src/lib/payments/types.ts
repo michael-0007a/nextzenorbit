@@ -27,8 +27,8 @@ export interface OrderResult {
   orderId: string;
   amount: number;
   currency: string;
-  provider: "razorpay" | "cashfree" | "payu";
-  payu?: Record<string, string>; // Add PayU specific redirect data
+  provider: "payu";
+  payu: Record<string, string>; // PayU specific redirect data is mandatory for PayU
   raw: unknown;
 }
 
@@ -52,13 +52,14 @@ export interface SubscriptionParams {
   customerId: string;
   email: string;
   totalAmountPaise: number;
+  currency?: string;
 }
 
 export interface SubscriptionResult {
   subscriptionId: string;
   status: string;
-  provider: "razorpay" | "cashfree" | "payu";
-  payu?: Record<string, string>; // Add PayU specific redirect data
+  provider: "payu";
+  payu: Record<string, string>; // PayU specific redirect data is mandatory for PayU
   raw: unknown;
 }
 
@@ -72,12 +73,12 @@ export const PLAN_PRICING = {
   },
   pro: {
     name: "Pro",
-    monthly_paise: 49_900,      // ₹499
+    monthly_paise: 100,      // ₹1 for testing
     annual_paise: 399_900,      // ₹3,999
   },
   elite: {
     name: "Elite",
-    monthly_paise: 99_900,      // ₹999
+    monthly_paise: 100,      // ₹1 for testing
     annual_paise: 799_900,      // ₹7,999
   },
 } as const;

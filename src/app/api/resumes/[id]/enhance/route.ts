@@ -17,6 +17,7 @@ import Groq from "groq-sdk";
 import { z } from "zod";
 import { BULLET_REWRITER_PROMPT_V1, SUMMARY_GENERATOR_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { apiError, ERROR_CODES } from "@/types/api";
+import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -62,6 +63,16 @@ export async function POST(
 
     if (!user) {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
+    }
+
+    // Check AI token limits
+    const tokenCheck = await checkAiTokenUsage(user.id);
+    if (!tokenCheck.allowed) {
+      return apiError(
+        ERROR_CODES.SUBSCRIPTION_REQUIRED,
+        tokenCheck.error || "Monthly AI token limit reached. Please upgrade your plan.",
+        403
+      );
     }
 
     // Verify resume belongs to user

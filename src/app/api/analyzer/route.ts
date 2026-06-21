@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Groq from "groq-sdk";
 import { JOB_ANALYZER_PROMPT_V2, type AnalysisResult } from "@/lib/ai/prompts/job-analyzer";
 import type { ResumeRow } from "@/types/database";
+import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -26,6 +27,15 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check AI token limits
+    const tokenCheck = await checkAiTokenUsage(user.id);
+    if (!tokenCheck.allowed) {
+      return NextResponse.json(
+        { error: tokenCheck.error || "Monthly AI token limit reached. Please upgrade your plan." },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();

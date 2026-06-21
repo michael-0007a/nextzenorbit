@@ -8,9 +8,9 @@
 import { getCachedUser, getCachedProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import { getTrialDaysRemaining, isTrialActive } from "@/lib/subscription";
+import { getTrialDaysRemaining, isTrialActive, isSubscriptionActive } from "@/lib/subscription";
 import { TrialBanner } from "@/components/dashboard/trial-banner";
-import { FileText, Briefcase, Sparkles, Target, ArrowRight, TrendingUp, Zap, Clock, ChevronRight } from "lucide-react";
+import { FileText, Briefcase, Sparkles, Target, ArrowRight, TrendingUp, Zap, Clock, ChevronRight, Crown } from "lucide-react";
 import Link from "next/link";
 import type { ProfileRow, SubscriptionRow } from "@/types/database";
 
@@ -62,6 +62,8 @@ export default async function DashboardPage() {
 
   const trialing = isTrialActive(subscription);
   const daysRemaining = getTrialDaysRemaining(subscription);
+  const isActive = isSubscriptionActive(subscription);
+  const activePlanName = isActive ? (subscription?.plan_id === "elite" ? "Elite" : "Pro") : "Free";
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-8">
@@ -79,9 +81,35 @@ export default async function DashboardPage() {
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-border">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-medium text-text-secondary">Welcome back</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-border">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-medium text-text-secondary">Welcome back</span>
+                </div>
+                {activePlanName === "Elite" && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-500/30 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                    <Crown className="h-3.5 w-3.5 text-amber-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">
+                      Elite Plan
+                    </span>
+                  </div>
+                )}
+                {activePlanName === "Pro" && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/20 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                    <Zap className="h-3.5 w-3.5 text-primary-light" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary-light">
+                      Pro Plan
+                    </span>
+                  </div>
+                )}
+                {activePlanName === "Free" && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <Sparkles className="h-3.5 w-3.5 text-text-secondary" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+                      Free Plan
+                    </span>
+                  </div>
+                )}
               </div>
 
               <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground">

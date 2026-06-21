@@ -21,6 +21,7 @@ import type { ResumeContent } from "@/lib/validations/resume";
 import { apiError, ERROR_CODES } from "@/types/api";
 import { canCreateResume } from "@/lib/subscription";
 import type { SubscriptionRow } from "@/types/database";
+import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [
@@ -38,6 +39,16 @@ export async function POST(request: Request): Promise<Response> {
 
     if (!user) {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
+    }
+
+    // Check AI token limits
+    const tokenCheck = await checkAiTokenUsage(user.id);
+    if (!tokenCheck.allowed) {
+      return apiError(
+        ERROR_CODES.SUBSCRIPTION_REQUIRED,
+        tokenCheck.error || "Monthly AI token limit reached. Please upgrade your plan.",
+        403
+      );
     }
 
     // 2. Parse multipart form data

@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         amount: order.amount,
         currency: order.currency,
         provider: order.provider,
-        keyId: process.env.RAZORPAY_KEY_ID,
+        keyId: process.env.PAYU_MERCHANT_KEY,
       },
     });
   } catch (error) {

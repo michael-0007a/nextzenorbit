@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { apiError, ERROR_CODES } from "@/types/api";
+import { canTrackApplication } from "@/lib/subscription";
+import type { SubscriptionRow } from "@/types/database";
 
 const createApplicationSchema = z.object({
   company: z.string().min(1, "Company is required").max(200),
@@ -85,6 +87,27 @@ export async function POST(request: NextRequest): Promise<Response> {
         email: user.email!,
         role: "user",
       });
+    }
+
+    // Check subscription daily application limits
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [subRes, todayCountRes] = await Promise.all([
+      admin.from("subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
+      admin
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", today.toISOString()),
+    ]);
+
+    if (!canTrackApplication(subRes.data as SubscriptionRow | null, todayCountRes.count ?? 0)) {
+      return apiError(
+        ERROR_CODES.SUBSCRIPTION_REQUIRED,
+        "Daily job application tracking limit reached for your plan. Please upgrade to track more applications.",
+        403
+      );
     }
 
     const { data: application, error } = await admin
