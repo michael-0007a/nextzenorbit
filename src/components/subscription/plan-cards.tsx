@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PLANS } from "@/lib/subscription";
 import { Check, X } from "lucide-react";
 import type { PlanId } from "@/types/database";
-import { useEffect, useState } from "react";
+import { useCurrency, formatPrice } from "@/hooks/use-currency";
 import SubscriptionCheckout from "@/components/SubscriptionCheckout";
 
 interface PlanCardsProps {
@@ -47,18 +47,7 @@ const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {
 
 export function PlanCards({ currentPlanId }: PlanCardsProps) {
   const plans: PlanId[] = ["free", "pro", "elite"];
-  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
-
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") {
-        setCurrency("INR");
-      }
-    } catch (e) {
-      // Ignore
-    }
-  }, []);
+  const currency = useCurrency();
 
   return (
     <div>
@@ -84,11 +73,9 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                     <span className="text-2xl font-bold text-foreground">Free</span>
                   ) : (
                     <>
-                      {currency === "INR" ? (
-                        <span className="text-2xl font-bold text-foreground">₹{plan.price_inr}</span>
-                      ) : (
-                        <span className="text-2xl font-bold text-foreground">${plan.price_usd}</span>
-                      )}
+                      <span className="text-2xl font-bold text-foreground">
+                        {formatPrice(plan[`price_${currency.toLowerCase()}` as keyof typeof plan] as number, currency)}
+                      </span>
                       <span className="text-text-secondary">/month</span>
                     </>
                   )}
@@ -137,6 +124,7 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                 ) : (
                   <SubscriptionCheckout
                     plan={planId as "pro" | "elite"}
+                    currency={currency}
                     className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Upgrade

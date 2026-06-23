@@ -17,6 +17,7 @@ import { apiError, ERROR_CODES } from "@/types/api";
 const createOrderSchema = z.object({
   planId: z.enum(["pro", "elite"]),
   billingCycle: z.enum(["monthly", "annual"]).default("monthly"),
+  currency: z.enum(["USD", "INR", "EUR", "GBP", "CAD", "AUD"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -44,19 +45,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const { planId, billingCycle } = parsed.data;
+    const { planId, billingCycle, currency = "USD" } = parsed.data;
 
     // 3. Calculate amount
     const plan = PLAN_PRICING[planId];
-    const basePaise =
-      billingCycle === "annual" ? plan.annual_paise : plan.monthly_paise;
+    
+    // The amount in PLAN_PRICING is in base currency, we need to convert it to paise/cents
+    const baseCurrencyAmount =
+      billingCycle === "annual" 
+        ? plan.annual[currency as keyof typeof plan.annual] 
+        : plan.monthly[currency as keyof typeof plan.monthly];
+        
+    const basePaise = baseCurrencyAmount * 100;
+    
     const { base, gst, total } = calculateGST(basePaise);
 
     // 4. Create order
     const provider = getPaymentProvider();
     const order = await provider.createOrder({
       amountPaise: total,
-      currency: "INR",
+      currency: currency,
       receipt: `${planId}_${user.id}_${Date.now()}`,
       notes: {
         user_id: user.id,

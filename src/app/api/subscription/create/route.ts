@@ -20,7 +20,7 @@ import type { PlanId } from "@/types/database";
 
 const createSubscriptionSchema = z.object({
   plan: z.enum(["pro", "elite"]),
-  currency: z.enum(["USD", "INR"]).optional(),
+  currency: z.enum(["USD", "INR", "EUR", "GBP", "CAD", "AUD"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return apiError(
         ERROR_CODES.VALIDATION_ERROR,
-        "Invalid request body. Expected { plan: \"pro\" | \"elite\", currency: \"USD\" | \"INR\" }.",
+        "Invalid request body.",
         400,
         parsed.error.flatten()
       );
@@ -64,9 +64,9 @@ export async function POST(request: Request) {
     const planConfig = PLANS[plan];
     
     // Calculate total amount in paise/cents based on the currency
-    const totalAmountPaise = currency === "INR" 
-      ? planConfig.price_inr * 100 
-      : planConfig.price_usd * 100;
+    const priceKey = `price_${currency.toLowerCase()}` as keyof typeof planConfig;
+    const priceAmount = (planConfig[priceKey] as number) || 0;
+    const totalAmountPaise = priceAmount * 100;
 
     // 4. Create subscription via provider
     const provider = getPaymentProvider();

@@ -80,7 +80,7 @@ export async function GET(request: Request) {
     // Insert subscription with 7-day trial
     await admin.from("subscriptions").insert({
       user_id: user.id,
-      provider: "razorpay",
+      provider: "payu",
       plan_id: "free",
       status: "trialing",
       trial_starts_at: now,

@@ -12,7 +12,7 @@ import type { ResumeContent } from "@/lib/validations/resume";
 export type UserRole = "user" | "sso_user" | "admin" | "super_admin";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "paused";
 export type PlanId = "free" | "pro" | "elite";
-export type PaymentProviderType = "razorpay" | "cashfree" | "payu";
+export type PaymentProviderType = "payu";
 export type ApplicationStatus = "applied" | "screening" | "interview" | "offer" | "rejected";
 export type WorkType = "remote" | "onsite" | "hybrid" | "any";
 export type JobQueueStatus = "pending" | "processing" | "applied" | "failed" | "skipped";
@@ -59,11 +59,6 @@ export type SubscriptionRow = {
   provider: PaymentProviderType;
   plan_id: PlanId;
   status: SubscriptionStatus;
-  razorpay_customer_id: string | null;
-  razorpay_subscription_id: string | null;
-  razorpay_plan_id: string | null;
-  cashfree_customer_id: string | null;
-  cashfree_subscription_id: string | null;
   payu_customer_id: string | null;
   payu_subscription_id: string | null;
   currency: string;
@@ -305,8 +300,8 @@ export type Database = {
       };
       subscriptions: {
         Row: SubscriptionRow;
-        Insert: { user_id: string; provider?: PaymentProviderType; plan_id?: PlanId; status?: SubscriptionStatus; razorpay_customer_id?: string | null; razorpay_subscription_id?: string | null; razorpay_plan_id?: string | null; cashfree_customer_id?: string | null; cashfree_subscription_id?: string | null; payu_customer_id?: string | null; payu_subscription_id?: string | null; currency?: string; amount_paise?: number | null; gst_amount_paise?: number | null; trial_starts_at?: string | null; trial_ends_at?: string | null; current_period_start?: string | null; current_period_end?: string | null; cancel_at_period_end?: boolean };
-        Update: { provider?: PaymentProviderType; plan_id?: PlanId; status?: SubscriptionStatus; razorpay_customer_id?: string | null; razorpay_subscription_id?: string | null; razorpay_plan_id?: string | null; cashfree_customer_id?: string | null; cashfree_subscription_id?: string | null; payu_customer_id?: string | null; payu_subscription_id?: string | null; currency?: string; amount_paise?: number | null; gst_amount_paise?: number | null; trial_starts_at?: string | null; trial_ends_at?: string | null; current_period_start?: string | null; current_period_end?: string | null; cancel_at_period_end?: boolean; cancelled_at?: string | null };
+        Insert: { user_id: string; provider?: PaymentProviderType; plan_id?: PlanId; status?: SubscriptionStatus; payu_customer_id?: string | null; payu_subscription_id?: string | null; currency?: string; amount_paise?: number | null; gst_amount_paise?: number | null; trial_starts_at?: string | null; trial_ends_at?: string | null; current_period_start?: string | null; current_period_end?: string | null; cancel_at_period_end?: boolean };
+        Update: { provider?: PaymentProviderType; plan_id?: PlanId; status?: SubscriptionStatus; payu_customer_id?: string | null; payu_subscription_id?: string | null; currency?: string; amount_paise?: number | null; gst_amount_paise?: number | null; trial_starts_at?: string | null; trial_ends_at?: string | null; current_period_start?: string | null; current_period_end?: string | null; cancel_at_period_end?: boolean; cancelled_at?: string | null };
         Relationships: [{ foreignKeyName: "subscriptions_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
       resumes: {

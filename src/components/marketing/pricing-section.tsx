@@ -4,20 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PLANS } from "@/lib/subscription";
+import { useCurrency, formatPrice } from "@/hooks/use-currency";
 
 export function PricingSection() {
-  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
-
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") {
-        setCurrency("INR");
-      }
-    } catch (e) {
-      // Ignore
-    }
-  }, []);
+  const currency = useCurrency();
 
   const pricing = [
     {
@@ -29,7 +19,7 @@ export function PricingSection() {
     },
     {
       name: "Pro",
-      priceDisplay: currency === "INR" ? `₹${PLANS.pro.price_inr}` : `$${PLANS.pro.price_usd}`,
+      priceDisplay: formatPrice(PLANS.pro[`price_${currency.toLowerCase()}` as keyof typeof PLANS.pro] as number, currency),
       description: "For serious job seekers ready to move fast.",
       features: [
         "Unlimited resumes",
@@ -41,7 +31,7 @@ export function PricingSection() {
     },
     {
       name: "Elite",
-      priceDisplay: currency === "INR" ? `₹${PLANS.elite.price_inr}` : `$${PLANS.elite.price_usd}`,
+      priceDisplay: formatPrice(PLANS.elite[`price_${currency.toLowerCase()}` as keyof typeof PLANS.elite] as number, currency),
       description: "Career acceleration with full automation.",
       features: ["Auto-apply queue", "Premium templates", "Deep insights", "Concierge support"],
       highlight: false,

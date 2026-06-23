@@ -14,11 +14,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { PLANS } from "@/lib/subscription";
+import { Currency, useCurrency, formatPrice } from "@/hooks/use-currency";
 
 interface SubscriptionCheckoutProps {
   plan: "pro" | "elite";
   userEmail?: string;
   userName?: string;
+  currency?: Currency; // Allow passing currency directly, fallback to hook
   onSuccess?: (response: any) => void;
   onFailure?: (error: string) => void;
   className?: string;
@@ -40,24 +42,16 @@ export default function SubscriptionCheckout({
   plan,
   userEmail,
   userName,
+  currency,
   onSuccess,
   onFailure,
   className,
   children,
 }: SubscriptionCheckoutProps) {
   const [loading, setLoading] = useState(false);
-  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
-
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") {
-        setCurrency("INR");
-      }
-    } catch (e) {
-      // Ignore
-    }
-  }, []);
+  
+  const detectedCurrency = useCurrency();
+  const activeCurrency = currency || detectedCurrency;
 
   const handleSubscribe = useCallback(async () => {
     setLoading(true);
@@ -67,7 +61,7 @@ export default function SubscriptionCheckout({
       const res = await fetch("/api/subscription/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, currency }),
+        body: JSON.stringify({ plan, currency: activeCurrency }),
       });
 
       const json = await res.json();
@@ -135,7 +129,7 @@ export default function SubscriptionCheckout({
     >
       {children || (loading
         ? "Processing..."
-        : `Subscribe to ${display.name} — ${currency === "INR" ? "₹" + PLANS[plan].price_inr : "$" + PLANS[plan].price_usd}/mo`)}
+        : `Subscribe to ${display.name} — ${formatPrice(PLANS[plan][`price_${activeCurrency.toLowerCase()}` as keyof typeof PLANS.pro] as number, activeCurrency)}/mo`)}
     </button>
   );
 }
