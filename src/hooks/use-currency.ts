@@ -79,9 +79,26 @@ async function detectCurrency(): Promise<Currency> {
       if (data.country && COUNTRY_TO_CURRENCY[data.country]) {
         return COUNTRY_TO_CURRENCY[data.country];
       }
+      if (data.country) {
+        return "USD";
+      }
     }
   } catch {}
 
+  // 2. Try client-side IP API (for local dev with VPN)
+  try {
+    const res = await fetch("https://get.geojs.io/v1/ip/country.json", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.country && COUNTRY_TO_CURRENCY[data.country]) {
+        return COUNTRY_TO_CURRENCY[data.country];
+      }
+      // If it's a known country but not mapped, fallback to USD
+      if (data.country) return "USD";
+    }
+  } catch {}
+
+  // 3. Fallback to timezone
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") return "INR";

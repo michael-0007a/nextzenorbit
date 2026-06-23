@@ -16,19 +16,6 @@ export async function GET(request: NextRequest) {
     request.headers.get("cf-ipcountry") ||
     null;
 
-  if (!country) {
-    const acceptLang = request.headers.get("accept-language") || "";
-    // Check Indian locales
-    const indianLocales = /\b(hi|mr|ta|te|bn|gu|kn|ml|pa|or|as|ne|sa|kok|doi|mai|bho|sd)-?/i;
-    if (indianLocales.test(acceptLang) && acceptLang.includes("IN")) {
-      country = "IN";
-    }
-    // Very basic fallback logic for a few other common ones if testing locally
-    else if (acceptLang.includes("GB")) country = "GB";
-    else if (acceptLang.includes("AU")) country = "AU";
-    else if (acceptLang.includes("CA")) country = "CA";
-  }
-
   return NextResponse.json(
     { country: country?.toUpperCase() || null },
     {
