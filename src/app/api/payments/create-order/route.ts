@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         ? plan.annual[currency as keyof typeof plan.annual] 
         : plan.monthly[currency as keyof typeof plan.monthly];
         
-    const basePaise = baseCurrencyAmount * 100;
+    const basePaise = Math.round(baseCurrencyAmount * 100);
     
     const { base, gst, total } = calculateGST(basePaise);
 

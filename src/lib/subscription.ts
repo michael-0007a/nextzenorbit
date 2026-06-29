@@ -26,7 +26,7 @@ export const PLANS = {
   pro: {
     name: "Pro",
     price_inr: 499, price_paise: 49_900, price_inr_annual: 3_999,
-    price_usd: 9, price_usd_annual: 79,
+    price_usd: 99.99, price_usd_annual: 79,
     price_eur: 9, price_eur_annual: 79,
     price_gbp: 8, price_gbp_annual: 69,
     price_cad: 12, price_cad_annual: 99,
@@ -40,7 +40,7 @@ export const PLANS = {
   elite: {
     name: "Elite",
     price_inr: 999, price_paise: 99_900, price_inr_annual: 7_999,
-    price_usd: 19, price_usd_annual: 149,
+    price_usd: 179.99, price_usd_annual: 149,
     price_eur: 19, price_eur_annual: 149,
     price_gbp: 15, price_gbp_annual: 119,
     price_cad: 25, price_cad_annual: 199,

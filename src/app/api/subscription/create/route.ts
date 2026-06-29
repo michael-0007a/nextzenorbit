@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     // Calculate total amount in paise/cents based on the currency
     const priceKey = `price_${currency.toLowerCase()}` as keyof typeof planConfig;
     const priceAmount = (planConfig[priceKey] as number) || 0;
-    const totalAmountPaise = priceAmount * 100;
+    const totalAmountPaise = Math.round(priceAmount * 100);
 
     // 4. Create subscription via provider
     const provider = getPaymentProvider();

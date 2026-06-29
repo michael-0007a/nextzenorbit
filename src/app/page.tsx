@@ -21,7 +21,26 @@ import {
 } from "lucide-react";
 import { PricingSection } from "@/components/marketing/pricing-section";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedParams = await searchParams;
+  const error = resolvedParams.error;
+  const errorCode = resolvedParams.error_code;
+  const errorDescription = resolvedParams.error_description;
+
+  if (error) {
+    let message = "Authentication failed. Please try signing in again.";
+    if (errorCode === "flow_state_already_used") {
+      message = "Your login link or session has already been used or expired. Please try signing in again.";
+    } else if (errorDescription && typeof errorDescription === "string") {
+      message = errorDescription;
+    }
+    redirect(`/login?error=${encodeURIComponent(message)}`);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

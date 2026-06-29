@@ -73,12 +73,12 @@ export const PLAN_PRICING = {
   },
   pro: {
     name: "Pro",
-    monthly: { INR: 499, USD: 9, EUR: 9, GBP: 8, CAD: 12, AUD: 14 },
+    monthly: { INR: 499, USD: 99.99, EUR: 9, GBP: 8, CAD: 12, AUD: 14 },
     annual: { INR: 3999, USD: 79, EUR: 79, GBP: 69, CAD: 99, AUD: 119 },
   },
   elite: {
     name: "Elite",
-    monthly: { INR: 999, USD: 19, EUR: 19, GBP: 15, CAD: 25, AUD: 29 },
+    monthly: { INR: 999, USD: 179.99, EUR: 19, GBP: 15, CAD: 25, AUD: 29 },
     annual: { INR: 7999, USD: 149, EUR: 149, GBP: 119, CAD: 199, AUD: 229 },
   },
 } as const;
