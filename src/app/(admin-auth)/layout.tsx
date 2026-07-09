@@ -30,11 +30,18 @@ export default function AdminAuthLayout({
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <Link href="/" className="flex items-center gap-3">
               <Image
-                src="/Nextzen%20Orbit%20white.png"
+                src="/Nextzen%20Orbit.png"
                 alt="NEXTZEN ORBIT"
-                width={170}
-                height={26}
-                className="h-5 w-auto"
+                width={210}
+                height={36}
+                className="h-8 md:h-9 w-auto block dark:hidden"
+              />
+              <Image
+                src="/Nextzen%20Orbit%20dark.png"
+                alt="NEXTZEN ORBIT"
+                width={210}
+                height={36}
+                className="h-8 md:h-9 w-auto hidden dark:block"
               />
               <span className="rounded-full bg-secondary/20 border border-secondary/40 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary-light">
                 Admin

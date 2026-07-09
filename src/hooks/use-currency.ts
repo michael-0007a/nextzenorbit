@@ -24,23 +24,22 @@ let cachedCurrency: Currency | null = null;
 let fetchPromise: Promise<Currency> | null = null;
 
 export function useCurrency(): Currency {
-  const [currency, setCurrency] = useState<Currency>(() => {
-    if (cachedCurrency) return cachedCurrency;
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("nzo_currency") as Currency | null;
-      if (stored && ["USD", "INR", "EUR", "GBP", "CAD", "AUD"].includes(stored)) {
-        cachedCurrency = stored;
-        return stored;
-      }
-    }
-    return "USD";
-  });
+  const [currency, setCurrency] = useState<Currency>("USD");
 
   useEffect(() => {
     if (cachedCurrency) {
       setCurrency(cachedCurrency);
       return;
     }
+
+    try {
+      const stored = sessionStorage.getItem("nzo_currency") as Currency | null;
+      if (stored && ["USD", "INR", "EUR", "GBP", "CAD", "AUD"].includes(stored)) {
+        cachedCurrency = stored;
+        setCurrency(stored);
+        return;
+      }
+    } catch {}
 
     if (!fetchPromise) {
       fetchPromise = detectCurrency();

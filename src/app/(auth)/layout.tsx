@@ -32,11 +32,18 @@ export default function AuthLayout({
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <Link href="/" className="flex items-center">
               <Image
-                src="/Nextzen%20Orbit%20white.png"
+                src="/Nextzen%20Orbit.png"
                 alt="NEXTZEN ORBIT"
-                width={170}
-                height={26}
-                className="h-5 w-auto"
+                width={210}
+                height={36}
+                className="h-8 md:h-9 w-auto block dark:hidden"
+              />
+              <Image
+                src="/Nextzen%20Orbit%20dark.png"
+                alt="NEXTZEN ORBIT"
+                width={210}
+                height={36}
+                className="h-8 md:h-9 w-auto hidden dark:block"
               />
             </Link>
 
@@ -77,20 +84,24 @@ export default function AuthLayout({
 
         <footer className="border-t border-border bg-surface/45 backdrop-blur-[28px]">
           <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20">
-                <Image src="/only%20logo.png" alt="NEXTZEN ORBIT" width={22} height={22} />
-              </div>
-              <div>
+            <div className="flex flex-col gap-1.5">
+              <Link href="/" className="flex items-center">
                 <Image
-                  src="/Nextzen%20Orbit%20white.png"
+                  src="/Nextzen%20Orbit.png"
                   alt="NEXTZEN ORBIT"
-                  width={160}
-                  height={24}
-                  className="h-4 w-auto"
+                  width={190}
+                  height={32}
+                  className="h-7 md:h-8 w-auto block dark:hidden"
                 />
-                <p className="text-xs text-text-secondary">Build Beyond Limits.</p>
-              </div>
+                <Image
+                  src="/Nextzen%20Orbit%20dark.png"
+                  alt="NEXTZEN ORBIT"
+                  width={190}
+                  height={32}
+                  className="h-7 md:h-8 w-auto hidden dark:block"
+                />
+              </Link>
+              <p className="text-xs text-text-secondary">Build Beyond Limits.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-6 text-sm text-text-secondary">
