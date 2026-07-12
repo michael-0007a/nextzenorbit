@@ -559,7 +559,7 @@ export default async function HomePage({
           </div>
 
           <p className="text-xs text-text-secondary">
-            {new Date().getFullYear()} NEXTZEN ORBIT. All rights reserved.
+            ©️{new Date().getFullYear()} NEXTZEN Orbit powered by Next Zen AI Strategix. All rights reserved.
           </p>
         </div>
       </footer>

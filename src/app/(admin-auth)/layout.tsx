@@ -61,7 +61,7 @@ export default function AdminAuthLayout({
         <footer className="border-t border-border bg-surface/45 backdrop-blur-[28px]">
           <div className="mx-auto flex max-w-6xl items-center justify-center px-6 py-6">
             <p className="text-xs text-text-secondary">
-              {new Date().getFullYear()} NEXTZEN ORBIT — Admin Portal
+              ©️{new Date().getFullYear()} NEXTZEN Orbit powered by Next Zen AI Strategix. All rights reserved. — Admin Portal
             </p>
           </div>
         </footer>
