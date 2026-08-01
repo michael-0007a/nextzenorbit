@@ -8,13 +8,19 @@ import { PlanCards } from "@/components/subscription/plan-cards";
 import { useEffect, useState } from "react";
 
 export function GlobalPaywall({ isSsoUser }: { isSsoUser: boolean }) {
-  const { isActive, loading, subscription } = useSubscription();
+  const { isActive, loading, activePlanId } = useSubscription();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Reset dismissed state when navigating to a new page
+  useEffect(() => {
+    setDismissed(false);
+  }, [pathname]);
 
   if (!mounted) return null;
 
@@ -26,14 +32,14 @@ export function GlobalPaywall({ isSsoUser }: { isSsoUser: boolean }) {
   // Allow sso_users
   if (isSsoUser) return null;
 
-  // Show paywall if loaded and inactive
-  const showPaywall = !loading && !isActive;
+  // Show paywall if loaded, inactive, and not dismissed by the user
+  const showPaywall = !loading && !isActive && !dismissed;
 
   return (
     <Modal
       open={showPaywall}
-      onClose={() => {}} // Empty function prevents closing
-      closeOnOverlayClick={false}
+      onClose={() => setDismissed(true)}
+      closeOnOverlayClick={true}
       size="full"
       title="Unlock NextZen Orbit"
       description="You need an active subscription to access this feature."
@@ -49,7 +55,7 @@ export function GlobalPaywall({ isSsoUser }: { isSsoUser: boolean }) {
         </p>
         
         <div className="w-full max-w-4xl mx-auto text-left">
-          <PlanCards currentPlanId={subscription?.plan_id || "free"} />
+          <PlanCards currentPlanId={activePlanId} />
         </div>
       </div>
     </Modal>

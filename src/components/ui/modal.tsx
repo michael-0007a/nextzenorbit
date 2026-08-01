@@ -16,6 +16,8 @@ export interface ModalProps {
   size?: "sm" | "md" | "lg" | "xl" | "full";
   /** Whether clicking the overlay closes the modal */
   closeOnOverlayClick?: boolean;
+  /** Whether to hide the default close (X) button */
+  hideCloseButton?: boolean;
   className?: string;
 }
 
@@ -43,6 +45,7 @@ export function Modal({
   description,
   size = "lg",
   closeOnOverlayClick = true,
+  hideCloseButton = false,
   className,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -137,17 +140,19 @@ export function Modal({
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={onClose}
-                  className={cn(
-                    "inline-flex h-8 w-8 items-center justify-center rounded-full",
-                    "text-text-secondary hover:text-foreground hover:bg-white/10",
-                    "transition-colors duration-150"
-                  )}
-                  aria-label="Close dialog"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                {!hideCloseButton && (
+                  <button
+                    onClick={onClose}
+                    className={cn(
+                      "inline-flex h-8 w-8 items-center justify-center rounded-full",
+                      "text-text-secondary hover:text-foreground hover:bg-white/10",
+                      "transition-colors duration-150"
+                    )}
+                    aria-label="Close dialog"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             )}
 

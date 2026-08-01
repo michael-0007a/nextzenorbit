@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { SubscriptionDetails } from "@/components/subscription/subscription-details";
 import { PlanCards } from "@/components/subscription/plan-cards";
+import { isSubscriptionActive } from "@/lib/subscription";
 import type { SubscriptionRow, AiUsageRow } from "@/types/database";
 
 export default async function SubscriptionPage() {
@@ -56,7 +57,7 @@ export default async function SubscriptionPage() {
         aiUsage={aiUsage}
         resumeCount={resumeCount}
       />
-      <PlanCards currentPlanId={subscription?.plan_id ?? "free"} />
+      <PlanCards currentPlanId={isSubscriptionActive(subscription) ? (subscription?.plan_id ?? "free") : "free"} />
     </div>
   );
 }

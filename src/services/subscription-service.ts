@@ -73,7 +73,7 @@ export async function upsertSubscriptionCreated(
   const updateData: any = {
     provider,
     plan_id: data.planId,
-    status: "inactive", // Initially inactive until webhook/callback
+    status: "paused", // Initially paused until webhook/callback activates it
     currency: data.currency || "INR",
     amount_paise: data.amountPaise || null,
     payu_subscription_id: data.subscriptionId,

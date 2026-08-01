@@ -9,7 +9,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { SubscriptionRow } from "@/types/database";
+import type { SubscriptionRow, PlanId } from "@/types/database";
 import {
   isTrialActive,
   isSubscriptionActive,
@@ -24,6 +24,7 @@ interface UseSubscriptionReturn {
   daysRemaining: number;
   isPro: boolean;
   isElite: boolean;
+  activePlanId: PlanId;
   refetch: () => Promise<void>;
 }
 
@@ -53,14 +54,17 @@ export function useSubscription(): UseSubscriptionReturn {
     }
   }, [fetchSubscription]);
 
+  const isActive = isSubscriptionActive(subscription);
+
   return {
     subscription,
     loading,
     isTrialing: isTrialActive(subscription),
-    isActive: isSubscriptionActive(subscription),
+    isActive,
     daysRemaining: getTrialDaysRemaining(subscription),
-    isPro: subscription?.plan_id === "pro",
-    isElite: subscription?.plan_id === "elite",
+    isPro: isActive && subscription?.plan_id === "pro",
+    isElite: isActive && subscription?.plan_id === "elite",
+    activePlanId: isActive ? (subscription?.plan_id || "free") : "free",
     refetch: fetchSubscription,
   };
 }
