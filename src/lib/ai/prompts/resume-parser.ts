@@ -20,7 +20,9 @@ STRICT CONSTRAINTS & PROFESSIONAL REWRITE:
 - You MUST professionally rewrite and enhance all bullet points to make them impactful, action-oriented, and results-driven.
 - DO NOT just copy the original bullets exactly; generate fresh, professionally phrased achievements based on the facts provided.
 - You must NEVER invent, fabricate, or hallucinate entirely new experiences, metrics, or skills not supported by the original text.
-- Be concise. Ensure the overall content is brief enough to fit on EXACTLY 1 page (typically 3-4 bullets per role, maximum 1-2 lines each).
+- STRICT 1-PAGE LIMIT: You MUST ruthlessly cut, condense, and prioritize the content so the final output fits on exactly 1 page. Keep summaries under 2 sentences, limit to the 3 most recent/relevant roles, and strictly use a maximum of 3 concise bullets per role (1-2 lines each).
+- STRICT PUNCTUATION RULE: NEVER use em dashes (—) or en dashes (–) anywhere in the text (bullets, summaries, titles, etc). Use standard hyphens (-) or commas instead.
+- NO AI TROPES: Ensure the language sounds completely human. Do not use cliché AI phrases like "spearheaded," "orchestrated," "delving into," "a testament to," "revolutionary," or overly complex vocabulary. Keep it direct, grounded, and professional.
 - If a field is not present in the text, leave it as an empty string or empty array.
 - If you are uncertain about a detail, OMIT it entirely rather than guess.
 

@@ -11,14 +11,14 @@ export function PricingSection() {
 
   const pricing = [
     {
-      name: "Plan 1",
+      name: "Silver",
       priceDisplay: formatPrice(PLANS.free[`price_${currency.toLowerCase()}` as keyof typeof PLANS.free] as number, currency),
       description: "Launch-ready essentials to get started.",
       features: ["175 job applications/month", "Assigned recruiter support", "Advanced resume parsing", "Priority support"],
       highlight: false,
     },
     {
-      name: "Plan 2",
+      name: "Gold",
       priceDisplay: formatPrice(PLANS.pro[`price_${currency.toLowerCase()}` as keyof typeof PLANS.pro] as number, currency),
       description: "For serious job seekers ready to move fast.",
       features: [
@@ -30,7 +30,7 @@ export function PricingSection() {
       highlight: true,
     },
     {
-      name: "Plan 3",
+      name: "Elite",
       priceDisplay: formatPrice(PLANS.elite[`price_${currency.toLowerCase()}` as keyof typeof PLANS.elite] as number, currency),
       description: "Career acceleration with full automation.",
       features: ["500 job applications/month", "Assigned recruiter support", "Premium templates", "Concierge support"],

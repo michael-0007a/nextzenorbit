@@ -9,7 +9,7 @@ export default async function proxy(request: NextRequest) {
 
   // 2. Protect specific routes based on role or auth
   // Ensure the user is signed in to access protected user areas
-  const isProtectedRoute = path.startsWith("/dashboard") || path.startsWith("/resumes") || path.startsWith("/job-search") || path.startsWith("/interviews") || path.startsWith("/billing") || path.startsWith("/onboarding") || path.startsWith("/settings");
+  const isProtectedRoute = path.startsWith("/dashboard") || path.startsWith("/profile") || path.startsWith("/resumes") || path.startsWith("/cover-letter") || path.startsWith("/analyzer") || path.startsWith("/job-search") || path.startsWith("/applications") || path.startsWith("/career") || path.startsWith("/interviews") || path.startsWith("/billing") || path.startsWith("/onboarding") || path.startsWith("/settings");
 
   if (isProtectedRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
@@ -17,8 +17,8 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 3. Block sso_user from /billing (since they get everything for free and don't need billing)
-  if (user && path.startsWith("/billing")) {
+  // 3. Enforce active subscription for app access (allow /subscription and /settings without paying)
+  if (isProtectedRoute && user && !path.startsWith("/subscription") && !path.startsWith("/settings")) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -27,6 +27,47 @@ export default async function proxy(request: NextRequest) {
           getAll() {
             return request.cookies.getAll();
           },
+          setAll() {},
+        },
+      }
+    );
+
+    const { data: subData } = await supabase
+      .from("subscriptions")
+      .select("status, trial_ends_at")
+      .eq("user_id", user.id)
+      .single();
+
+    let isSubActive = false;
+    if (subData) {
+      if (subData.status === "active") isSubActive = true;
+      if (subData.status === "trialing" && subData.trial_ends_at && new Date(subData.trial_ends_at) > new Date()) {
+        isSubActive = true;
+      }
+    }
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // Bypass check if they are an sso_user (admin override)
+    if (!isSubActive && userData?.role !== "sso_user") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/subscription";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  // 4. Block sso_user from /subscription and /billing (since they get everything for free and don't need billing)
+  if (user && (path.startsWith("/billing") || path.startsWith("/subscription"))) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll(); },
           setAll() {},
         },
       }

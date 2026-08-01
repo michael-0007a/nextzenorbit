@@ -193,19 +193,30 @@ export function Sidebar({ className }: SidebarProps) {
                       {isElite ? <Crown className="h-4 w-4 text-white" /> : <Zap className="h-4 w-4 text-white" />}
                     </div>
                     <span className="text-sm font-bold text-foreground">
-                      {isElite ? "Elite Member" : "Pro Member"}
+                      {isElite ? "Elite Member" : isPro ? "Gold Member" : "Silver Member"}
                     </span>
                   </div>
                   <p className="text-[11px] text-text-secondary mb-4 leading-relaxed">
-                    Thank you for subscribing! Enjoy all {isElite ? "Elite" : "Pro"} features.
+                    Thank you for subscribing! Enjoy all your {isElite ? "Elite" : isPro ? "Gold" : "Silver"} features.
                   </p>
-                  <Link
-                    href="/subscription"
-                    className="flex items-center justify-center gap-1.5 w-full py-2 rounded-full text-xs font-semibold border border-border/60 bg-white/5 hover:bg-white/10 text-text-secondary hover:text-foreground transition-all duration-200"
-                  >
-                    Manage Billing
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  
+                  {isElite ? (
+                    <Link
+                      href="/subscription"
+                      className="flex items-center justify-center gap-1.5 w-full py-2 rounded-full text-xs font-semibold border border-border/60 bg-white/5 hover:bg-white/10 text-text-secondary hover:text-foreground transition-all duration-200"
+                    >
+                      Manage Billing
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/subscription"
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_18px_35px_rgba(255,0,61,0.3)] transition-transform duration-200 hover:-translate-y-0.5"
+                    >
+                      Upgrade Plan
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  )}
                 </div>
               </>
             ) : (
@@ -218,16 +229,16 @@ export function Sidebar({ className }: SidebarProps) {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-light">
                       <Crown className="h-4 w-4 text-white" />
                     </div>
-                    <span className="text-sm font-bold text-foreground">Go Pro</span>
+                    <span className="text-sm font-bold text-foreground">Subscribe</span>
                   </div>
                   <p className="text-xs text-text-secondary mb-4 leading-relaxed">
-                    Unlimited AI analysis, premium templates & priority support
+                    Unlock premium AI features and job search automation.
                   </p>
                   <Link
                     href="/subscription"
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_18px_35px_rgba(255,0,61,0.3)] transition-transform duration-200 hover:-translate-y-0.5"
                   >
-                    Upgrade Now
+                    View Plans
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>

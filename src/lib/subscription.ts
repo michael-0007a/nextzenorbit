@@ -10,7 +10,7 @@ import type { SubscriptionRow, PlanId } from "@/types/database";
 // ── Plan configuration ──
 export const PLANS = {
   free: {
-    name: "Plan 1",
+    name: "Silver",
     price_inr: 10999, price_paise: 1099900, price_inr_annual: 131988,
     price_usd: 130, price_usd_annual: 1560,
     price_eur: 120, price_eur_annual: 1440,
@@ -24,7 +24,7 @@ export const PLANS = {
     priority_ai: true,
   },
   pro: {
-    name: "Plan 2",
+    name: "Gold",
     price_inr: 16999, price_paise: 1699900, price_inr_annual: 203988,
     price_usd: 200, price_usd_annual: 2400,
     price_eur: 190, price_eur_annual: 2280,
@@ -38,7 +38,7 @@ export const PLANS = {
     priority_ai: true,
   },
   elite: {
-    name: "Plan 3",
+    name: "Elite",
     price_inr: 22999, price_paise: 2299900, price_inr_annual: 275988,
     price_usd: 270, price_usd_annual: 3240,
     price_eur: 260, price_eur_annual: 3120,
