@@ -1,7 +1,9 @@
 import { getCachedUser, getCachedProfile } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
+import { GlobalPaywall } from "@/components/subscription/global-paywall";
 
 // Force dynamic rendering to always fetch fresh profile data
 export const dynamic = "force-dynamic";
@@ -38,8 +40,16 @@ export default async function DashboardLayout({
 
   const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined;
 
+  const supabase = await createClient();
+  const { data: userData } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
   return (
     <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
+      <GlobalPaywall isSsoUser={userData?.role === "sso_user"} />
       <div className="absolute inset-0 bg-space" />
       <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.07),transparent_60%)]" />
       <Sidebar />
