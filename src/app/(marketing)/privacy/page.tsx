@@ -67,7 +67,8 @@ export default function PrivacyPage() {
             We do not sell your personal data. We only share information with third parties in the following circumstances:
           </p>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Service Providers:</strong> We use third-party services (like OpenAI for generation, and Adzuna for job search) to provide our core features.</li>
+            <li><strong>Service Providers:</strong> We use third-party services (like Groq for generation, and Adzuna for job search) to provide our core features.</li>
+            <li><strong>Payment Processors:</strong> We use PayU for secure payment processing. We do not store your full credit card information.</li>
             <li><strong>Employers:</strong> When you use our auto-apply feature, your resume and details are shared with the respective employers.</li>
           </ul>
 

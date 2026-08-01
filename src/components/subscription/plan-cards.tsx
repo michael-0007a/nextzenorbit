@@ -20,25 +20,25 @@ interface PlanCardsProps {
 
 const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {
   free: [
-    { label: "2 Resumes", included: true },
-    { label: "5 Applications/day", included: true },
-    { label: "50K AI Tokens/month", included: true },
-    { label: "Basic resume parsing", included: true },
+    { label: "Unlimited Resumes", included: true },
+    { label: "175 Applications/month", included: true },
+    { label: "Assigned recruiter support", included: true },
+    { label: "Advanced resume parsing", included: true },
     { label: "Cover letter generator", included: false },
     { label: "Priority AI processing", included: false },
   ],
   pro: [
     { label: "Unlimited Resumes", included: true },
-    { label: "50 Applications/day", included: true },
-    { label: "500K AI Tokens/month", included: true },
+    { label: "350 Applications/month", included: true },
+    { label: "Assigned recruiter support", included: true },
     { label: "Advanced resume parsing", included: true },
-    { label: "Cover letter generator", included: false },
+    { label: "Cover letter generator", included: true },
     { label: "Priority AI processing", included: false },
   ],
   elite: [
     { label: "Unlimited Resumes", included: true },
-    { label: "Unlimited Applications", included: true },
-    { label: "2M AI Tokens/month", included: true },
+    { label: "500 Applications/month", included: true },
+    { label: "Assigned recruiter support", included: true },
     { label: "Advanced resume parsing", included: true },
     { label: "Cover letter generator", included: true },
     { label: "Priority AI processing", included: true },
@@ -69,16 +69,10 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                   {isCurrent && <Badge variant="success" size="sm">Current</Badge>}
                 </div>
                 <CardDescription>
-                  {plan.price_inr === 0 ? (
-                    <span className="text-2xl font-bold text-foreground">Free</span>
-                  ) : (
-                    <>
-                      <span className="text-2xl font-bold text-foreground">
-                        {formatPrice(plan[`price_${currency.toLowerCase()}` as keyof typeof plan] as number, currency)}
-                      </span>
-                      <span className="text-text-secondary">/month</span>
-                    </>
-                  )}
+                  <span className="text-2xl font-bold text-foreground">
+                    {formatPrice(plan[`price_${currency.toLowerCase()}` as keyof typeof plan] as number, currency)}
+                  </span>
+                  <span className="text-text-secondary">/month</span>
                 </CardDescription>
               </CardHeader>
               <CardBody>
@@ -105,25 +99,9 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                   >
                     Current Plan
                   </button>
-                ) : currentPlanId === "elite" ? (
-                  <button
-                    disabled
-                    className="w-full h-10 rounded-full border border-border/40 text-sm font-medium text-text-secondary/40 bg-white/5 cursor-not-allowed"
-                  >
-                    Downgrade Disabled
-                  </button>
-                ) : planId === "free" ? (
-                  <button
-                    className="w-full h-10 rounded-full border border-border text-sm font-medium text-text-secondary bg-white/5 hover:bg-white/10 transition-colors duration-300"
-                    onClick={() => {
-                      alert("To downgrade to Free, please cancel your subscription. Your plan will revert to Free at the end of the billing cycle.");
-                    }}
-                  >
-                    Downgrade
-                  </button>
                 ) : (
                   <SubscriptionCheckout
-                    plan={planId as "pro" | "elite"}
+                    plan={planId as "free" | "pro" | "elite"}
                     currency={currency}
                     className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >

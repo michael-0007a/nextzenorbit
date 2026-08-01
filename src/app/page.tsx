@@ -550,12 +550,20 @@ export default async function HomePage({
             <p className="text-xs text-text-secondary">Build Beyond Limits.</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-sm text-text-secondary">
-            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link href="#platform" className="hover:text-foreground transition-colors">AI Platform</Link>
-            <Link href="#analytics" className="hover:text-foreground transition-colors">Analytics</Link>
-            <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-            <Link href="#" className="hover:text-foreground transition-colors">Security</Link>
+          <div className="flex flex-col sm:flex-row gap-6 md:gap-12">
+            <div className="flex flex-col gap-3 text-sm text-text-secondary">
+              <span className="font-semibold text-foreground">Product</span>
+              <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
+              <Link href="#platform" className="hover:text-foreground transition-colors">AI Platform</Link>
+              <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            </div>
+            <div className="flex flex-col gap-3 text-sm text-text-secondary">
+              <span className="font-semibold text-foreground">Legal & Policies</span>
+              <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              <Link href="/refund" className="hover:text-foreground transition-colors">Refund Policy</Link>
+              <Link href="/compliance" className="hover:text-foreground transition-colors">Compliance</Link>
+            </div>
           </div>
 
           <p className="text-xs text-text-secondary">

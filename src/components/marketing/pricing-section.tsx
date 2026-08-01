@@ -11,29 +11,29 @@ export function PricingSection() {
 
   const pricing = [
     {
-      name: "Free",
-      priceDisplay: "Free",
+      name: "Plan 1",
+      priceDisplay: formatPrice(PLANS.free[`price_${currency.toLowerCase()}` as keyof typeof PLANS.free] as number, currency),
       description: "Launch-ready essentials to get started.",
-      features: ["1 resume", "Basic analyzer", "Application tracker", "Community support"],
+      features: ["175 job applications/month", "Assigned recruiter support", "Advanced resume parsing", "Priority support"],
       highlight: false,
     },
     {
-      name: "Pro",
+      name: "Plan 2",
       priceDisplay: formatPrice(PLANS.pro[`price_${currency.toLowerCase()}` as keyof typeof PLANS.pro] as number, currency),
       description: "For serious job seekers ready to move fast.",
       features: [
-        "Unlimited resumes",
-        "Advanced AI tailoring",
+        "350 job applications/month",
+        "Assigned recruiter support",
         "Cover letter studio",
         "Priority support",
       ],
       highlight: true,
     },
     {
-      name: "Elite",
+      name: "Plan 3",
       priceDisplay: formatPrice(PLANS.elite[`price_${currency.toLowerCase()}` as keyof typeof PLANS.elite] as number, currency),
       description: "Career acceleration with full automation.",
-      features: ["Auto-apply queue", "Premium templates", "Deep insights", "Concierge support"],
+      features: ["500 job applications/month", "Assigned recruiter support", "Premium templates", "Concierge support"],
       highlight: false,
     },
   ];

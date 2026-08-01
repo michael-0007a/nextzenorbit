@@ -59,7 +59,7 @@ function UsageMeter({ label, used, limit, icon: Icon }: { label: string; used: n
 
 export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: SubscriptionDetailsProps) {
   const plan = subscription ? getPlanLimits(subscription.plan_id) : PLANS.free;
-  const planName = subscription ? PLANS[subscription.plan_id]?.name ?? "Free" : "Free";
+  const planName = subscription ? PLANS[subscription.plan_id]?.name ?? "Plan 1" : "Plan 1";
   const trialing = isTrialActive(subscription);
   const daysLeft = getTrialDaysRemaining(subscription);
   const tokensUsed = aiUsage?.tokens_used ?? 0;
@@ -83,7 +83,7 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
               <p className="text-xl font-bold text-foreground">{planName}</p>
               {subscription && (
                 <p className="text-sm text-text-secondary mt-0.5">
-                  {plan.price_inr === 0 ? "Free" : `${formatPrice(plan[`price_${currency.toLowerCase()}` as keyof typeof plan] as number, currency)}/month`}
+                  {`${formatPrice(plan[`price_${currency.toLowerCase()}` as keyof typeof plan] as number, currency)}/month`}
                 </p>
               )}
             </div>

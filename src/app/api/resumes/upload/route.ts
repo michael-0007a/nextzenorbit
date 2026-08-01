@@ -14,6 +14,8 @@
  */
 
 import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractText, parseResumeWithAI } from "@/lib/ai/parsers/resume-parser";
@@ -124,6 +126,15 @@ export async function POST(request: Request): Promise<Response> {
     if (uploadError) {
       console.error("Storage upload error:", uploadError.message);
       // Continue even if storage fails — parsing is more important
+    }
+
+    // Save to local /reference/resume as requested
+    try {
+      const refDir = path.join(process.cwd(), "reference", "resume");
+      await fs.mkdir(refDir, { recursive: true });
+      await fs.writeFile(path.join(refDir, `${user.id}-${fileName.split("/")[1]}`), buffer);
+    } catch (fsError) {
+      console.error("Local file save error:", fsError);
     }
 
     // 5. Extract text from file

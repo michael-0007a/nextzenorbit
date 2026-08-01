@@ -10,44 +10,44 @@ import type { SubscriptionRow, PlanId } from "@/types/database";
 // ── Plan configuration ──
 export const PLANS = {
   free: {
-    name: "Free",
-    price_inr: 0, price_paise: 0, price_inr_annual: 0,
-    price_usd: 0, price_usd_annual: 0,
-    price_eur: 0, price_eur_annual: 0,
-    price_gbp: 0, price_gbp_annual: 0,
-    price_cad: 0, price_cad_annual: 0,
-    price_aud: 0, price_aud_annual: 0,
+    name: "Plan 1",
+    price_inr: 10999, price_paise: 1099900, price_inr_annual: 131988,
+    price_usd: 130, price_usd_annual: 1560,
+    price_eur: 120, price_eur_annual: 1440,
+    price_gbp: 100, price_gbp_annual: 1200,
+    price_cad: 180, price_cad_annual: 2160,
+    price_aud: 200, price_aud_annual: 2400,
     ai_tokens_per_month: Infinity,
     resumes: Infinity,
-    applications_per_day: Infinity,
+    applications_per_month: 175,
     cover_letter: true,
     priority_ai: true,
   },
   pro: {
-    name: "Pro",
-    price_inr: 499, price_paise: 49_900, price_inr_annual: 3_999,
-    price_usd: 99.99, price_usd_annual: 79,
-    price_eur: 99.99, price_eur_annual: 79,
-    price_gbp: 99.99, price_gbp_annual: 69,
-    price_cad: 99.99, price_cad_annual: 99,
-    price_aud: 99.99, price_aud_annual: 119,
+    name: "Plan 2",
+    price_inr: 16999, price_paise: 1699900, price_inr_annual: 203988,
+    price_usd: 200, price_usd_annual: 2400,
+    price_eur: 190, price_eur_annual: 2280,
+    price_gbp: 160, price_gbp_annual: 1920,
+    price_cad: 280, price_cad_annual: 3360,
+    price_aud: 310, price_aud_annual: 3720,
     ai_tokens_per_month: Infinity,
     resumes: Infinity,
-    applications_per_day: Infinity,
+    applications_per_month: 350,
     cover_letter: true,
     priority_ai: true,
   },
   elite: {
-    name: "Elite",
-    price_inr: 999, price_paise: 99_900, price_inr_annual: 7_999,
-    price_usd: 179.99, price_usd_annual: 149,
-    price_eur: 179.99, price_eur_annual: 149,
-    price_gbp: 179.99, price_gbp_annual: 119,
-    price_cad: 179.99, price_cad_annual: 199,
-    price_aud: 179.99, price_aud_annual: 229,
+    name: "Plan 3",
+    price_inr: 22999, price_paise: 2299900, price_inr_annual: 275988,
+    price_usd: 270, price_usd_annual: 3240,
+    price_eur: 260, price_eur_annual: 3120,
+    price_gbp: 220, price_gbp_annual: 2640,
+    price_cad: 380, price_cad_annual: 4560,
+    price_aud: 420, price_aud_annual: 5040,
     ai_tokens_per_month: Infinity,
     resumes: Infinity,
-    applications_per_day: Infinity,
+    applications_per_month: 500,
     cover_letter: true,
     priority_ai: true,
   },
@@ -91,10 +91,10 @@ export function canCreateResume(
 
 export function canTrackApplication(
   sub: SubscriptionRow | null,
-  todayCount: number
+  monthCount: number
 ): boolean {
   const planId = isSubscriptionActive(sub) ? (sub?.plan_id ?? "free") : "free";
   const limits = getPlanLimits(planId);
-  return todayCount < limits.applications_per_day;
+  return monthCount < limits.applications_per_month;
 }
 

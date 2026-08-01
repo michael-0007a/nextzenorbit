@@ -67,19 +67,19 @@ export interface SubscriptionResult {
 
 export const PLAN_PRICING = {
   free: {
-    name: "Free",
-    monthly: { INR: 0, USD: 0, EUR: 0, GBP: 0, CAD: 0, AUD: 0 },
-    annual: { INR: 0, USD: 0, EUR: 0, GBP: 0, CAD: 0, AUD: 0 },
+    name: "Plan 1",
+    monthly: { INR: 10999, USD: 130, EUR: 120, GBP: 100, CAD: 180, AUD: 200 },
+    annual: { INR: 131988, USD: 1560, EUR: 1440, GBP: 1200, CAD: 2160, AUD: 2400 },
   },
   pro: {
-    name: "Pro",
-    monthly: { INR: 499, USD: 99.99, EUR: 99.99, GBP: 99.99, CAD: 99.99, AUD: 99.99 },
-    annual: { INR: 3999, USD: 79, EUR: 79, GBP: 69, CAD: 99, AUD: 119 },
+    name: "Plan 2",
+    monthly: { INR: 16999, USD: 200, EUR: 190, GBP: 160, CAD: 280, AUD: 310 },
+    annual: { INR: 203988, USD: 2400, EUR: 2280, GBP: 1920, CAD: 3360, AUD: 3720 },
   },
   elite: {
-    name: "Elite",
-    monthly: { INR: 999, USD: 179.99, EUR: 179.99, GBP: 179.99, CAD: 179.99, AUD: 179.99 },
-    annual: { INR: 7999, USD: 149, EUR: 149, GBP: 119, CAD: 199, AUD: 229 },
+    name: "Plan 3",
+    monthly: { INR: 22999, USD: 270, EUR: 260, GBP: 220, CAD: 380, AUD: 420 },
+    annual: { INR: 275988, USD: 3240, EUR: 3120, GBP: 2640, CAD: 4560, AUD: 5040 },
   },
 } as const;
 
