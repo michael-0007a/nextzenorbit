@@ -169,6 +169,8 @@ export type JobQueueRow = {
   assigned_to: string | null;
   assigned_at: string | null;
   admin_notes: string | null;
+  claimed_by: string | null;
+  claimed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -294,6 +296,32 @@ export type AdminResumeRow = {
   updated_at: string;
 };
 
+export type NotificationRow = {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string | null;
+  is_read: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  read_at: string | null;
+};
+
+export type AdminCoverLetterRow = {
+  id: string;
+  user_id: string;
+  admin_id: string;
+  title: string;
+  content: string;
+  company_name: string | null;
+  job_title: string | null;
+  job_description: string | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 
 // ── Supabase Database type ──
 // Compatible with @supabase/supabase-js v2.98+
@@ -357,8 +385,8 @@ export type Database = {
       };
       job_queue: {
         Row: JobQueueRow;
-        Insert: { user_id: string; title: string; company: string; job_url: string; location?: string | null; salary_text?: string | null; description?: string | null; source?: JobSource; status?: JobQueueStatus; resume_id?: string | null; assigned_to?: string | null };
-        Update: { status?: JobQueueStatus; error_message?: string | null; cover_letter_id?: string | null; resume_id?: string | null; applied_at?: string | null; screenshot_url?: string | null; screenshot_expires_at?: string | null; assigned_to?: string | null; assigned_at?: string | null; admin_notes?: string | null };
+        Insert: { user_id: string; title: string; company: string; job_url: string; location?: string | null; salary_text?: string | null; description?: string | null; source?: JobSource; status?: JobQueueStatus; resume_id?: string | null; assigned_to?: string | null; claimed_by?: string | null };
+        Update: { status?: JobQueueStatus; error_message?: string | null; cover_letter_id?: string | null; resume_id?: string | null; applied_at?: string | null; screenshot_url?: string | null; screenshot_expires_at?: string | null; assigned_to?: string | null; assigned_at?: string | null; admin_notes?: string | null; claimed_by?: string | null; claimed_at?: string | null };
         Relationships: [{ foreignKeyName: "job_queue_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "job_queue_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }];
       };
       careers: {
@@ -420,6 +448,18 @@ export type Database = {
         Insert: { user_id: string; admin_id: string; title: string; content: import("@/lib/validations/resume").ResumeContent; job_description?: string | null; job_title?: string | null; company?: string | null; template_id?: string | null; expires_at?: string };
         Update: { title?: string; content?: import("@/lib/validations/resume").ResumeContent; job_description?: string | null; job_title?: string | null; company?: string | null; template_id?: string | null };
         Relationships: [{ foreignKeyName: "admin_resumes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "admin_resumes_admin_id_fkey"; columns: ["admin_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
+      };
+      notifications: {
+        Row: NotificationRow;
+        Insert: { user_id: string; type: string; title: string; message?: string | null; is_read?: boolean; metadata?: Record<string, unknown> };
+        Update: { is_read?: boolean; read_at?: string | null };
+        Relationships: [{ foreignKeyName: "notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
+      };
+      admin_cover_letters: {
+        Row: AdminCoverLetterRow;
+        Insert: { user_id: string; admin_id: string; title: string; content: string; company_name?: string | null; job_title?: string | null; job_description?: string | null; expires_at?: string };
+        Update: { title?: string; content?: string; company_name?: string | null; job_title?: string | null; job_description?: string | null };
+        Relationships: [{ foreignKeyName: "admin_cover_letters_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "admin_cover_letters_admin_id_fkey"; columns: ["admin_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
     };
     Views: {};

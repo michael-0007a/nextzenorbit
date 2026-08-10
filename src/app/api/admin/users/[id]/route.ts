@@ -1,13 +1,17 @@
 /**
  * Admin API: Single User Details
  *
- * GET /api/admin/users/[id] - Fetch detailed user info (full profile, resumes with content, applications, admin resumes)
+ * GET /api/admin/users/[id] - Fetch detailed user info
+ *   (full profile, resumes with content, applications, admin resumes,
+ *    admin cover letters, notifications, profile completeness)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+
+const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
 
 export async function GET(
   request: NextRequest,
@@ -42,6 +46,15 @@ export async function GET(
       return apiError(ERROR_CODES.NOT_FOUND, "User not found", 404);
     }
 
+    // Check profile completeness
+    const profile = (user as any).profile;
+    const profileComplete = profile
+      ? REQUIRED_PROFILE_FIELDS.every((f: string) => {
+          const v = profile[f];
+          return typeof v === "string" && v.trim().length > 0;
+        })
+      : false;
+
     // Fetch resumes with content (including is_base flag)
     const { data: resumes } = await admin
       .from("resumes")
@@ -66,16 +79,35 @@ export async function GET(
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
 
+    // Fetch admin-generated cover letters for this user
+    const { data: adminCoverLetters } = await admin
+      .from("admin_cover_letters")
+      .select("id, title, company_name, job_title, expires_at, created_at, admin_id")
+      .eq("user_id", id)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+
+    // Fetch recent notifications sent to this user
+    const { data: notifications } = await admin
+      .from("notifications")
+      .select("id, type, title, message, is_read, created_at")
+      .eq("user_id", id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
     // Find the base resume
     const baseResume = (resumes || []).find((r: any) => r.is_base) || null;
 
     return NextResponse.json(
       apiSuccess({
         ...user,
+        profileComplete,
         resumes: resumes || [],
         baseResume,
         queue: queue || [],
         adminResumes: adminResumes || [],
+        adminCoverLetters: adminCoverLetters || [],
+        notifications: notifications || [],
       })
     );
   } catch (err) {

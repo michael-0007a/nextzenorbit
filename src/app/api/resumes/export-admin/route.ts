@@ -38,12 +38,27 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // Fetch admin resume
     const admin = createAdminClient();
-    const { data: resume, error } = await admin
+    
+    // Check if the current user is an admin
+    const { data: userData } = await admin
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+      
+    const isAdmin = userData?.role === "admin";
+    
+    let query = admin
       .from("admin_resumes")
       .select("id, user_id, title, content, template_id, expires_at")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
+      .eq("id", id);
+      
+    // If not admin, restrict to their own resumes
+    if (!isAdmin) {
+      query = query.eq("user_id", user.id);
+    }
+    
+    const { data: resume, error } = await query.maybeSingle();
 
     if (error || !resume) {
       return apiError(ERROR_CODES.NOT_FOUND, "Resume not found.", 404);

@@ -1,34 +1,93 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { formatDistanceToNow, format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ExternalLink, CheckCircle2, Clock, XCircle, FileText, User, Filter, AlertCircle } from "lucide-react";
+import {
+  ExternalLink,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  FileText,
+  User,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Shield,
+  AlertCircle,
+  Loader2,
+  Plus,
+} from "lucide-react";
 
-// Expanded type to include joined data
-type QueueItem = {
+// ── Types ──
+
+type QueueJob = {
   id: string;
   title: string;
   company: string;
   job_url: string;
   status: string;
+  source: string;
   created_at: string;
-  assigned_to: string | null;
+  applied_at: string | null;
   admin_notes: string | null;
-  user: { email: string } | null;
-  profile: { full_name: string; avatar_url: string | null; preferred_role: string | null } | null;
+  assigned_to: string | null;
   resume: { id: string; title: string; target_role: string | null } | null;
-  assignee: { full_name: string } | null;
 };
 
-export function ApplyQueueClient({ adminId }: { adminId: string }) {
-  const [items, setItems] = useState<QueueItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "unassigned" | "mine" | "applied">("unassigned");
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+type UserGroup = {
+  user_id: string;
+  full_name: string;
+  email: string;
+  avatar_url: string | null;
+  preferred_role: string | null;
+  profile_complete: boolean;
+  claimed_by: string | null;
+  claimed_by_name: string | null;
+  claimed_at: string | null;
+  jobs: QueueJob[];
+  job_counts: {
+    pending: number;
+    processing: number;
+    applied: number;
+    failed: number;
+    skipped: number;
+  };
+};
 
+type FilterTab = "all" | "unclaimed" | "mine" | "completed";
+
+const STATUS_STYLES: Record<string, string> = {
+  pending: "bg-warning/10 text-warning border-warning/20",
+  processing: "bg-secondary/10 text-secondary border-secondary/20",
+  applied: "bg-success/10 text-success border-success/20",
+  failed: "bg-error/10 text-error border-error/20",
+  skipped: "bg-white/5 text-text-secondary border-border/60",
+};
+
+const STATUS_ICONS: Record<string, React.ElementType> = {
+  pending: Clock,
+  processing: Loader2,
+  applied: CheckCircle2,
+  failed: XCircle,
+  skipped: AlertCircle,
+};
+
+// ── Main Component ──
+
+export function ApplyQueueClient({ adminId }: { adminId: string }) {
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterTab>("all");
+  const [search, setSearch] = useState("");
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [claimingUser, setClaimingUser] = useState<string | null>(null);
+  const [updatingJob, setUpdatingJob] = useState<string | null>(null);
+
+  // Add Job modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [newJob, setNewJob] = useState({
@@ -41,23 +100,30 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
   });
 
   const fetchQueue = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const url = new URL("/api/admin/apply-queue", window.location.origin);
-      if (filter === "unassigned") url.searchParams.set("assigned_to", "unassigned");
-      if (filter === "mine") url.searchParams.set("assigned_to", "me");
-      if (filter === "applied") url.searchParams.set("status", "applied");
-      if (filter === "unassigned" || filter === "mine") url.searchParams.set("status", "pending");
+      if (filter === "mine") url.searchParams.set("claimed_by", "me");
+      if (filter === "unclaimed") url.searchParams.set("claimed_by", "unclaimed");
 
       const res = await fetch(url.toString());
       const json = await res.json();
+
       if (json.success) {
-        setItems(json.data);
-      } else {
-        toast.error("Failed to load queue");
+        let users = json.data.users || [];
+
+        // Client-side filter for "completed" — users where all jobs are applied
+        if (filter === "completed") {
+          users = users.filter(
+            (u: UserGroup) => u.jobs.length > 0 && u.jobs.every((j) => j.status === "applied")
+          );
+        }
+
+        setUserGroups(users);
       }
     } catch (err) {
-      toast.error("Error loading queue");
+      console.error(err);
+      toast.error("Failed to load queue.");
     } finally {
       setLoading(false);
     }
@@ -65,241 +131,379 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
 
   useEffect(() => {
     fetchQueue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  const handleAction = async (id: string, action: "claim" | "unclaim", status?: string) => {
+  const toggleExpand = (userId: string) => {
+    setExpandedUsers((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const handleClaimUser = async (userId: string) => {
+    setClaimingUser(userId);
     try {
-      setUpdatingId(id);
       const res = await fetch("/api/admin/apply-queue", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action, status }),
+        body: JSON.stringify({ action: "claim_user", user_id: userId }),
       });
       const json = await res.json();
-      
       if (json.success) {
-        toast.success(action === "claim" ? "Claimed successfully" : "Updated successfully");
-        fetchQueue(); // Refresh to ensure sync
+        toast.success("User claimed successfully!");
+        fetchQueue();
       } else {
-        toast.error(json.error?.message || "Action failed");
+        toast.error(json.error?.message || "Failed to claim user.");
       }
-    } catch (err) {
-      toast.error("Action failed");
+    } catch {
+      toast.error("Something went wrong.");
     } finally {
-      setUpdatingId(null);
+      setClaimingUser(null);
+    }
+  };
+
+  const handleUnclaimUser = async (userId: string) => {
+    setClaimingUser(userId);
+    try {
+      const res = await fetch("/api/admin/apply-queue", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "unclaim_user", user_id: userId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("User unclaimed.");
+        fetchQueue();
+      } else {
+        toast.error(json.error?.message || "Failed to unclaim user.");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setClaimingUser(null);
+    }
+  };
+
+  const handleJobStatusChange = async (jobId: string, newStatus: string) => {
+    setUpdatingJob(jobId);
+    try {
+      const res = await fetch("/api/admin/apply-queue", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: jobId, status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(`Job marked as ${newStatus}.`);
+        fetchQueue();
+      }
+    } catch {
+      toast.error("Failed to update job.");
+    } finally {
+      setUpdatingJob(null);
     }
   };
 
   const handleAddJob = async () => {
     if (!newJob.user_id || !newJob.title || !newJob.company || !newJob.job_url) {
-      toast.error("Please fill in all required fields");
+      toast.error("Please fill in all required fields.");
       return;
     }
-
+    setSubmitting(true);
     try {
-      setSubmitting(true);
       const res = await fetch("/api/admin/apply-queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newJob),
       });
       const json = await res.json();
-
       if (json.success) {
-        toast.success("Job added to queue");
+        toast.success("Job added to queue!");
         setIsAddModalOpen(false);
         setNewJob({ user_id: "", title: "", company: "", job_url: "", admin_notes: "", resume_id: "" });
         fetchQueue();
       } else {
-        toast.error(json.error?.message || "Failed to add job");
+        toast.error(json.error?.message || "Failed to add job.");
       }
-    } catch (err) {
-      toast.error("Failed to add job");
+    } catch {
+      toast.error("Something went wrong.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending": return "text-warning bg-warning/10 border-warning/20";
-      case "processing": return "text-info bg-info/10 border-info/20";
-      case "applied": return "text-success bg-success/10 border-success/20";
-      case "failed": return "text-error bg-error/10 border-error/20";
-      default: return "text-text-secondary bg-white/5 border-border";
-    }
-  };
+  // ── Search filter ──
+  const filteredGroups = search
+    ? userGroups.filter(
+        (u) =>
+          u.full_name.toLowerCase().includes(search.toLowerCase()) ||
+          u.email.toLowerCase().includes(search.toLowerCase())
+      )
+    : userGroups;
+
+  // ── Stats ──
+  const totalUsers = filteredGroups.length;
+  const totalJobs = filteredGroups.reduce((sum, u) => sum + u.jobs.length, 0);
+  const totalPending = filteredGroups.reduce((sum, u) => sum + u.job_counts.pending, 0);
 
   return (
     <div className="space-y-6">
-      {/* Filters and Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2 p-1 bg-surface-elevated border border-border/60 rounded-xl w-full sm:w-fit">
-          <button
-            onClick={() => setFilter("unassigned")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              filter === "unassigned" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-            }`}
+      {/* Stats Bar */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Users", value: totalUsers, color: "text-primary" },
+          { label: "Total Jobs", value: totalJobs, color: "text-secondary" },
+          { label: "Pending", value: totalPending, color: "text-warning" },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="glass-card rounded-xl p-4 flex items-center justify-between"
           >
-            Unassigned
-          </button>
-          <button
-            onClick={() => setFilter("mine")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              filter === "mine" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-            }`}
-          >
-            My Queue
-          </button>
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              filter === "all" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-            }`}
-          >
-            All Pending
-          </button>
-          <button
-            onClick={() => setFilter("applied")}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              filter === "applied" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-            }`}
-          >
-            Applied
-          </button>
-        </div>
-        
-        <Button 
-          variant="primary" 
-          onClick={() => setIsAddModalOpen(true)}
-          className="shadow-[0_4px_14px_rgba(255,0,61,0.3)]"
-        >
-          + Add Custom Job
-        </Button>
+            <span className="text-sm text-text-secondary">{stat.label}</span>
+            <span className={`text-2xl font-bold ${stat.color}`}>{stat.value}</span>
+          </div>
+        ))}
       </div>
 
+      {/* Filter Tabs + Search + Add */}
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex gap-1 bg-white/5 rounded-xl p-1 border border-border/40">
+          {(["all", "unclaimed", "mine", "completed"] as FilterTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilter(tab)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 capitalize ${
+                filter === tab
+                  ? "bg-primary/20 text-primary shadow-sm"
+                  : "text-text-secondary hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              {tab === "mine" ? "My Users" : tab}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => setIsAddModalOpen(true)}
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
+            Add Job
+          </Button>
+        </div>
+      </div>
+
+      {/* User Groups */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
         </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center glass-card rounded-3xl border-dashed">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 mb-4">
-            <CheckCircle2 className="h-8 w-8 text-success" />
-          </div>
-          <h3 className="text-lg font-medium text-foreground">Queue is clear!</h3>
-          <p className="text-text-secondary max-w-sm mt-1">
-            There are no {filter !== "all" ? filter : ""} apply requests matching this filter.
-          </p>
+      ) : filteredGroups.length === 0 ? (
+        <div className="text-center py-20">
+          <User className="h-12 w-12 text-text-secondary mx-auto mb-4 opacity-40" />
+          <p className="text-text-secondary">No users found in the queue.</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((item) => {
-            const isMine = item.assigned_to === adminId;
-            const isUnassigned = !item.assigned_to;
-            const isTaken = !isMine && !isUnassigned;
+        <div className="space-y-3">
+          {filteredGroups.map((group) => {
+            const isExpanded = expandedUsers.has(group.user_id);
+            const isMine = group.claimed_by === adminId;
 
             return (
-              <div key={item.id} className="flex flex-col glass-card rounded-2xl p-5 hover:border-border-hover transition-colors">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-foreground line-clamp-1" title={item.title}>
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-secondary-light font-medium flex items-center gap-1.5 mt-0.5">
-                      {item.company}
-                    </p>
+              <div
+                key={group.user_id}
+                className={`glass-card rounded-2xl overflow-hidden transition-all duration-200 ${
+                  isMine ? "border-primary/30 shadow-[0_0_16px_rgba(255,0,61,0.08)]" : ""
+                }`}
+              >
+                {/* User Header */}
+                <div
+                  className="flex items-center gap-4 p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                  onClick={() => toggleExpand(group.user_id)}
+                >
+                  {/* Expand Icon */}
+                  <div className="shrink-0">
+                    {isExpanded ? (
+                      <ChevronDown className="h-5 w-5 text-text-secondary" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-text-secondary" />
+                    )}
                   </div>
-                  <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${getStatusColor(item.status)}`}>
-                    {item.status}
-                  </span>
-                </div>
 
-                {/* User Info */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 mb-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-bold text-sm">
-                    {item.profile?.full_name?.charAt(0) || <User className="h-4 w-4" />}
+                  {/* Avatar */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-bold text-lg">
+                    {group.full_name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {item.profile?.full_name || "Unknown User"}
-                    </p>
+
+                  {/* User Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground truncate">
+                        {group.full_name}
+                      </h3>
+                      {!group.profile_complete && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-warning/20 text-warning border border-warning/30">
+                          Incomplete Profile
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-text-secondary truncate">
-                      {item.user?.email || "No email"}
+                      {group.preferred_role || group.email}
                     </p>
                   </div>
-                </div>
 
-                <div className="space-y-2 mb-6 flex-1">
-                  {item.resume && (
-                    <div className="flex items-center gap-2 text-sm text-text-secondary">
-                      <FileText className="h-4 w-4 text-accent" />
-                      <span className="truncate">Resume: {item.resume.title}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-text-secondary">
-                    <Clock className="h-4 w-4" />
-                    <span>Requested {formatDistanceToNow(new Date(item.created_at))} ago</span>
+                  {/* Job Count Badges */}
+                  <div className="hidden md:flex items-center gap-2">
+                    {group.job_counts.pending > 0 && (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-warning/10 text-warning border border-warning/20">
+                        {group.job_counts.pending} pending
+                      </span>
+                    )}
+                    {group.job_counts.applied > 0 && (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-success/10 text-success border border-success/20">
+                        {group.job_counts.applied} applied
+                      </span>
+                    )}
+                    {group.job_counts.processing > 0 && (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-secondary/10 text-secondary border border-secondary/20">
+                        {group.job_counts.processing} processing
+                      </span>
+                    )}
                   </div>
-                  
-                  {isTaken && (
-                    <div className="flex items-center gap-2 text-sm text-warning mt-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>Taken by {item.assignee?.full_name || "another admin"}</span>
-                    </div>
-                  )}
-                </div>
 
-                {/* Actions */}
-                <div className="mt-auto pt-4 border-t border-border/60 flex items-center gap-2">
-                  <a
-                    href={item.job_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-text-secondary hover:text-foreground hover:bg-white/10 transition-colors shrink-0"
-                    title="View Job Posting"
+                  {/* Claim Status / Actions */}
+                  <div
+                    className="flex items-center gap-2 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-
-                  {item.status === "pending" && (
-                    <>
-                      {isUnassigned && (
-                        <Button
-                          variant="primary"
-                          className="flex-1"
-                          onClick={() => handleAction(item.id, "claim")}
-                          isLoading={updatingId === item.id}
+                    {group.claimed_by ? (
+                      isMine ? (
+                        <button
+                          onClick={() => handleUnclaimUser(group.user_id)}
+                          disabled={claimingUser === group.user_id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
                         >
-                          Claim Request
-                        </Button>
-                      )}
-                      
-                      {isMine && (
-                        <div className="flex gap-2 flex-1">
-                          <Button
-                            variant="primary"
-                            className="flex-1 bg-success hover:bg-success/90 text-white shadow-[0_4px_14px_rgba(34,197,94,0.3)]"
-                            onClick={() => handleAction(item.id, "claim", "applied")}
-                            isLoading={updatingId === item.id}
-                          >
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Mark Applied
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            className="px-3"
-                            onClick={() => handleAction(item.id, "unclaim")}
-                            disabled={updatingId === item.id}
-                            title="Unclaim"
-                          >
-                            <XCircle className="h-4 w-4 text-text-secondary" />
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
+                          <Shield className="h-3.5 w-3.5" />
+                          {claimingUser === group.user_id ? "..." : "Claimed by You"}
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-text-secondary border border-border/40">
+                          <Shield className="h-3.5 w-3.5" />
+                          {group.claimed_by_name || "Another Admin"}
+                        </span>
+                      )
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        className="text-xs h-8"
+                        onClick={() => handleClaimUser(group.user_id)}
+                        isLoading={claimingUser === group.user_id}
+                      >
+                        Claim User
+                      </Button>
+                    )}
+
+                    <Link
+                      href={`/admin/users/${group.user_id}`}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
+                    >
+                      View Profile →
+                    </Link>
+                  </div>
                 </div>
+
+                {/* Expanded: Job List */}
+                {isExpanded && (
+                  <div className="border-t border-border/40 bg-white/[0.02]">
+                    <div className="p-4 space-y-2">
+                      {group.jobs.length === 0 ? (
+                        <p className="text-sm text-text-secondary text-center py-4">
+                          No jobs in queue yet.
+                        </p>
+                      ) : (
+                        group.jobs.map((job) => {
+                          const StatusIcon = STATUS_ICONS[job.status] || Clock;
+                          return (
+                            <div
+                              key={job.id}
+                              className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-border/40 group hover:border-border/60 transition-colors"
+                            >
+                              {/* Status Icon */}
+                              <div
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
+                                  STATUS_STYLES[job.status] || STATUS_STYLES.pending
+                                }`}
+                              >
+                                <StatusIcon className="h-4 w-4" />
+                              </div>
+
+                              {/* Job Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {job.title}
+                                  </p>
+                                  {job.source === "manual" && (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-secondary/20 text-secondary border border-secondary/30">
+                                      Admin
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-text-secondary truncate">
+                                  {job.company} •{" "}
+                                  {formatDistanceToNow(new Date(job.created_at))} ago
+                                </p>
+                              </div>
+
+                              {/* Status Badge */}
+                              <span
+                                className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${
+                                  STATUS_STYLES[job.status] || STATUS_STYLES.pending
+                                }`}
+                              >
+                                {job.status}
+                              </span>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {job.status === "pending" && (
+                                  <button
+                                    onClick={() => handleJobStatusChange(job.id, "applied")}
+                                    disabled={updatingJob === job.id}
+                                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-success/10 text-success hover:bg-success/20 transition-colors"
+                                  >
+                                    {updatingJob === job.id ? "..." : "Mark Applied"}
+                                  </button>
+                                )}
+                                <a
+                                  href={job.job_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg text-text-secondary hover:text-foreground hover:bg-white/10 transition-colors"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -308,14 +512,17 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
 
       {/* Add Job Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-overlay backdrop-blur-sm">
-          <div className="relative z-10 w-full max-w-md rounded-3xl border border-border/70 bg-surface-elevated p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-1">Add Job to Queue</h2>
-            <p className="text-sm text-text-secondary mb-4">Add a job on behalf of a user.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-overlay backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl">
+            <h2 className="text-lg font-bold text-foreground mb-4">
+              Add Job to Queue
+            </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">User ID <span className="text-error">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  User ID <span className="text-error">*</span>
+                </label>
                 <Input
                   value={newJob.user_id}
                   onChange={(e) => setNewJob({ ...newJob, user_id: e.target.value })}
@@ -324,15 +531,19 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Job Title <span className="text-error">*</span></label>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    Job Title <span className="text-error">*</span>
+                  </label>
                   <Input
                     value={newJob.title}
                     onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
-                    placeholder="e.g. Frontend Dev"
+                    placeholder="e.g. Software Engineer"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Company <span className="text-error">*</span></label>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">
+                    Company <span className="text-error">*</span>
+                  </label>
                   <Input
                     value={newJob.company}
                     onChange={(e) => setNewJob({ ...newJob, company: e.target.value })}
@@ -341,7 +552,9 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Job URL <span className="text-error">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Job URL <span className="text-error">*</span>
+                </label>
                 <Input
                   value={newJob.job_url}
                   onChange={(e) => setNewJob({ ...newJob, job_url: e.target.value })}
@@ -349,7 +562,9 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Resume ID (Optional)</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Resume ID (Optional)
+                </label>
                 <Input
                   value={newJob.resume_id}
                   onChange={(e) => setNewJob({ ...newJob, resume_id: e.target.value })}
@@ -357,7 +572,9 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Admin Notes</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Admin Notes
+                </label>
                 <Input
                   value={newJob.admin_notes}
                   onChange={(e) => setNewJob({ ...newJob, admin_notes: e.target.value })}
@@ -367,8 +584,12 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-              <Button variant="primary" onClick={handleAddJob} isLoading={submitting}>Add to Queue</Button>
+              <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleAddJob} isLoading={submitting}>
+                Add to Queue
+              </Button>
             </div>
           </div>
         </div>

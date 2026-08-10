@@ -38,6 +38,7 @@ import type { ProfileRow } from "@/types/database";
 interface ProfileFormProps {
   profile: ProfileRow;
   userEmail: string;
+  requireCompletion?: boolean;
 }
 
 const WORK_TYPES = [
@@ -55,7 +56,7 @@ const PORTAL_OPTIONS = [
   { value: "glassdoor", label: "Glassdoor" },
 ] as const;
 
-export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
+export function ProfileForm({ profile, userEmail, requireCompletion }: ProfileFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [selectedPortals, setSelectedPortals] = useState<string[]>(
@@ -111,7 +112,11 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       }
 
       toast.success("Profile updated successfully.");
-      router.refresh();
+      if (requireCompletion) {
+        router.push("/dashboard");
+      } else {
+        router.refresh();
+      }
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {

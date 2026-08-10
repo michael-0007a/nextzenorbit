@@ -2,6 +2,7 @@
  * Profile Page — Server Component
  *
  * Fetches user profile and renders the profile edit form.
+ * Shows a completion banner when redirected here by the profile gate.
  * Route: /(dashboard)/profile
  */
 
@@ -9,15 +10,23 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/forms/profile-form";
+import { ProfileCompletionBanner } from "@/components/ui/profile-completion-banner";
 import type { ProfileRow } from "@/types/database";
 
-export default async function ProfilePage() {
+interface Props {
+  searchParams: Promise<{ complete?: string }>;
+}
+
+export default async function ProfilePage({ searchParams }: Props) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  const resolvedSearchParams = await searchParams;
+  const isCompletionRequired = resolvedSearchParams.complete === "required";
 
   // Use admin client to bypass RLS (avoids infinite recursion in users table policy)
   const admin = createAdminClient();
@@ -88,6 +97,7 @@ export default async function ProfilePage() {
 
     return (
       <div className="mx-auto max-w-2xl space-y-8">
+        {isCompletionRequired && <ProfileCompletionBanner />}
         {/* Hero Header */}
         <div className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 p-6">
           <div className="absolute inset-0 bg-space opacity-45" />
@@ -102,13 +112,14 @@ export default async function ProfilePage() {
             </p>
           </div>
         </div>
-        <ProfileForm profile={defaultProfile} userEmail={user.email ?? ""} />
+        <ProfileForm profile={defaultProfile} userEmail={user.email ?? ""} requireCompletion={isCompletionRequired} />
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
+      {isCompletionRequired && <ProfileCompletionBanner />}
       {/* Hero Header */}
       <div className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 p-6">
         <div className="absolute inset-0 bg-space opacity-45" />
@@ -123,9 +134,7 @@ export default async function ProfilePage() {
           </p>
         </div>
       </div>
-      <ProfileForm profile={profile} userEmail={user.email ?? ""} />
+      <ProfileForm profile={profile} userEmail={user.email ?? ""} requireCompletion={isCompletionRequired} />
     </div>
   );
 }
-
-

@@ -1,8 +1,9 @@
 /**
  * Admin API: Apply Queue
- * 
- * GET  /api/admin/apply-queue - List job queue items with user/resume details
- * PATCH /api/admin/apply-queue - Claim, update status, add notes
+ *
+ * GET   /api/admin/apply-queue - List queue items grouped by user
+ * PATCH /api/admin/apply-queue - Claim user, update job status, add notes
+ * POST  /api/admin/apply-queue - Add a new job to the queue
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -13,43 +14,44 @@ import type { Database } from "@/types/database";
 
 type JobQueueUpdate = Database["public"]["Tables"]["job_queue"]["Update"];
 
+// Required profile fields — matches the dashboard gate
+const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
+
+function checkProfileComplete(profile: Record<string, unknown> | null): boolean {
+  if (!profile) return false;
+  return REQUIRED_PROFILE_FIELDS.every((f) => {
+    const v = profile[f as keyof typeof profile];
+    return typeof v === "string" && v.trim().length > 0;
+  });
+}
+
 export async function GET(request: NextRequest): Promise<Response> {
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const assignedTo = searchParams.get("assigned_to"); // 'me' or uuid
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const claimedBy = searchParams.get("claimed_by"); // 'me', 'unclaimed', or uuid
+    const statusFilter = searchParams.get("status"); // optional
 
     const admin = createAdminClient();
 
-    // Base query: join with users, profiles, and resumes
+    // Fetch all queue items with user/profile/resume data
     let query = admin
       .from("job_queue")
       .select(`
         *,
         user:users!user_id(
-          email,
-          profile:profiles(full_name, avatar_url, preferred_role)
+          id, email,
+          profile:profiles(full_name, avatar_url, preferred_role, location, phone, headline)
         ),
-        resume:resumes!resume_id(id, title, target_role),
-        assignee:users!assigned_to(profile:profiles(full_name))
+        resume:resumes!resume_id(id, title, target_role)
       `)
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .limit(500);
 
-    if (status) {
-      query = query.eq("status", status as any);
-    }
-
-    if (assignedTo === "me") {
-      query = query.eq("assigned_to", adminAuth.userId);
-    } else if (assignedTo === "unassigned") {
-      query = query.is("assigned_to", null);
-    } else if (assignedTo) {
-      query = query.eq("assigned_to", assignedTo);
+    if (statusFilter) {
+      query = query.eq("status", statusFilter as any);
     }
 
     const { data, error } = await query;
@@ -59,14 +61,111 @@ export async function GET(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to fetch queue.");
     }
 
-    const formattedData = (data || []).map((item: any) => ({
-      ...item,
-      profile: item.user?.profile || null,
-      user: item.user ? { email: item.user.email } : null,
-      assignee: item.assignee?.profile || null
+    // Group items by user
+    const userMap = new Map<string, {
+      user_id: string;
+      full_name: string;
+      email: string;
+      avatar_url: string | null;
+      preferred_role: string | null;
+      profile_complete: boolean;
+      claimed_by: string | null;
+      claimed_at: string | null;
+      jobs: any[];
+      job_counts: { pending: number; processing: number; applied: number; failed: number; skipped: number };
+    }>();
+
+    for (const item of (data || []) as any[]) {
+      const userId = item.user_id;
+      const userInfo = item.user;
+      const profile = userInfo?.profile;
+
+      if (!userMap.has(userId)) {
+        userMap.set(userId, {
+          user_id: userId,
+          full_name: profile?.full_name || "Unknown",
+          email: userInfo?.email || "",
+          avatar_url: profile?.avatar_url || null,
+          preferred_role: profile?.preferred_role || null,
+          profile_complete: checkProfileComplete(profile),
+          claimed_by: item.claimed_by,
+          claimed_at: item.claimed_at,
+          jobs: [],
+          job_counts: { pending: 0, processing: 0, applied: 0, failed: 0, skipped: 0 },
+        });
+      }
+
+      const group = userMap.get(userId)!;
+
+      // Add the job (strip nested user data to keep payload small)
+      group.jobs.push({
+        id: item.id,
+        title: item.title,
+        company: item.company,
+        job_url: item.job_url,
+        status: item.status,
+        source: item.source,
+        created_at: item.created_at,
+        applied_at: item.applied_at,
+        admin_notes: item.admin_notes,
+        assigned_to: item.assigned_to,
+        resume: item.resume,
+      });
+
+      // Count by status
+      const st = item.status as string;
+      if (st in group.job_counts) {
+        (group.job_counts as any)[st]++;
+      }
+
+      // Use the latest claimed_by from any job
+      if (item.claimed_by && !group.claimed_by) {
+        group.claimed_by = item.claimed_by;
+        group.claimed_at = item.claimed_at;
+      }
+    }
+
+    let users = Array.from(userMap.values());
+
+    // Fetch claimed_by admin names
+    const claimedByIds = [...new Set(users.map((u) => u.claimed_by).filter(Boolean))] as string[];
+    let claimedByNames: Record<string, string> = {};
+    if (claimedByIds.length > 0) {
+      const { data: admins } = await admin
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", claimedByIds);
+
+      if (admins) {
+        claimedByNames = Object.fromEntries(
+          admins.map((a: any) => [a.user_id, a.full_name])
+        );
+      }
+    }
+
+    // Add claimed_by_name
+    users = users.map((u) => ({
+      ...u,
+      claimed_by_name: u.claimed_by ? claimedByNames[u.claimed_by] || null : null,
     }));
 
-    return NextResponse.json(apiSuccess(formattedData));
+    // Apply claimed_by filter
+    if (claimedBy === "me") {
+      users = users.filter((u) => u.claimed_by === adminAuth.userId);
+    } else if (claimedBy === "unclaimed") {
+      users = users.filter((u) => !u.claimed_by);
+    } else if (claimedBy) {
+      users = users.filter((u) => u.claimed_by === claimedBy);
+    }
+
+    // Sort by: unclaimed first, then by most pending jobs
+    users.sort((a, b) => {
+      if (!a.claimed_by && b.claimed_by) return -1;
+      if (a.claimed_by && !b.claimed_by) return 1;
+      return b.job_counts.pending - a.job_counts.pending;
+    });
+
+    return NextResponse.json(apiSuccess({ users }));
   } catch (err) {
     console.error("Admin Apply Queue error:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
@@ -79,16 +178,56 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (isAuthError(adminAuth)) return adminAuth;
 
     const body = await request.json();
-    const { id, action, status, notes } = body;
-
-    if (!id) {
-      return apiError(ERROR_CODES.VALIDATION_ERROR, "Job ID is required.");
-    }
+    const { action, id, user_id, status, notes } = body;
 
     const admin = createAdminClient();
+
+    // ── User-level claiming ──
+    if (action === "claim_user" && user_id) {
+      const { error } = await admin
+        .from("job_queue")
+        .update({
+          claimed_by: adminAuth.userId,
+          claimed_at: new Date().toISOString(),
+          assigned_to: adminAuth.userId,
+          assigned_at: new Date().toISOString(),
+        })
+        .eq("user_id", user_id);
+
+      if (error) {
+        console.error("Claim user error:", error);
+        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to claim user.");
+      }
+
+      return NextResponse.json(apiSuccess({ claimed: true, user_id }));
+    }
+
+    if (action === "unclaim_user" && user_id) {
+      const { error } = await admin
+        .from("job_queue")
+        .update({
+          claimed_by: null,
+          claimed_at: null,
+          assigned_to: null,
+          assigned_at: null,
+        })
+        .eq("user_id", user_id);
+
+      if (error) {
+        console.error("Unclaim user error:", error);
+        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to unclaim user.");
+      }
+
+      return NextResponse.json(apiSuccess({ unclaimed: true, user_id }));
+    }
+
+    // ── Per-job updates (existing behavior) ──
+    if (!id) {
+      return apiError(ERROR_CODES.VALIDATION_ERROR, "Job ID is required for per-job updates.");
+    }
+
     const updates: JobQueueUpdate = {};
 
-    // Actions: claim, unclaim, update
     if (action === "claim") {
       updates.assigned_to = adminAuth.userId;
       updates.assigned_at = new Date().toISOString();
@@ -116,15 +255,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       .from("job_queue")
       .update(updates)
       .eq("id", id)
-      .select(`
-        *,
-        user:users!user_id(
-          email,
-          profile:profiles(full_name, avatar_url, preferred_role)
-        ),
-        resume:resumes!resume_id(id, title, target_role),
-        assignee:users!assigned_to(profile:profiles(full_name))
-      `)
+      .select("*")
       .single();
 
     if (error) {
@@ -132,15 +263,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to update job.");
     }
 
-    const raw = data as any;
-    const formattedData = raw ? {
-      ...raw,
-      profile: raw.user?.profile || null,
-      user: raw.user ? { email: raw.user.email } : null,
-      assignee: raw.assignee?.profile || null
-    } : null;
-
-    return NextResponse.json(apiSuccess(formattedData));
+    return NextResponse.json(apiSuccess(data));
   } catch (err) {
     console.error("Admin Apply Queue PATCH error:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
@@ -173,18 +296,11 @@ export async function POST(request: NextRequest): Promise<Response> {
         status: "pending" as any,
         assigned_to: adminAuth.userId,
         assigned_at: new Date().toISOString(),
+        claimed_by: adminAuth.userId,
         admin_notes: admin_notes || null,
         resume_id: resume_id || null,
       })
-      .select(`
-        *,
-        user:users!user_id(
-          email,
-          profile:profiles(full_name, avatar_url, preferred_role)
-        ),
-        resume:resumes!resume_id(id, title, target_role),
-        assignee:users!assigned_to(profile:profiles(full_name))
-      `)
+      .select("*")
       .single();
 
     if (error) {
@@ -192,15 +308,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to add job to queue.");
     }
 
-    const raw = data as any;
-    const formattedData = raw ? {
-      ...raw,
-      profile: raw.user?.profile || null,
-      user: raw.user ? { email: raw.user.email } : null,
-      assignee: raw.assignee?.profile || null
-    } : null;
-
-    return NextResponse.json(apiSuccess(formattedData), { status: 201 });
+    return NextResponse.json(apiSuccess(data), { status: 201 });
   } catch (err) {
     console.error("Admin Apply Queue POST error:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
