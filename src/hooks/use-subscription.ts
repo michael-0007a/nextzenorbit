@@ -36,17 +36,21 @@ export function useSubscription(): UseSubscriptionReturn {
   const fetchSubscription = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("[useSubscription] auth user id:", user?.id);
+
+    if (!user?.id) {
+      setSubscription(null);
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("subscriptions")
       .select("*")
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    console.log("[useSubscription] data:", data);
-    console.log("[useSubscription] error:", error);
-    if (data) {
-      console.log("[useSubscription] status:", data.status, "plan_id:", data.plan_id);
+    if (error) {
+      console.error("[useSubscription] fetch error:", error.message);
     }
 
     setSubscription(data as SubscriptionRow | null);

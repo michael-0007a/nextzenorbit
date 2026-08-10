@@ -1,19 +1,28 @@
 /**
  * Unified Payment Abstraction Layer
  *
- * Switch between Razorpay (primary) and Cashfree (fallback)
- * using the PAYMENT_PROVIDER environment variable.
+ * Routes payments to the correct gateway:
+ * - PayU for INR payments
+ * - USD Gateway (Airwallex/Stripe placeholder) for USD payments
  *
  * Usage:
- *   import { getPaymentProvider, calculateGST, PLAN_PRICING } from "@/lib/payments";
- *   const provider = getPaymentProvider();
- *   const order = await provider.createOrder({ ... });
+ *   import { getPaymentProvider } from "@/lib/payments";
+ *   const provider = getPaymentProvider("INR"); // Returns PayU
+ *   const provider = getPaymentProvider("USD"); // Returns USD gateway
  */
 
 import { payuProvider } from "./payu";
+import { usdGatewayProvider } from "./usd-gateway";
 import type { PaymentProvider } from "./types";
 
-export function getPaymentProvider(): PaymentProvider {
+export function getPaymentProvider(currency?: string): PaymentProvider {
+  if (currency === "INR") {
+    return payuProvider;
+  }
+  if (currency === "USD") {
+    return usdGatewayProvider;
+  }
+  // Default to PayU for backward compatibility
   return payuProvider;
 }
 
@@ -29,4 +38,3 @@ export type {
   SubscriptionResult,
 } from "./types";
 export { verifyPayUWebhook } from "./payu";
-

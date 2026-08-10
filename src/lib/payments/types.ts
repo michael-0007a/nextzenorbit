@@ -1,7 +1,7 @@
 /**
  * Payment Types & Interfaces
  *
- * Unified payment abstraction for Razorpay + Cashfree.
+ * Unified payment abstraction for PayU (INR) + USD Gateway (Airwallex/Stripe placeholder).
  * Both providers implement the PaymentProvider interface.
  */
 
@@ -27,8 +27,9 @@ export interface OrderResult {
   orderId: string;
   amount: number;
   currency: string;
-  provider: "payu";
-  payu: Record<string, string>; // PayU specific redirect data is mandatory for PayU
+  provider: "payu" | "usd_gateway";
+  payu?: Record<string, string>; // PayU specific redirect data
+  redirectUrl?: string; // For USD gateway checkout redirect
   raw: unknown;
 }
 
@@ -58,8 +59,9 @@ export interface SubscriptionParams {
 export interface SubscriptionResult {
   subscriptionId: string;
   status: string;
-  provider: "payu";
-  payu: Record<string, string>; // PayU specific redirect data is mandatory for PayU
+  provider: "payu" | "usd_gateway";
+  payu?: Record<string, string>; // PayU specific redirect data
+  redirectUrl?: string; // For USD gateway checkout redirect
   raw: unknown;
 }
 
@@ -68,18 +70,18 @@ export interface SubscriptionResult {
 export const PLAN_PRICING = {
   free: {
     name: "Plan 1",
-    monthly: { INR: 10999, USD: 130, EUR: 120, GBP: 100, CAD: 180, AUD: 200 },
-    annual: { INR: 131988, USD: 1560, EUR: 1440, GBP: 1200, CAD: 2160, AUD: 2400 },
+    monthly: { INR: 13999, USD: 149 },
+    annual: { INR: 167988, USD: 1788 },
   },
   pro: {
     name: "Plan 2",
-    monthly: { INR: 16999, USD: 200, EUR: 190, GBP: 160, CAD: 280, AUD: 310 },
-    annual: { INR: 203988, USD: 2400, EUR: 2280, GBP: 1920, CAD: 3360, AUD: 3720 },
+    monthly: { INR: 18999, USD: 199 },
+    annual: { INR: 227988, USD: 2388 },
   },
   elite: {
     name: "Plan 3",
-    monthly: { INR: 22999, USD: 270, EUR: 260, GBP: 220, CAD: 380, AUD: 420 },
-    annual: { INR: 275988, USD: 3240, EUR: 3120, GBP: 2640, CAD: 4560, AUD: 5040 },
+    monthly: { INR: 23999, USD: 249 },
+    annual: { INR: 287988, USD: 2988 },
   },
 } as const;
 

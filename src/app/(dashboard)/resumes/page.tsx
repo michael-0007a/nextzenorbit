@@ -33,6 +33,17 @@ export default async function ResumesPage() {
     console.error("Resumes fetch error:", error.message);
   }
 
+  const { data: adminResumes, error: adminError } = await admin
+    .from("admin_resumes")
+    .select("id, title, company, template_id, created_at, expires_at")
+    .eq("user_id", user.id)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (adminError) {
+    console.error("Admin resumes fetch error:", adminError.message);
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Hero Header */}
@@ -57,7 +68,7 @@ export default async function ResumesPage() {
           </div>
         </div>
       </div>
-      <ResumeGrid resumes={resumes ?? []} />
+      <ResumeGrid resumes={resumes ?? []} adminResumes={adminResumes ?? []} />
     </div>
   );
 }

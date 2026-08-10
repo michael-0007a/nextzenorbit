@@ -123,7 +123,7 @@ export default function AdminUserDetailsPage({ params }: { params: Promise<{ id:
                   </span>
                 </div>
                 {user.subscription.current_period_end && (
-                  <div className="flex justify-between py-2">
+                  <div className="flex justify-between py-2 border-b border-border/60">
                     <span className="text-text-secondary">Renews</span>
                     <span className="font-medium">{format(new Date(user.subscription.current_period_end), "MMM d, yyyy")}</span>
                   </div>
@@ -138,9 +138,11 @@ export default function AdminUserDetailsPage({ params }: { params: Promise<{ id:
         {/* Right Col: Resumes & Apply Queue */}
         <div className="md:col-span-2 space-y-6">
           <div className="glass-card rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-accent" />
-              <h3 className="font-semibold text-foreground">Resumes ({user.resumes.length})</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-accent" />
+                <h3 className="font-semibold text-foreground">User Resumes ({user.resumes.length})</h3>
+              </div>
             </div>
             
             {user.resumes.length === 0 ? (
@@ -148,12 +150,28 @@ export default function AdminUserDetailsPage({ params }: { params: Promise<{ id:
             ) : (
               <div className="grid gap-3">
                 {user.resumes.map(resume => (
-                  <div key={resume.id} className="p-3 rounded-xl bg-white/5 border border-border/60 flex justify-between items-center">
+                  <div key={resume.id} className="p-4 rounded-xl bg-white/5 border border-border/60 flex justify-between items-center group">
                     <div>
-                      <p className="font-medium text-sm text-foreground">{resume.title}</p>
-                      <p className="text-xs text-text-secondary mt-0.5">
-                        Target: {resume.target_role || "None"} • Updated {formatDistanceToNow(new Date(resume.updated_at))} ago
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-foreground">{resume.title}</p>
+                        {(resume as any).is_base && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-primary/20 text-primary border border-primary/30">
+                            Base
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-text-secondary mt-1">
+                        Updated {formatDistanceToNow(new Date(resume.updated_at))} ago
                       </p>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a 
+                        href={`/api/resumes/${resume.id}/export?format=pdf&template=${(resume as any).template_id || 'classic'}`}
+                        download
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
+                      >
+                        Download PDF
+                      </a>
                     </div>
                   </div>
                 ))}
@@ -162,9 +180,62 @@ export default function AdminUserDetailsPage({ params }: { params: Promise<{ id:
           </div>
 
           <div className="glass-card rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Briefcase className="h-5 w-5 text-secondary" />
-              <h3 className="font-semibold text-foreground">Apply History ({user.queue.length})</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Admin-Generated Resumes</h3>
+              </div>
+              <Link
+                href={`/admin/users/${user.id}/generate-resume`}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                + Generate Resume
+              </Link>
+            </div>
+            
+            {!(user as any).adminResumes || (user as any).adminResumes.length === 0 ? (
+              <p className="text-sm text-text-secondary">No admin-generated resumes yet.</p>
+            ) : (
+              <div className="grid gap-3">
+                {(user as any).adminResumes.map((resume: any) => (
+                  <div key={resume.id} className="p-4 rounded-xl bg-white/5 border border-border/60 flex justify-between items-center group">
+                    <div>
+                      <p className="font-medium text-sm text-foreground">{resume.title}</p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        {resume.company ? `${resume.company} • ` : ""}
+                        Expires in {formatDistanceToNow(new Date(resume.expires_at))}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
+                        onClick={async () => {
+                          const res = await fetch(`/api/resumes/export-admin?id=${resume.id}&format=pdf`);
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${resume.title.replace(/\s+/g, '_')}.pdf`;
+                            a.click();
+                          }
+                        }}
+                      >
+                        Download PDF
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-secondary" />
+                <h3 className="font-semibold text-foreground">Apply History ({user.queue.length})</h3>
+              </div>
             </div>
             
             {user.queue.length === 0 ? (
@@ -175,8 +246,15 @@ export default function AdminUserDetailsPage({ params }: { params: Promise<{ id:
                   <div key={job.id} className="p-3 rounded-xl bg-white/5 border border-border/60">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium text-sm text-foreground">{job.title}</p>
-                        <p className="text-xs text-secondary-light">{job.company}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm text-foreground">{job.title}</p>
+                          {(job as any).source === 'manual' && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-secondary/20 text-secondary border border-secondary/30">
+                              Admin Added
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-secondary-light mt-0.5">{job.company}</p>
                       </div>
                       <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${
                         job.status === 'pending' ? 'bg-warning/10 text-warning border-warning/20' :

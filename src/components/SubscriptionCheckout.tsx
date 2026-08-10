@@ -1,26 +1,29 @@
 "use client";
 
 /**
- * Subscription Checkout — PayU Integration
+ * Subscription Checkout — Dual Gateway Support
  *
  * Handles:
- * 1. Call POST /api/subscription/create with { plan: "pro" | "elite", currency: "USD" | "INR" }
- * 2. Submit form parameters to PayU redirect gateway
+ * 1. Call POST /api/subscription/create with { plan, currency, paymentMethod }
+ * 2. For INR: Submit form parameters to PayU redirect gateway
+ * 3. For USD: Redirect to USD gateway (Airwallex/Stripe placeholder)
  *
  * Usage:
- *   <SubscriptionCheckout plan="pro" />
- *   <SubscriptionCheckout plan="elite" />
+ *   <SubscriptionCheckout plan="pro" paymentMethod="inr" />
+ *   <SubscriptionCheckout plan="elite" paymentMethod="usd" />
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { PLANS } from "@/lib/subscription";
-import { Currency, useCurrency, formatPrice } from "@/hooks/use-currency";
+import { Currency, formatPrice } from "@/hooks/use-currency";
+import type { PaymentMethod } from "@/components/subscription/payment-method-selector";
 
 interface SubscriptionCheckoutProps {
   plan: "free" | "pro" | "elite";
   userEmail?: string;
   userName?: string;
-  currency?: Currency; // Allow passing currency directly, fallback to hook
+  currency?: Currency;
+  paymentMethod?: PaymentMethod;
   onSuccess?: (response: any) => void;
   onFailure?: (error: string) => void;
   className?: string;
@@ -47,6 +50,7 @@ export default function SubscriptionCheckout({
   userEmail,
   userName,
   currency,
+  paymentMethod = "inr",
   onSuccess,
   onFailure,
   className,
@@ -55,8 +59,7 @@ export default function SubscriptionCheckout({
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
   
-  const detectedCurrency = useCurrency();
-  const activeCurrency = currency || detectedCurrency;
+  const activeCurrency: Currency = paymentMethod === "inr" ? "INR" : "USD";
 
   const handleSubscribe = useCallback(async () => {
     setLoading(true);
@@ -66,7 +69,7 @@ export default function SubscriptionCheckout({
       const res = await fetch("/api/subscription/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, currency: activeCurrency }),
+        body: JSON.stringify({ plan, currency: activeCurrency, paymentMethod }),
       });
 
       const json = await res.json();
@@ -80,7 +83,7 @@ export default function SubscriptionCheckout({
 
       const { data } = json;
 
-      if (data.payu) {
+      if (paymentMethod === "inr" && data.payu) {
         // PayU Flow: Create a hidden form and submit it
         const form = document.createElement("form");
         form.method = "POST";
@@ -100,7 +103,20 @@ export default function SubscriptionCheckout({
         return;
       }
 
-      // If no payu redirect payload is present
+      if (paymentMethod === "usd" && data.redirectUrl) {
+        // USD Gateway Flow: Redirect to the checkout URL
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      if (paymentMethod === "usd" && !data.redirectUrl) {
+        // USD gateway placeholder — show message
+        onFailure?.("USD payment gateway is being set up. Please use INR payment for now, or try again later.");
+        setLoading(false);
+        return;
+      }
+
+      // If no redirect payload is present
       onFailure?.("Payment gateway configuration mismatch.");
       setLoading(false);
     } catch (error) {
@@ -108,9 +124,11 @@ export default function SubscriptionCheckout({
       onFailure?.("Something went wrong. Please try again.");
       setLoading(false);
     }
-  }, [plan, currency, onFailure]);
+  }, [plan, activeCurrency, paymentMethod, onFailure]);
 
   const display = PLAN_DISPLAY[plan];
+  const priceKey = paymentMethod === "inr" ? "price_inr" : "price_usd";
+  const displayPrice = PLANS[plan][priceKey];
 
   return (
     <div className="w-full flex flex-col items-center gap-3">
@@ -147,7 +165,7 @@ export default function SubscriptionCheckout({
       >
         {children || (loading
           ? "Processing..."
-          : `Subscribe to ${display.name} — ${formatPrice(PLANS[plan][`price_${activeCurrency.toLowerCase()}` as keyof typeof PLANS.pro] as number, activeCurrency)}/mo`)}
+          : `Subscribe to ${display.name} — ${formatPrice(displayPrice, activeCurrency)}/mo`)}
       </button>
     </div>
   );

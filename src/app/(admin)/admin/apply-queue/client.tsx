@@ -29,6 +29,17 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
   const [filter, setFilter] = useState<"all" | "unassigned" | "mine" | "applied">("unassigned");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [newJob, setNewJob] = useState({
+    user_id: "",
+    title: "",
+    company: "",
+    job_url: "",
+    admin_notes: "",
+    resume_id: "",
+  });
+
   const fetchQueue = async () => {
     try {
       setLoading(true);
@@ -79,6 +90,36 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
     }
   };
 
+  const handleAddJob = async () => {
+    if (!newJob.user_id || !newJob.title || !newJob.company || !newJob.job_url) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/admin/apply-queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newJob),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        toast.success("Job added to queue");
+        setIsAddModalOpen(false);
+        setNewJob({ user_id: "", title: "", company: "", job_url: "", admin_notes: "", resume_id: "" });
+        fetchQueue();
+      } else {
+        toast.error(json.error?.message || "Failed to add job");
+      }
+    } catch (err) {
+      toast.error("Failed to add job");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending": return "text-warning bg-warning/10 border-warning/20";
@@ -91,40 +132,50 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 p-1 bg-surface-elevated border border-border/60 rounded-xl w-full sm:w-fit">
-        <button
-          onClick={() => setFilter("unassigned")}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-            filter === "unassigned" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-          }`}
+      {/* Filters and Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2 p-1 bg-surface-elevated border border-border/60 rounded-xl w-full sm:w-fit">
+          <button
+            onClick={() => setFilter("unassigned")}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              filter === "unassigned" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
+            }`}
+          >
+            Unassigned
+          </button>
+          <button
+            onClick={() => setFilter("mine")}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              filter === "mine" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
+            }`}
+          >
+            My Queue
+          </button>
+          <button
+            onClick={() => setFilter("all")}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              filter === "all" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
+            }`}
+          >
+            All Pending
+          </button>
+          <button
+            onClick={() => setFilter("applied")}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              filter === "applied" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
+            }`}
+          >
+            Applied
+          </button>
+        </div>
+        
+        <Button 
+          variant="primary" 
+          onClick={() => setIsAddModalOpen(true)}
+          className="shadow-[0_4px_14px_rgba(255,0,61,0.3)]"
         >
-          Unassigned
-        </button>
-        <button
-          onClick={() => setFilter("mine")}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-            filter === "mine" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-          }`}
-        >
-          My Queue
-        </button>
-        <button
-          onClick={() => setFilter("all")}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-            filter === "all" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-          }`}
-        >
-          All Pending
-        </button>
-        <button
-          onClick={() => setFilter("applied")}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-            filter === "applied" ? "bg-white/10 text-foreground shadow-sm" : "text-text-secondary hover:text-foreground hover:bg-white/5"
-          }`}
-        >
-          Applied
-        </button>
+          + Add Custom Job
+        </Button>
       </div>
 
       {loading ? (
@@ -252,6 +303,74 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Add Job Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-overlay backdrop-blur-sm">
+          <div className="relative z-10 w-full max-w-md rounded-3xl border border-border/70 bg-surface-elevated p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-1">Add Job to Queue</h2>
+            <p className="text-sm text-text-secondary mb-4">Add a job on behalf of a user.</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">User ID <span className="text-error">*</span></label>
+                <Input
+                  value={newJob.user_id}
+                  onChange={(e) => setNewJob({ ...newJob, user_id: e.target.value })}
+                  placeholder="User UUID"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Job Title <span className="text-error">*</span></label>
+                  <Input
+                    value={newJob.title}
+                    onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
+                    placeholder="e.g. Frontend Dev"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">Company <span className="text-error">*</span></label>
+                  <Input
+                    value={newJob.company}
+                    onChange={(e) => setNewJob({ ...newJob, company: e.target.value })}
+                    placeholder="e.g. Google"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Job URL <span className="text-error">*</span></label>
+                <Input
+                  value={newJob.job_url}
+                  onChange={(e) => setNewJob({ ...newJob, job_url: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Resume ID (Optional)</label>
+                <Input
+                  value={newJob.resume_id}
+                  onChange={(e) => setNewJob({ ...newJob, resume_id: e.target.value })}
+                  placeholder="Resume UUID to attach"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Admin Notes</label>
+                <Input
+                  value={newJob.admin_notes}
+                  onChange={(e) => setNewJob({ ...newJob, admin_notes: e.target.value })}
+                  placeholder="Internal notes..."
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+              <Button variant="primary" onClick={handleAddJob} isLoading={submitting}>Add to Queue</Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

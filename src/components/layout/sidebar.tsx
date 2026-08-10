@@ -200,7 +200,7 @@ export function Sidebar({ className }: SidebarProps) {
                     Thank you for subscribing! Enjoy all your {isElite ? "Elite" : isPro ? "Gold" : "Silver"} features.
                   </p>
                   
-                  {isElite ? (
+                  {(isElite || isPro) ? (
                     <Link
                       href="/subscription"
                       className="flex items-center justify-center gap-1.5 w-full py-2 rounded-full text-xs font-semibold border border-border/60 bg-white/5 hover:bg-white/10 text-text-secondary hover:text-foreground transition-all duration-200"

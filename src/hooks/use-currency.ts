@@ -2,28 +2,24 @@
 
 import { useEffect, useState } from "react";
 
-export type Currency = "USD" | "INR" | "EUR" | "GBP" | "CAD" | "AUD";
+export type Currency = "USD" | "INR";
 
-const COUNTRY_TO_CURRENCY: Record<string, Currency> = {
-  // India
-  IN: "INR",
-  // UK
-  GB: "GBP",
-  // Australia
-  AU: "AUD",
-  // Canada
-  CA: "CAD",
-  // Eurozone
-  AT: "EUR", BE: "EUR", CY: "EUR", EE: "EUR", FI: "EUR", 
-  FR: "EUR", DE: "EUR", GR: "EUR", IE: "EUR", IT: "EUR", 
-  LV: "EUR", LT: "EUR", LU: "EUR", MT: "EUR", NL: "EUR", 
-  PT: "EUR", SK: "EUR", SI: "EUR", ES: "EUR",
-};
+/**
+ * useCurrency — Always returns "USD" for display purposes.
+ * All plan prices are shown in USD regardless of the user's location.
+ */
+export function useCurrency(): Currency {
+  return "USD";
+}
 
 let cachedCurrency: Currency | null = null;
 let fetchPromise: Promise<Currency> | null = null;
 
-export function useCurrency(): Currency {
+/**
+ * usePaymentCurrency — Detects the user's local currency for payment routing.
+ * Used to determine whether to route to PayU (INR) or USD gateway.
+ */
+export function usePaymentCurrency(): Currency {
   const [currency, setCurrency] = useState<Currency>("USD");
 
   useEffect(() => {
@@ -34,7 +30,7 @@ export function useCurrency(): Currency {
 
     try {
       const stored = sessionStorage.getItem("nzo_currency") as Currency | null;
-      if (stored && ["USD", "INR", "EUR", "GBP", "CAD", "AUD"].includes(stored)) {
+      if (stored && ["USD", "INR"].includes(stored)) {
         cachedCurrency = stored;
         setCurrency(stored);
         return;
@@ -62,25 +58,18 @@ export function formatPrice(amount: number, currency: Currency): string {
   const symbols: Record<Currency, string> = {
     USD: "$",
     INR: "₹",
-    EUR: "€",
-    GBP: "£",
-    CAD: "C$",
-    AUD: "A$"
   };
-  return `${symbols[currency]}${amount}`;
+  return `${symbols[currency]}${amount.toLocaleString()}`;
 }
 
 async function detectCurrency(): Promise<Currency> {
+  // 1. Try server-side geo API
   try {
     const res = await fetch("/api/geo", { cache: "default" });
     if (res.ok) {
       const data = await res.json();
-      if (data.country && COUNTRY_TO_CURRENCY[data.country]) {
-        return COUNTRY_TO_CURRENCY[data.country];
-      }
-      if (data.country) {
-        return "USD";
-      }
+      if (data.country === "IN") return "INR";
+      if (data.country) return "USD";
     }
   } catch {}
 
@@ -89,10 +78,7 @@ async function detectCurrency(): Promise<Currency> {
     const res = await fetch("https://get.geojs.io/v1/ip/country.json", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      if (data.country && COUNTRY_TO_CURRENCY[data.country]) {
-        return COUNTRY_TO_CURRENCY[data.country];
-      }
-      // If it's a known country but not mapped, fallback to USD
+      if (data.country === "IN") return "INR";
       if (data.country) return "USD";
     }
   } catch {}
@@ -101,12 +87,6 @@ async function detectCurrency(): Promise<Currency> {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") return "INR";
-    if (tz === "Europe/London") return "GBP";
-    if (tz.startsWith("Australia/")) return "AUD";
-    if (tz.startsWith("Europe/")) {
-      const nonEuro = ["Europe/Moscow", "Europe/Kiev", "Europe/London", "Europe/Zurich"];
-      if (!nonEuro.includes(tz)) return "EUR";
-    }
   } catch {}
 
   return "USD";

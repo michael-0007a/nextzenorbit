@@ -12,7 +12,7 @@ import type { ResumeContent } from "@/lib/validations/resume";
 export type UserRole = "user" | "sso_user" | "admin" | "super_admin";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "paused";
 export type PlanId = "free" | "pro" | "elite";
-export type PaymentProviderType = "payu";
+export type PaymentProviderType = "payu" | "usd_gateway";
 export type ApplicationStatus = "applied" | "screening" | "interview" | "offer" | "rejected";
 export type WorkType = "remote" | "onsite" | "hybrid" | "any";
 export type JobQueueStatus = "pending" | "processing" | "applied" | "failed" | "skipped";
@@ -279,6 +279,21 @@ export type AutofillTelemetryRow = {
   created_at: string;
 };
 
+export type AdminResumeRow = {
+  id: string;
+  user_id: string;
+  admin_id: string;
+  job_description: string | null;
+  job_title: string | null;
+  company: string | null;
+  title: string;
+  content: import("@/lib/validations/resume").ResumeContent;
+  template_id: string | null;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 
 // ── Supabase Database type ──
 // Compatible with @supabase/supabase-js v2.98+
@@ -399,6 +414,12 @@ export type Database = {
         Insert: { id?: string; user_id?: string | null; portal: string; url: string; fields_detected?: number; field_names?: string[]; status: string; error_message?: string | null; created_at?: string };
         Update: { user_id?: string | null; portal?: string; url?: string; fields_detected?: number; field_names?: string[]; status?: string; error_message?: string | null; created_at?: string };
         Relationships: [{ foreignKeyName: "autofill_telemetry_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
+      };
+      admin_resumes: {
+        Row: AdminResumeRow;
+        Insert: { user_id: string; admin_id: string; title: string; content: import("@/lib/validations/resume").ResumeContent; job_description?: string | null; job_title?: string | null; company?: string | null; template_id?: string | null; expires_at?: string };
+        Update: { title?: string; content?: import("@/lib/validations/resume").ResumeContent; job_description?: string | null; job_title?: string | null; company?: string | null; template_id?: string | null };
+        Relationships: [{ foreignKeyName: "admin_resumes_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "admin_resumes_admin_id_fkey"; columns: ["admin_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
     };
     Views: {};

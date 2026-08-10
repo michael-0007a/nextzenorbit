@@ -146,3 +146,63 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
   }
 }
+
+export async function POST(request: NextRequest): Promise<Response> {
+  try {
+    const adminAuth = await requireAdmin();
+    if (isAuthError(adminAuth)) return adminAuth;
+
+    const body = await request.json();
+    const { user_id, title, company, job_url, description, admin_notes, resume_id } = body;
+
+    if (!user_id || !title || !company || !job_url) {
+      return apiError(ERROR_CODES.VALIDATION_ERROR, "user_id, title, company, and job_url are required.");
+    }
+
+    const admin = createAdminClient();
+
+    const { data, error } = await admin
+      .from("job_queue")
+      .insert({
+        user_id,
+        title,
+        company,
+        job_url,
+        description: description || null,
+        source: "manual" as any,
+        status: "pending" as any,
+        assigned_to: adminAuth.userId,
+        assigned_at: new Date().toISOString(),
+        admin_notes: admin_notes || null,
+        resume_id: resume_id || null,
+      })
+      .select(`
+        *,
+        user:users!user_id(
+          email,
+          profile:profiles(full_name, avatar_url, preferred_role)
+        ),
+        resume:resumes!resume_id(id, title, target_role),
+        assignee:users!assigned_to(profile:profiles(full_name))
+      `)
+      .single();
+
+    if (error) {
+      console.error("Admin Apply Queue POST Error:", error);
+      return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to add job to queue.");
+    }
+
+    const raw = data as any;
+    const formattedData = raw ? {
+      ...raw,
+      profile: raw.user?.profile || null,
+      user: raw.user ? { email: raw.user.email } : null,
+      assignee: raw.assignee?.profile || null
+    } : null;
+
+    return NextResponse.json(apiSuccess(formattedData), { status: 201 });
+  } catch (err) {
+    console.error("Admin Apply Queue POST error:", err);
+    return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
+  }
+}

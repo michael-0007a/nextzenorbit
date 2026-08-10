@@ -83,7 +83,7 @@ export function SubscriptionDetails({ subscription, aiUsage, resumeCount }: Subs
               <p className="text-xl font-bold text-foreground">{planName}</p>
               {subscription && (
                 <p className="text-sm text-text-secondary mt-0.5">
-                  {`${formatPrice(plan[`price_${currency.toLowerCase()}` as keyof typeof plan] as number, currency)}/month`}
+                  {`${formatPrice(plan.price_usd as number, "USD")}/month`}
                 </p>
               )}
             </div>

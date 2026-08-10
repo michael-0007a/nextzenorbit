@@ -42,11 +42,21 @@ interface ResumeListItem {
   updated_at: string;
 }
 
-interface ResumeGridProps {
-  resumes: ResumeListItem[];
+interface AdminResumeListItem {
+  id: string;
+  title: string;
+  company: string | null;
+  template_id: string | null;
+  created_at: string;
+  expires_at: string;
 }
 
-export function ResumeGrid({ resumes: initialResumes }: ResumeGridProps) {
+interface ResumeGridProps {
+  resumes: ResumeListItem[];
+  adminResumes?: AdminResumeListItem[];
+}
+
+export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: ResumeGridProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resumes, setResumes] = useState(initialResumes);
@@ -349,6 +359,86 @@ export function ResumeGrid({ resumes: initialResumes }: ResumeGridProps) {
           ))}
         </AnimatePresence>
       </motion.div>
+
+      {/* Recruiter Resumes Section */}
+      {adminResumes.length > 0 && (
+        <div className="mt-12 space-y-6">
+          <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold text-foreground">Recruiter Resumes</h2>
+          </div>
+          <p className="text-sm text-text-secondary">
+            These resumes were custom-tailored by your assigned recruiter for specific job applications. They expire after 30 days.
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {adminResumes.map((resume) => (
+              <Card
+                key={resume.id}
+                className="group transition-all duration-200 overflow-hidden hover:border-primary hover:shadow-lg hover:shadow-primary/10"
+              >
+                <div className="relative bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+                  <div className="aspect-[8.5/6] bg-white dark:bg-gray-900 rounded shadow-sm overflow-hidden mx-auto max-w-[180px]">
+                    <div className="p-3 space-y-2 opacity-70">
+                      <div className="h-2.5 w-16 bg-primary/60 rounded mx-auto" />
+                      <div className="h-1 w-24 bg-muted-foreground/20 rounded mx-auto" />
+                      <div className="pt-2 space-y-2">
+                        <div className="h-1 w-10 bg-primary/40 rounded" />
+                        <div className="space-y-1">
+                          <div className="h-0.5 w-full bg-muted-foreground/10 rounded" />
+                          <div className="h-0.5 w-4/5 bg-muted-foreground/10 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors flex items-center justify-center">
+                    <button 
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-medium text-white bg-primary px-3 py-1.5 rounded-full shadow"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const res = await fetch(`/api/resumes/export-admin?id=${resume.id}&format=pdf`);
+                        if (res.ok) {
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${resume.title.replace(/\s+/g, '_')}.pdf`;
+                          a.click();
+                        } else {
+                          toast.error("Failed to download PDF.");
+                        }
+                      }}
+                    >
+                      Download PDF
+                    </button>
+                  </div>
+                </div>
+
+                <CardHeader className="relative pb-2">
+                  <CardTitle className="line-clamp-1 text-base pr-8">
+                    {resume.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardBody className="pt-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="primary" size="sm" className="bg-primary/10 text-primary border-primary/20">
+                      Recruiter Generated
+                    </Badge>
+                  </div>
+                  {resume.company && (
+                    <p className="text-xs text-text-secondary mt-2">
+                      For: <span className="font-medium text-foreground">{resume.company}</span>
+                    </p>
+                  )}
+                </CardBody>
+                <CardFooter className="text-xs text-warning flex items-center border-t border-border pt-3">
+                  <Clock className="mr-1.5 h-3 w-3" />
+                  Expires {new Date(resume.expires_at).toLocaleDateString()}
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

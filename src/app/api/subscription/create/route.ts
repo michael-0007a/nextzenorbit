@@ -2,10 +2,10 @@
  * Create Subscription
  *
  * POST /api/subscription/create
- * Auth required. Creates a Razorpay subscription for the authenticated user.
+ * Auth required. Creates a subscription via the selected payment gateway.
  *
- * Body: { plan: "pro" | "elite" }
- * Response: { subscriptionId, razorpayKey }
+ * Body: { plan: "pro" | "elite", currency?: "USD" | "INR", paymentMethod?: "usd" | "inr" }
+ * Response: { subscriptionId, payu?, redirectUrl? }
  */
 
 import { NextResponse } from "next/server";
@@ -20,7 +20,8 @@ import type { PlanId } from "@/types/database";
 
 const createSubscriptionSchema = z.object({
   plan: z.enum(["pro", "elite"]),
-  currency: z.enum(["USD", "INR", "EUR", "GBP", "CAD", "AUD"]).optional(),
+  currency: z.enum(["USD", "INR"]).optional(),
+  paymentMethod: z.enum(["usd", "inr"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -58,18 +59,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const { plan, currency = "USD" } = parsed.data;
+    const { plan, paymentMethod = "inr" } = parsed.data;
+    
+    // Determine currency from payment method
+    const currency = paymentMethod === "inr" ? "INR" : "USD";
 
     // 3. Resolve plan pricing
     const planConfig = PLANS[plan];
     
-    // Calculate total amount in paise/cents based on the currency
+    // Get the correct price based on currency
     const priceKey = `price_${currency.toLowerCase()}` as keyof typeof planConfig;
     const priceAmount = (planConfig[priceKey] as number) || 0;
     const totalAmountPaise = Math.round(priceAmount * 100);
 
-    // 4. Create subscription via provider
-    const provider = getPaymentProvider();
+    // 4. Create subscription via the correct provider
+    const provider = getPaymentProvider(currency);
     const result = await provider.createSubscription({
       planId: plan,
       customerId: user.id,
@@ -78,27 +82,32 @@ export async function POST(request: Request) {
       currency,
     });
 
-    // 5. Save to database (upsert subscription row)
+    // 5. Determine the provider type for DB storage
+    const providerType = paymentMethod === "inr" ? "payu" : "usd_gateway";
+
+    // 6. Save to database (upsert subscription row)
     const admin = createAdminClient();
     await upsertSubscriptionCreated(admin, user.id, {
       subscriptionId: result.subscriptionId,
       planId: plan as PlanId,
-      provider: process.env.PAYMENT_PROVIDER as any || "payu",
+      provider: providerType as any,
       currency,
       amountPaise: totalAmountPaise,
     });
 
-    // 6. Return details for frontend checkout
+    // 7. Return details for frontend checkout
     console.log(
-      `[subscription/create] Created subscription for user=${user.id} plan=${plan} sub=${result.subscriptionId}`
+      `[subscription/create] Created subscription for user=${user.id} plan=${plan} sub=${result.subscriptionId} provider=${providerType}`
     );
 
     return NextResponse.json({
       success: true,
       data: {
         subscriptionId: result.subscriptionId,
-        // For PayU, result might contain form fields
+        // PayU flow: form data for redirect
         payu: result.payu,
+        // USD gateway flow: redirect URL
+        redirectUrl: result.redirectUrl,
         razorpayKey: process.env.RAZORPAY_KEY_ID,
       },
     });

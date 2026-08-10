@@ -1,7 +1,7 @@
 /**
  * Admin API: Single User Details
  *
- * GET /api/admin/users/[id] - Fetch detailed user info (profile, resumes, applications)
+ * GET /api/admin/users/[id] - Fetch detailed user info (full profile, resumes with content, applications, admin resumes)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -22,13 +22,18 @@ export async function GET(
 
     const admin = createAdminClient();
 
-    // Fetch user details
+    // Fetch user details with full profile
     const { data: user, error: userError } = await admin
       .from("users")
       .select(`
         id, email, role, created_at,
-        profile:profiles(full_name, avatar_url, preferred_role, location),
-        subscription:subscriptions(plan_id, status, current_period_end)
+        profile:profiles(
+          full_name, avatar_url, preferred_role, location,
+          phone, headline, linkedin_url,
+          preferred_location, preferred_salary_min, preferred_salary_max,
+          preferred_work_type, years_of_experience, preferred_portals
+        ),
+        subscription:subscriptions(plan_id, status, current_period_end, currency, amount_paise)
       `)
       .eq("id", id)
       .single();
@@ -37,26 +42,40 @@ export async function GET(
       return apiError(ERROR_CODES.NOT_FOUND, "User not found", 404);
     }
 
-    // Fetch resumes
+    // Fetch resumes with content (including is_base flag)
     const { data: resumes } = await admin
       .from("resumes")
-      .select("id, title, target_role, created_at, updated_at, data")
+      .select("id, title, content, template_id, is_base, version, created_at, updated_at")
       .eq("user_id", id)
       .is("deleted_at", null)
+      .order("is_base", { ascending: false })
       .order("updated_at", { ascending: false });
 
     // Fetch queue history
     const { data: queue } = await admin
       .from("job_queue")
-      .select("id, title, company, status, created_at, applied_at, admin_notes")
+      .select("id, title, company, job_url, status, source, created_at, applied_at, admin_notes, assigned_to")
       .eq("user_id", id)
       .order("created_at", { ascending: false });
+
+    // Fetch admin-generated resumes for this user
+    const { data: adminResumes } = await admin
+      .from("admin_resumes")
+      .select("id, title, job_title, company, job_description, template_id, expires_at, created_at, admin_id")
+      .eq("user_id", id)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+
+    // Find the base resume
+    const baseResume = (resumes || []).find((r: any) => r.is_base) || null;
 
     return NextResponse.json(
       apiSuccess({
         ...user,
         resumes: resumes || [],
+        baseResume,
         queue: queue || [],
+        adminResumes: adminResumes || [],
       })
     );
   } catch (err) {

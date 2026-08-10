@@ -11,6 +11,7 @@ import { useEffect, useState, useRef } from "react";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ResumeContent } from "@/lib/validations/resume";
+import { getTemplate } from "@/lib/resume/templates";
 
 interface ResumePreviewProps {
   content: ResumeContent;
@@ -46,11 +47,19 @@ export function ResumePreview({
   }, [key]);
 
   const { contact, summary, experience, education, skills, projects, certifications, languages } = content;
+  const template = getTemplate(templateId);
 
   // Letter size dimensions (matches LaTeX US Letter: 612x792 pt)
   const pageWidth = 612;
   const pageHeight = 792;
   const totalPages = Math.max(1, Math.ceil(contentHeight / pageHeight));
+
+  const headerAlign = template.layout.headerStyle === "centered" ? "center" : "left";
+  const fontFamily = template.fonts.body === "Helvetica" ? "Arial, sans-serif" : "'Times New Roman', serif";
+  const primaryColor = template.colors.primary;
+  const accentColor = template.colors.accent;
+  const showDividers = template.layout.showDividers;
+  const sectionSpacing = template.layout.sectionSpacing;
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -82,13 +91,13 @@ export function ResumePreview({
       {/* Scaled preview container */}
       <div
         key={`preview-${templateId}-${key}`}
-        className="origin-top-left relative overflow-hidden rounded-md border border-slate-200 dark:border-slate-800"
+        className="origin-top-left relative overflow-hidden rounded-md border border-slate-200 dark:border-slate-800 transition-all duration-300"
         style={{
           width: pageWidth * scale,
           height: Math.max(792 * totalPages, contentHeight) * scale,
         }}
       >
-        {/* Resume Page - mimics LaTeX output exactly */}
+        {/* Resume Page */}
         <div
           ref={contentRef}
           className="bg-white shadow-lg relative"
@@ -97,39 +106,52 @@ export function ResumePreview({
             minHeight: pageHeight * totalPages,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
-            fontFamily: "'Times New Roman', 'Computer Modern', Georgia, serif",
+            fontFamily,
             fontSize: "11px",
             lineHeight: 1.3,
-            color: "#000",
-            padding: "36px 54px",
+            color: template.colors.text,
+            padding: `${template.layout.margins.top}px ${template.layout.margins.right}px`,
             boxSizing: "border-box",
           }}
         >
-          {/* Header - Centered name with small caps style */}
-          <header style={{ textAlign: "center", marginBottom: "8px" }}>
-            <h1 style={{
-              fontSize: "22px",
-              fontWeight: 700,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              margin: "0 0 6px 0",
-              fontVariant: "small-caps",
-            }}>
-              {contact.full_name || "Your Name"}
-            </h1>
+          {/* Header */}
+          <header style={{ 
+            textAlign: headerAlign, 
+            marginBottom: `${sectionSpacing}px`,
+            display: template.layout.headerStyle === "split" ? "flex" : "block",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <div>
+              <h1 style={{
+                fontSize: "22px",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                textTransform: "uppercase",
+                margin: "0 0 6px 0",
+                color: primaryColor,
+              }}>
+                {contact.full_name || "Your Name"}
+              </h1>
 
-            {/* Contact line with separators */}
-            <div style={{ fontSize: "10px", color: "#333" }}>
-              {[
-                contact.phone,
-                contact.email,
-                contact.location,
-              ].filter(Boolean).join("  •  ")}
+              {/* Contact line */}
+              <div style={{ fontSize: "10px", color: template.colors.muted }}>
+                {[
+                  contact.phone,
+                  contact.email,
+                  contact.location,
+                ].filter(Boolean).join("  •  ")}
+              </div>
             </div>
 
-            {/* Links line */}
+            {/* Links line - In split layout, it goes to the right */}
             {(contact.linkedin_url || contact.github_url || contact.portfolio_url) && (
-              <div style={{ fontSize: "10px", color: "#0066cc", marginTop: "2px" }}>
+              <div style={{ 
+                fontSize: "10px", 
+                color: accentColor, 
+                marginTop: template.layout.headerStyle === "split" ? "0" : "4px",
+                textAlign: template.layout.headerStyle === "split" ? "right" : headerAlign 
+              }}>
                 {[
                   contact.linkedin_url ? "LinkedIn" : null,
                   contact.github_url ? "GitHub" : null,
@@ -141,7 +163,7 @@ export function ResumePreview({
 
           {/* About Me / Summary */}
           {summary?.text && (
-            <Section title="About Me">
+            <Section title="About Me" primaryColor={primaryColor} showDividers={showDividers}>
               <p style={{ margin: 0, textAlign: "justify", fontSize: "10px", lineHeight: 1.4 }}>
                 {summary.text}
               </p>
@@ -150,7 +172,7 @@ export function ResumePreview({
 
           {/* Education */}
           {education && education.length > 0 && (
-            <Section title="Education">
+            <Section title="Education" primaryColor={primaryColor} showDividers={showDividers}>
               {education.map((edu, idx) => (
                 <div key={edu.id || idx} style={{ marginBottom: "6px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -172,7 +194,7 @@ export function ResumePreview({
 
           {/* Experience */}
           {experience && experience.length > 0 && (
-            <Section title="Experience">
+            <Section title="Experience" primaryColor={primaryColor} showDividers={showDividers}>
               {experience.map((exp, idx) => (
                 <div key={exp.id || idx} style={{ marginBottom: "10px" }}>
                   {/* Company & Role line */}
@@ -213,7 +235,7 @@ export function ResumePreview({
 
           {/* Projects */}
           {projects && projects.length > 0 && (
-            <Section title="Projects">
+            <Section title="Projects" primaryColor={primaryColor} showDividers={showDividers}>
               {projects.map((proj, idx) => (
                 <div key={proj.id || idx} style={{ marginBottom: "8px" }}>
                   <div>
@@ -236,7 +258,7 @@ export function ResumePreview({
 
           {/* Technical Skills */}
           {skills && skills.length > 0 && (
-            <Section title="Technical Skills">
+            <Section title="Technical Skills" primaryColor={primaryColor} showDividers={showDividers}>
               <div style={{ fontSize: "10px", lineHeight: 1.5 }}>
                 {skills.map((skill, idx) => (
                   <div key={skill.id || idx} style={{ marginBottom: "2px" }}>
@@ -250,7 +272,7 @@ export function ResumePreview({
 
           {/* Certifications */}
           {certifications && certifications.length > 0 && (
-            <Section title="Certifications">
+            <Section title="Certifications" primaryColor={primaryColor} showDividers={showDividers}>
               <div style={{ fontSize: "10px" }}>
                 {certifications.map((cert, idx) => (
                   <div key={cert.id || idx} style={{ marginBottom: "2px" }}>
@@ -265,7 +287,7 @@ export function ResumePreview({
 
           {/* Languages */}
           {languages && languages.length > 0 && (
-            <Section title="Languages">
+            <Section title="Languages" primaryColor={primaryColor} showDividers={showDividers}>
               <div style={{ fontSize: "10px" }}>
                 {languages.map((lang) =>
                   `${lang.name}${lang.proficiency ? ` (${lang.proficiency})` : ""}`
@@ -343,7 +365,17 @@ export function ResumePreview({
 }
 
 // Section component matching LaTeX styling
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ 
+  title, 
+  children, 
+  primaryColor, 
+  showDividers 
+}: { 
+  title: string; 
+  children: React.ReactNode; 
+  primaryColor: string; 
+  showDividers: boolean; 
+}) {
   return (
     <section style={{ marginBottom: "10px" }}>
       <h2 style={{
@@ -353,7 +385,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         letterSpacing: "0.5px",
         margin: "0 0 4px 0",
         paddingBottom: "2px",
-        borderBottom: "1px solid #000",
+        borderBottom: showDividers ? `1px solid ${primaryColor}` : "none",
+        color: primaryColor,
       }}>
         {title}
       </h2>
