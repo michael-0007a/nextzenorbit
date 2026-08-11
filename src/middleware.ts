@@ -55,6 +55,7 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
+  supabaseResponse.headers.set("x-next-pathname", request.nextUrl.pathname);
   return supabaseResponse;
 }
 

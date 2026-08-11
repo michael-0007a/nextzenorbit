@@ -16,6 +16,7 @@ export interface TopNavProps {
   /** Optional breadcrumb or page title */
   breadcrumb?: React.ReactNode;
   className?: string;
+  isProfileComplete?: boolean;
 }
 
 /**
@@ -26,6 +27,7 @@ export function TopNav({
   userAvatar,
   breadcrumb,
   className,
+  isProfileComplete = true,
 }: TopNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -136,9 +138,12 @@ export function TopNav({
                   Profile
                 </Link>
                 <Link
-                  href="/subscription"
+                  href={isProfileComplete ? "/subscription" : "/profile?complete=required"}
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors"
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors",
+                    !isProfileComplete && "opacity-50 cursor-not-allowed hover:bg-transparent"
+                  )}
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <CreditCard className="h-4 w-4 text-primary" />
@@ -146,9 +151,12 @@ export function TopNav({
                   Subscription
                 </Link>
                 <Link
-                  href="/settings"
+                  href={isProfileComplete ? "/settings" : "/profile?complete=required"}
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors"
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:text-foreground hover:bg-white/5 transition-colors",
+                    !isProfileComplete && "opacity-50 cursor-not-allowed hover:bg-transparent"
+                  )}
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
                     <Settings className="h-4 w-4" />

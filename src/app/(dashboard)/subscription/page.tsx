@@ -57,7 +57,7 @@ export default async function SubscriptionPage() {
         aiUsage={aiUsage}
         resumeCount={resumeCount}
       />
-      <PlanCards currentPlanId={isSubscriptionActive(subscription) ? (subscription?.plan_id ?? "free") : "free"} />
+      <PlanCards currentPlanId={isSubscriptionActive(subscription) ? (subscription?.plan_id ?? null) : null} />
     </div>
   );
 }

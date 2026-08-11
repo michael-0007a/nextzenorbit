@@ -24,7 +24,7 @@ interface UseSubscriptionReturn {
   daysRemaining: number;
   isPro: boolean;
   isElite: boolean;
-  activePlanId: PlanId;
+  activePlanId: PlanId | null;
   refetch: () => Promise<void>;
 }
 
@@ -34,27 +34,26 @@ export function useSubscription(): UseSubscriptionReturn {
   const hasFetched = useRef(false);
 
   const fetchSubscription = useCallback(async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user?.id) {
+    try {
+      const res = await fetch("/api/subscription");
+      if (!res.ok) {
+        setSubscription(null);
+        setLoading(false);
+        return;
+      }
+      
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSubscription(json.data as SubscriptionRow);
+      } else {
+        setSubscription(null);
+      }
+    } catch (error) {
+      console.error("[useSubscription] fetch error:", error);
       setSubscription(null);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[useSubscription] fetch error:", error.message);
-    }
-
-    setSubscription(data as SubscriptionRow | null);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -77,7 +76,7 @@ export function useSubscription(): UseSubscriptionReturn {
     daysRemaining: getTrialDaysRemaining(subscription),
     isPro: isActive && subscription?.plan_id === "pro",
     isElite: isActive && subscription?.plan_id === "elite",
-    activePlanId: isActive ? (subscription?.plan_id || "free") : "free",
+    activePlanId: isActive ? (subscription?.plan_id ?? null) : null,
     refetch: fetchSubscription,
   };
 }

@@ -55,9 +55,10 @@ const bottomNavItems: NavItem[] = [
 // === Sidebar Component ===
 export interface SidebarProps {
   className?: string;
+  isProfileComplete?: boolean;
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, isProfileComplete = true }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -69,18 +70,24 @@ export function Sidebar({ className }: SidebarProps) {
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
     const Icon = item.icon;
+    
+    // If profile is incomplete, force links to point to the profile page (unless it's the profile page itself)
+    const targetHref = (!isProfileComplete && item.href !== "/profile") 
+      ? "/profile?complete=required" 
+      : item.href;
 
     return (
       <Link
         key={item.href}
-        href={item.href}
+        href={targetHref}
         onClick={() => setMobileOpen(false)}
         className={cn(
           "group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-transparent",
           "text-sm font-medium transition-all duration-200",
           active
             ? "text-foreground bg-white/10 border-primary/40 shadow-[0_0_24px_rgba(255,0,61,0.2)]"
-            : "text-text-secondary hover:text-foreground hover:bg-white/5"
+            : "text-text-secondary hover:text-foreground hover:bg-white/5",
+          (!isProfileComplete && item.href !== "/profile") && "opacity-50 cursor-not-allowed hover:bg-transparent"
         )}
         aria-current={active ? "page" : undefined}
       >
@@ -121,7 +128,7 @@ export function Sidebar({ className }: SidebarProps) {
         )}
 
         {/* Hover arrow */}
-        {!collapsed && !active && (
+        {!collapsed && !active && isProfileComplete && (
           <ArrowRight className="relative z-10 h-4 w-4 text-text-secondary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
         )}
       </Link>

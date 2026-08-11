@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // 3. Create active free subscription for them (so they don't hit paywalls)
     // The trigger might have created a trial subscription, so we update it or insert if missing
-    const { data: existingSub } = await admin.from("subscriptions").select("id").eq("user_id", newUserId).maybeSingle();
+    const { data: existingSub } = await admin.from("subscriptions").select("id").eq("user_id", newUserId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     
     if (existingSub) {
       await admin.from("subscriptions").update({

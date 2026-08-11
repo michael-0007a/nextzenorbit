@@ -18,7 +18,7 @@ import SubscriptionCheckout from "@/components/SubscriptionCheckout";
 import { PaymentMethodSelector, type PaymentMethod } from "@/components/subscription/payment-method-selector";
 
 interface PlanCardsProps {
-  currentPlanId: PlanId;
+  currentPlanId: PlanId | null;
 }
 
 const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {

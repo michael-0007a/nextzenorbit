@@ -60,7 +60,15 @@ export default async function DashboardLayout({
   const pathname = headersList.get("x-next-pathname") || headersList.get("x-invoke-path") || "";
   const isProfilePage = pathname.includes("/profile");
 
-  if (!isProfileComplete(profile as Record<string, unknown> | null) && !isProfilePage) {
+  console.log("[DashboardLayout] pathname:", pathname);
+  console.log("[DashboardLayout] x-next-pathname:", headersList.get("x-next-pathname"));
+  console.log("[DashboardLayout] x-invoke-path:", headersList.get("x-invoke-path"));
+  console.log("[DashboardLayout] isProfilePage:", isProfilePage);
+  console.log("[DashboardLayout] isProfileComplete:", isProfileComplete(profile as Record<string, unknown> | null));
+
+  const profileComplete = isProfileComplete(profile as Record<string, unknown> | null);
+
+  if (!profileComplete && !isProfilePage) {
     redirect("/profile?complete=required");
   }
 
@@ -85,12 +93,13 @@ export default async function DashboardLayout({
       <GlobalPaywall isSsoUser={userData?.role === "sso_user"} />
       <div className="absolute inset-0 bg-space" />
       <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.07),transparent_60%)]" />
-      <Sidebar />
+      <Sidebar isProfileComplete={profileComplete} />
       <div className="relative flex flex-1 flex-col overflow-hidden">
         <TopNav
           userName={userName}
           userAvatar={userAvatar}
           breadcrumb={<span>Dashboard</span>}
+          isProfileComplete={profileComplete}
         />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <NotificationBanner />

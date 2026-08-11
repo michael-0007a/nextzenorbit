@@ -57,7 +57,7 @@ export async function POST(request: Request) {
         .from("subscriptions")
         .select("user_id")
         .eq("payu_subscription_id", txnid)
-        .maybeSingle();
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
       // If we found a matching subscription record
       if (subData) {

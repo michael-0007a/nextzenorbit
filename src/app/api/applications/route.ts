@@ -94,7 +94,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     today.setHours(0, 0, 0, 0);
 
     const [subRes, todayCountRes] = await Promise.all([
-      admin.from("subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
+      admin.from("subscriptions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       admin
         .from("applications")
         .select("id", { count: "exact", head: true })

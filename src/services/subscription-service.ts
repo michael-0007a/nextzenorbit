@@ -26,14 +26,15 @@ export async function getSubscription(
     .from("subscriptions")
     .select("*")
     .eq("user_id", userId)
-    .maybeSingle();
+    .order("created_at", { ascending: false })
+    .limit(1);
 
   if (error) {
     console.error("[subscription-service] getSubscription error:", error.message);
     return null;
   }
 
-  return data;
+  return data && data.length > 0 ? (data[0] as SubscriptionRow) : null;
 }
 
 /**

@@ -14,9 +14,10 @@ export async function checkAiTokenUsage(userId: string): Promise<{ allowed: bool
     .from("subscriptions")
     .select("*")
     .eq("user_id", userId)
-    .maybeSingle();
+    .order("created_at", { ascending: false })
+    .limit(1);
 
-  const typedSub = sub as SubscriptionRow | null;
+  const typedSub = sub && sub.length > 0 ? (sub[0] as SubscriptionRow) : null;
   const planId = isSubscriptionActive(typedSub) ? (typedSub?.plan_id ?? "free") : "free";
   const limits = getPlanLimits(planId);
 
