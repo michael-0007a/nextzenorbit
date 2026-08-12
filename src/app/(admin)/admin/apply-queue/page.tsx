@@ -13,6 +13,10 @@ export default async function AdminApplyQueuePage() {
     redirect("/admin/login");
   }
 
+  if (adminAuth.role === "supervisor_admin" || adminAuth.role === "super_admin") {
+    redirect("/admin/users");
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -49,6 +49,7 @@ export type ProfileRow = {
   years_of_experience: number | null;
   preferred_portals: string[];
   has_agreed_to_terms: boolean;
+  assigned_admin_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -337,9 +338,9 @@ export type Database = {
       };
       profiles: {
         Row: ProfileRow;
-        Insert: { user_id: string; full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[]; has_agreed_to_terms?: boolean };
-        Update: { full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[]; has_agreed_to_terms?: boolean };
-        Relationships: [{ foreignKeyName: "profiles_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "users"; referencedColumns: ["id"] }];
+        Insert: { user_id: string; full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[]; has_agreed_to_terms?: boolean; assigned_admin_id?: string | null };
+        Update: { full_name?: string; phone?: string | null; headline?: string | null; location?: string | null; linkedin_url?: string | null; avatar_url?: string | null; preferred_role?: string | null; preferred_location?: string | null; preferred_salary_min?: number | null; preferred_salary_max?: number | null; preferred_work_type?: WorkType | null; years_of_experience?: number | null; preferred_portals?: string[]; has_agreed_to_terms?: boolean; assigned_admin_id?: string | null };
+        Relationships: [{ foreignKeyName: "profiles_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "profiles_assigned_admin_id_fkey"; columns: ["assigned_admin_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
       subscriptions: {
         Row: SubscriptionRow;

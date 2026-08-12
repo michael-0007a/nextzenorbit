@@ -58,7 +58,7 @@ type UserGroup = {
   };
 };
 
-type FilterTab = "all" | "unclaimed" | "mine" | "completed";
+type FilterTab = "all" | "completed";
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-warning/10 text-warning border-warning/20",
@@ -84,7 +84,6 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
-  const [claimingUser, setClaimingUser] = useState<string | null>(null);
   const [updatingJob, setUpdatingJob] = useState<string | null>(null);
 
   // Add Job modal state
@@ -103,9 +102,6 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
     setLoading(true);
     try {
       const url = new URL("/api/admin/apply-queue", window.location.origin);
-      if (filter === "mine") url.searchParams.set("claimed_by", "me");
-      if (filter === "unclaimed") url.searchParams.set("claimed_by", "unclaimed");
-
       const res = await fetch(url.toString());
       const json = await res.json();
 
@@ -143,49 +139,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
     });
   };
 
-  const handleClaimUser = async (userId: string) => {
-    setClaimingUser(userId);
-    try {
-      const res = await fetch("/api/admin/apply-queue", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "claim_user", user_id: userId }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        toast.success("User claimed successfully!");
-        fetchQueue();
-      } else {
-        toast.error(json.error?.message || "Failed to claim user.");
-      }
-    } catch {
-      toast.error("Something went wrong.");
-    } finally {
-      setClaimingUser(null);
-    }
-  };
 
-  const handleUnclaimUser = async (userId: string) => {
-    setClaimingUser(userId);
-    try {
-      const res = await fetch("/api/admin/apply-queue", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "unclaim_user", user_id: userId }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        toast.success("User unclaimed.");
-        fetchQueue();
-      } else {
-        toast.error(json.error?.message || "Failed to unclaim user.");
-      }
-    } catch {
-      toast.error("Something went wrong.");
-    } finally {
-      setClaimingUser(null);
-    }
-  };
 
   const handleJobStatusChange = async (jobId: string, newStatus: string) => {
     setUpdatingJob(jobId);
@@ -271,7 +225,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
       {/* Filter Tabs + Search + Add */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex gap-1 bg-white/5 rounded-xl p-1 border border-border/40">
-          {(["all", "unclaimed", "mine", "completed"] as FilterTab[]).map((tab) => (
+          {(["all", "completed"] as FilterTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
@@ -281,7 +235,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                   : "text-text-secondary hover:text-foreground hover:bg-white/5"
               }`}
             >
-              {tab === "mine" ? "My Users" : tab}
+              {tab}
             </button>
           ))}
         </div>
@@ -384,40 +338,11 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                     )}
                   </div>
 
-                  {/* Claim Status / Actions */}
+                  {/* Actions */}
                   <div
                     className="flex items-center gap-2 shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {group.claimed_by ? (
-                      isMine ? (
-                        <button
-                          onClick={() => handleUnclaimUser(group.user_id)}
-                          disabled={claimingUser === group.user_id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
-                        >
-                          <Shield className="h-3.5 w-3.5" />
-                          {claimingUser === group.user_id ? "..." : "Claimed by You"}
-                        </button>
-                      ) : (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-text-secondary border border-border/40">
-                          <Shield className="h-3.5 w-3.5" />
-                          {group.claimed_by_name || "Another Admin"}
-                        </span>
-                      )
-                    ) : (
-                      adminRole !== "admin" && (
-                        <Button
-                          variant="secondary"
-                          className="text-xs h-8"
-                          onClick={() => handleClaimUser(group.user_id)}
-                          isLoading={claimingUser === group.user_id}
-                        >
-                          Claim User
-                        </Button>
-                      )
-                    )}
-
                     <Link
                       href={`/admin/users/${group.user_id}`}
                       className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"

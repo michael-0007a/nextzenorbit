@@ -43,7 +43,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         *,
         user:users!user_id(
           id, email,
-          profile:profiles(full_name, avatar_url, preferred_role, location, phone, headline)
+          profile:profiles!profiles_user_id_fkey(full_name, avatar_url, preferred_role, location, phone, headline, assigned_admin_id)
         ),
         resume:resumes!resume_id(id, title, target_role)
       `)
@@ -118,52 +118,21 @@ export async function GET(request: NextRequest): Promise<Response> {
         (group.job_counts as any)[st]++;
       }
 
-      // Use the latest claimed_by from any job
-      if (item.claimed_by && !group.claimed_by) {
-        group.claimed_by = item.claimed_by;
-        group.claimed_at = item.claimed_at;
+      // Use the profile's assigned_admin_id
+      if (profile?.assigned_admin_id) {
+        group.claimed_by = profile.assigned_admin_id;
       }
     }
 
     let users = Array.from(userMap.values());
 
-    // Fetch claimed_by admin names
-    const claimedByIds = [...new Set(users.map((u) => u.claimed_by).filter(Boolean))] as string[];
-    let claimedByNames: Record<string, string> = {};
-    if (claimedByIds.length > 0) {
-      const { data: admins } = await admin
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", claimedByIds);
-
-      if (admins) {
-        claimedByNames = Object.fromEntries(
-          admins.map((a: any) => [a.user_id, a.full_name])
-        );
-      }
-    }
-
-    // Add claimed_by_name
-    users = users.map((u) => ({
-      ...u,
-      claimed_by_name: u.claimed_by ? claimedByNames[u.claimed_by] || null : null,
-    }));
-
-    // Apply claimed_by filter
-    if (claimedBy === "me") {
+    // Filter by assigned admin if the user is a standard admin
+    if (adminAuth.role === "admin") {
       users = users.filter((u) => u.claimed_by === adminAuth.userId);
-    } else if (claimedBy === "unclaimed") {
-      users = users.filter((u) => !u.claimed_by);
-    } else if (claimedBy) {
-      users = users.filter((u) => u.claimed_by === claimedBy);
     }
 
-    // Sort by: unclaimed first, then by most pending jobs
-    users.sort((a, b) => {
-      if (!a.claimed_by && b.claimed_by) return -1;
-      if (a.claimed_by && !b.claimed_by) return 1;
-      return b.job_counts.pending - a.job_counts.pending;
-    });
+    // Sort by: most pending jobs first
+    users.sort((a, b) => b.job_counts.pending - a.job_counts.pending);
 
     return NextResponse.json(apiSuccess({ users }));
   } catch (err) {
@@ -182,44 +151,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
     const admin = createAdminClient();
 
-    // ── User-level claiming ──
-    if (action === "claim_user" && user_id) {
-      const { error } = await admin
-        .from("job_queue")
-        .update({
-          claimed_by: adminAuth.userId,
-          claimed_at: new Date().toISOString(),
-          assigned_to: adminAuth.userId,
-          assigned_at: new Date().toISOString(),
-        })
-        .eq("user_id", user_id);
 
-      if (error) {
-        console.error("Claim user error:", error);
-        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to claim user.");
-      }
-
-      return NextResponse.json(apiSuccess({ claimed: true, user_id }));
-    }
-
-    if (action === "unclaim_user" && user_id) {
-      const { error } = await admin
-        .from("job_queue")
-        .update({
-          claimed_by: null,
-          claimed_at: null,
-          assigned_to: null,
-          assigned_at: null,
-        })
-        .eq("user_id", user_id);
-
-      if (error) {
-        console.error("Unclaim user error:", error);
-        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to unclaim user.");
-      }
-
-      return NextResponse.json(apiSuccess({ unclaimed: true, user_id }));
-    }
 
     // ── Per-job updates (existing behavior) ──
     if (!id) {
@@ -296,7 +228,6 @@ export async function POST(request: NextRequest): Promise<Response> {
         status: "pending" as any,
         assigned_to: adminAuth.userId,
         assigned_at: new Date().toISOString(),
-        claimed_by: adminAuth.userId,
         admin_notes: admin_notes || null,
         resume_id: resume_id || null,
       })

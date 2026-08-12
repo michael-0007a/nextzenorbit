@@ -29,16 +29,13 @@ export async function GET(request: NextRequest): Promise<Response> {
         email,
         role,
         created_at,
-        profile:profiles(full_name, avatar_url, preferred_role, location, phone, headline),
+        profile:profiles!profiles_user_id_fkey(full_name, avatar_url, preferred_role, location, phone, headline, assigned_admin_id),
         subscription:subscriptions(plan_id, status),
         job_queue(status, claimed_by)
       `, { count: "exact" });
 
-    // Optional email or name search (ilike on full_name is tricky with joined tables in Supabase RPC, so we do email for now)
     if (search) {
       query = query.ilike("email", `%${search}%`);
-      // Note: To properly search by full_name, we'd ideally need a database view or an RPC.
-      // We will filter client-side if it's a name search, or just rely on email for the backend query.
     }
 
     const { data, count, error } = await query
@@ -52,11 +49,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
 
-    // Fetch claimed_by admin names
-    const allClaimedByIds = (data || []).flatMap((u: any) => 
-      u.job_queue?.map((j: any) => j.claimed_by).filter(Boolean)
-    );
-    const uniqueAdminIds = [...new Set(allClaimedByIds)] as string[];
+    // Fetch assigned admin names
+    const allAssignedAdminIds = (data || []).map((u: any) => u.profile?.assigned_admin_id).filter(Boolean);
+    const uniqueAdminIds = [...new Set(allAssignedAdminIds)] as string[];
     
     let adminNames: Record<string, string> = {};
     if (uniqueAdminIds.length > 0) {
@@ -71,7 +66,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     // Process data to include profile completeness and job stats
-    const processedData = (data || []).map((user: any) => {
+    const processedData = (data || [])
+      .filter((user: any) => {
+        // If the requester is an admin, they should only see users assigned to them
+        if (adminAuth.role === "admin") {
+          return user.profile?.assigned_admin_id === adminAuth.userId;
+        }
+        return true;
+      })
+      .map((user: any) => {
       // Profile completeness
       const profile = user.profile;
       const profileComplete = profile
@@ -82,18 +85,14 @@ export async function GET(request: NextRequest): Promise<Response> {
         : false;
 
       // Job queue stats & claiming
-      let claimedBy = null;
-      let claimedByName = null;
+      let claimedBy = profile?.assigned_admin_id || null;
+      let claimedByName = claimedBy ? adminNames[claimedBy] || null : null;
       const jobCounts = { pending: 0, processing: 0, applied: 0, failed: 0, skipped: 0 };
       
       if (user.job_queue) {
         for (const job of user.job_queue) {
           if (job.status in jobCounts) {
             (jobCounts as any)[job.status]++;
-          }
-          if (job.claimed_by && !claimedBy) {
-            claimedBy = job.claimed_by;
-            claimedByName = adminNames[claimedBy] || null;
           }
         }
       }
@@ -122,6 +121,52 @@ export async function GET(request: NextRequest): Promise<Response> {
     );
   } catch (err) {
     console.error("Admin Users GET exception:", err);
+    return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
+  }
+}
+
+export async function PATCH(request: NextRequest): Promise<Response> {
+  try {
+    const adminAuth = await requireAdmin();
+    if (isAuthError(adminAuth)) return adminAuth;
+
+    if (adminAuth.role === "admin") {
+      return apiError(ERROR_CODES.FORBIDDEN, "You do not have permission to allocate users.", 403);
+    }
+
+    const body = await request.json();
+    const { action, user_id, admin_id } = body;
+
+    const admin = createAdminClient();
+
+    if (action === "assign_admin" && user_id) {
+      const { error } = await admin
+        .from("profiles")
+        .update({
+          assigned_admin_id: admin_id || null, // null means unassign
+        })
+        .eq("user_id", user_id);
+
+      if (error) {
+        console.error("Assign admin error:", error);
+        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to assign admin.");
+      }
+
+      // We should also update any existing job_queue items to the new assigned_admin
+      await admin
+        .from("job_queue")
+        .update({
+          assigned_to: admin_id || null,
+          claimed_by: admin_id || null,
+        })
+        .eq("user_id", user_id);
+
+      return NextResponse.json(apiSuccess({ assigned: true, user_id, admin_id }));
+    }
+
+    return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid action or parameters.");
+  } catch (err) {
+    console.error("Admin Users PATCH exception:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
   }
 }

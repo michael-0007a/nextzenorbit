@@ -30,14 +30,18 @@ export interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { label: "Apply Queue", href: "/admin/apply-queue", icon: Inbox, badge: "LIVE" },
-  { label: "All Users", href: "/admin/users", icon: Users },
+  { label: "My Clients", href: "/admin/apply-queue", icon: Inbox, badge: "LIVE" },
 ];
 
 const superAdminNavItems: NavItem[] = [
   { label: "Admin Team", href: "/admin/team", icon: Shield, requireSuperAdmin: true },
   { label: "SSO Users", href: "/admin/sso-users", icon: UserPlus, requireSuperAdmin: true },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3, requireSuperAdmin: true },
+];
+
+const supervisorAdminNavItems: NavItem[] = [
+  { label: "Allocate Clients", href: "/admin/users", icon: Users },
+  { label: "Admin Team", href: "/admin/team", icon: Shield },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -142,19 +146,37 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
       {/* Navigation Section */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         
-        {/* Main Nav */}
-        <div>
-          {!collapsed && (
-            <div className="px-3 mb-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                Workflow
-              </span>
-            </div>
-          )}
-          <nav className="space-y-1" aria-label="Main admin navigation">
-            {mainNavItems.map((item) => renderNavItem(item))}
-          </nav>
-        </div>
+        {/* Admin Nav */}
+        {!isSuperAdmin && role !== "supervisor_admin" && (
+          <div>
+            {!collapsed && (
+              <div className="px-3 mb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                  Workflow
+                </span>
+              </div>
+            )}
+            <nav className="space-y-1" aria-label="Main admin navigation">
+              {mainNavItems.map((item) => renderNavItem(item))}
+            </nav>
+          </div>
+        )}
+
+        {/* Supervisor Admin Nav */}
+        {role === "supervisor_admin" && (
+          <div>
+            {!collapsed && (
+              <div className="px-3 mb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                  Management
+                </span>
+              </div>
+            )}
+            <nav className="space-y-1" aria-label="Supervisor admin navigation">
+              {supervisorAdminNavItems.map((item) => renderNavItem(item))}
+            </nav>
+          </div>
+        )}
 
         {/* Super Admin Nav */}
         {isSuperAdmin && (
@@ -167,6 +189,7 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
               </div>
             )}
             <nav className="space-y-1" aria-label="Super admin navigation">
+              {supervisorAdminNavItems.filter(item => item.label === "Allocate Clients").map((item) => renderNavItem(item))}
               {superAdminNavItems.map((item) => renderNavItem(item))}
             </nav>
           </div>

@@ -91,6 +91,7 @@ export default async function ProfilePage({ searchParams }: Props) {
       years_of_experience: null,
       preferred_portals: [],
       has_agreed_to_terms: false,
+      assigned_admin_id: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
