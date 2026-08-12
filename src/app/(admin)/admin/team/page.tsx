@@ -167,6 +167,7 @@ export default function AdminTeamPage() {
                 className="w-full h-[42px] px-3 rounded-xl bg-white/5 border border-border/60 text-sm text-foreground outline-none focus:border-secondary transition-colors"
               >
                 <option value="admin" className="bg-surface text-foreground">Admin</option>
+                <option value="supervisor_admin" className="bg-surface text-foreground">Supervisor Admin</option>
                 <option value="super_admin" className="bg-surface text-foreground">Super Admin</option>
               </select>
             </div>
@@ -217,6 +218,10 @@ export default function AdminTeamPage() {
                         {member.role === 'super_admin' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent/10 text-accent border border-accent/20">
                             <Crown className="h-3 w-3" /> Super Admin
+                          </span>
+                        ) : member.role === 'supervisor_admin' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                            <Shield className="h-3 w-3" /> Supervisor Admin
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-secondary/10 text-secondary-light border border-secondary/20">

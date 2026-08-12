@@ -37,7 +37,7 @@ export async function requireAdmin(): Promise<AuthenticatedAdmin | Response> {
     .eq("id", user.id)
     .single();
 
-  if (!userRow || (userRow.role !== "admin" && userRow.role !== "super_admin")) {
+  if (!userRow || !["admin", "supervisor_admin", "super_admin"].includes(userRow.role)) {
     return apiError(ERROR_CODES.FORBIDDEN, "Admin access required.", 403);
   }
 

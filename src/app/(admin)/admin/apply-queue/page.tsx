@@ -26,7 +26,7 @@ export default async function AdminApplyQueuePage() {
         </div>
       </div>
 
-      <ApplyQueueClient adminId={adminAuth.userId} />
+      <ApplyQueueClient adminId={adminAuth.userId} adminRole={adminAuth.role} />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import { GlobalPaywall } from "@/components/subscription/global-paywall";
-import { NotificationBanner } from "@/components/ui/notification-banner";
 
 // Force dynamic rendering to always fetch fresh profile data
 export const dynamic = "force-dynamic";
@@ -102,7 +101,6 @@ export default async function DashboardLayout({
           isProfileComplete={profileComplete}
         />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <NotificationBanner />
           {children}
         </main>
       </div>

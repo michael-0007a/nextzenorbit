@@ -98,7 +98,7 @@ function generateUnifiedTemplate(content: ResumeContent): string {
 % Matches Live Preview exactly
 %-------------------------
 
-\\documentclass[letterpaper,11pt]{article}
+\\documentclass[a4paper,11pt]{article}
 
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}

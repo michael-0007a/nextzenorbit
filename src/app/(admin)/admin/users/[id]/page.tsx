@@ -19,6 +19,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type UserDetails = {
   id: string;
@@ -100,6 +101,12 @@ export default function AdminUserDetailsPage({
   const [error, setError] = useState<string | null>(null);
   const [sendingNotification, setSendingNotification] = useState(false);
 
+  const [showManualApp, setShowManualApp] = useState(false);
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualCompany, setManualCompany] = useState("");
+  const [manualUrl, setManualUrl] = useState("");
+  const [addingManualApp, setAddingManualApp] = useState(false);
+
   const fetchUser = async () => {
     try {
       const res = await fetch(`/api/admin/users/${resolvedParams.id}`);
@@ -151,6 +158,43 @@ export default function AdminUserDetailsPage({
       toast.error("Something went wrong.");
     } finally {
       setSendingNotification(false);
+    }
+  };
+
+  const handleAddManualApp = async () => {
+    if (!manualTitle || !manualCompany || !manualUrl) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setAddingManualApp(true);
+    try {
+      const res = await fetch("/api/admin/apply-queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id,
+          title: manualTitle,
+          company: manualCompany,
+          job_url: manualUrl,
+          admin_notes: "Manual Apply by Admin",
+          resume_id: user?.baseResume?.id || "",
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Manual application added");
+        setShowManualApp(false);
+        setManualTitle("");
+        setManualCompany("");
+        setManualUrl("");
+        fetchUser();
+      } else {
+        toast.error("Failed to add manual application");
+      }
+    } catch {
+      toast.error("An error occurred");
+    } finally {
+      setAddingManualApp(false);
     }
   };
 
@@ -572,7 +616,37 @@ export default function AdminUserDetailsPage({
                   Apply History ({user.queue.length})
                 </h3>
               </div>
+              <Button variant="secondary" className="text-xs h-8" onClick={() => setShowManualApp(true)}>
+                + Add Manual App
+              </Button>
             </div>
+
+            {showManualApp && (
+              <div className="p-4 rounded-xl bg-white/5 border border-border/40 mb-4 animate-fade-in">
+                <h4 className="text-sm font-semibold text-foreground mb-3">Add Manual Application</h4>
+                <div className="space-y-3">
+                  <Input 
+                    placeholder="Job Title" 
+                    value={manualTitle} 
+                    onChange={e => setManualTitle(e.target.value)} 
+                  />
+                  <Input 
+                    placeholder="Company Name" 
+                    value={manualCompany} 
+                    onChange={e => setManualCompany(e.target.value)} 
+                  />
+                  <Input 
+                    placeholder="Job URL" 
+                    value={manualUrl} 
+                    onChange={e => setManualUrl(e.target.value)} 
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button variant="ghost" className="h-8 text-xs" onClick={() => setShowManualApp(false)}>Cancel</Button>
+                    <Button variant="primary" className="h-8 text-xs" isLoading={addingManualApp} onClick={handleAddManualApp}>Add</Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {user.queue.length === 0 ? (
               <p className="text-sm text-text-secondary">

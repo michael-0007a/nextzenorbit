@@ -9,7 +9,7 @@ import type { ResumeContent } from "@/lib/validations/resume";
 
 // ── Enum types ──
 
-export type UserRole = "user" | "sso_user" | "admin" | "super_admin";
+export type UserRole = "user" | "sso_user" | "admin" | "supervisor_admin" | "super_admin";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "paused";
 export type PlanId = "free" | "pro" | "elite";
 export type PaymentProviderType = "payu" | "usd_gateway";

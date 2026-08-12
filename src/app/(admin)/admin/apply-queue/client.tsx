@@ -78,7 +78,7 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
 
 // ── Main Component ──
 
-export function ApplyQueueClient({ adminId }: { adminId: string }) {
+export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; adminRole: string }) {
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -406,14 +406,16 @@ export function ApplyQueueClient({ adminId }: { adminId: string }) {
                         </span>
                       )
                     ) : (
-                      <Button
-                        variant="secondary"
-                        className="text-xs h-8"
-                        onClick={() => handleClaimUser(group.user_id)}
-                        isLoading={claimingUser === group.user_id}
-                      >
-                        Claim User
-                      </Button>
+                      adminRole !== "admin" && (
+                        <Button
+                          variant="secondary"
+                          className="text-xs h-8"
+                          onClick={() => handleClaimUser(group.user_id)}
+                          isLoading={claimingUser === group.user_id}
+                        >
+                          Claim User
+                        </Button>
+                      )
                     )}
 
                     <Link

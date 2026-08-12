@@ -49,10 +49,10 @@ export function ResumePreview({
   const { contact, summary, experience, education, skills, projects, certifications, languages } = content;
   const template = getTemplate(templateId);
 
-  // Letter size dimensions (matches LaTeX US Letter: 612x792 pt)
-  const pageWidth = 612;
-  const pageHeight = 792;
-  const totalPages = Math.max(1, Math.ceil(contentHeight / pageHeight));
+  // A4 size dimensions (595x842 pt)
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const totalPages = 1; // Force 1 page restriction
 
   const headerAlign = template.layout.headerStyle === "centered" ? "center" : "left";
   const fontFamily = template.fonts.body === "Helvetica" ? "Arial, sans-serif" : "'Times New Roman', serif";
@@ -70,7 +70,7 @@ export function ResumePreview({
       >
         <div className="flex items-center gap-1.5 font-medium text-foreground">
           <FileText className="h-3.5 w-3.5 text-primary" />
-          <span>Paper Preview (US Letter)</span>
+          <span>Paper Preview (A4)</span>
         </div>
         <div className="flex items-center gap-2">
           <span
