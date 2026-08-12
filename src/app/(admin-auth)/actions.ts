@@ -38,7 +38,7 @@ export async function signInWithEmail(email: string, password: string) {
     .eq("id", data.user.id)
     .single();
 
-  if (!userRow || (userRow.role !== "admin" && userRow.role !== "super_admin")) {
+  if (!userRow || !["admin", "supervisor_admin", "super_admin"].includes(userRow.role)) {
     // Sign them out — they're not an admin
     await supabase.auth.signOut();
     return { error: "You don't have admin access. Please contact your administrator." };

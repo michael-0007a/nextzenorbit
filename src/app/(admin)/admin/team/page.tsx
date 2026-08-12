@@ -235,21 +235,15 @@ export default function AdminTeamPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {member.role === 'admin' ? (
-                          <button 
-                            onClick={() => handleUpdateRole(member.id, 'super_admin')}
-                            className="text-xs text-secondary-light hover:underline"
-                          >
-                            Promote
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => handleUpdateRole(member.id, 'admin')}
-                            className="text-xs text-text-secondary hover:underline"
-                          >
-                            Demote
-                          </button>
-                        )}
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                          className="text-xs bg-transparent text-text-secondary hover:text-foreground cursor-pointer outline-none font-medium text-right mr-2"
+                        >
+                          <option value="admin" className="bg-surface text-foreground">Admin</option>
+                          <option value="supervisor_admin" className="bg-surface text-foreground">Supervisor Admin</option>
+                          <option value="super_admin" className="bg-surface text-foreground">Super Admin</option>
+                        </select>
                         <span className="text-border/60">|</span>
                         <button 
                           onClick={() => handleRemove(member.id)}

@@ -111,7 +111,7 @@ export default function SubscriptionCheckout({
 
       if (paymentMethod === "usd" && !data.redirectUrl) {
         // USD gateway placeholder — show message
-        onFailure?.("USD payment gateway is being set up. Please use INR payment for now, or try again later.");
+        onFailure?.("Payment gateway is down right now. Please choose the INR option.");
         setLoading(false);
         return;
       }
