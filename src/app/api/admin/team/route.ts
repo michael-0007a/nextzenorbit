@@ -26,7 +26,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         id, email, role, created_at,
         profile:profiles(full_name, avatar_url)
       `)
-      .in("role", ["admin", "super_admin"])
+      .in("role", ["admin", "supervisor_admin", "super_admin"])
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -50,8 +50,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Email, password, and full name are required.");
     }
 
-    if (role !== "admin" && role !== "super_admin") {
-      return apiError(ERROR_CODES.VALIDATION_ERROR, "Role must be admin or super_admin.");
+    if (role !== "admin" && role !== "supervisor_admin" && role !== "super_admin") {
+      return apiError(ERROR_CODES.VALIDATION_ERROR, "Role must be admin, supervisor_admin, or super_admin.");
     }
 
     const admin = createAdminClient();
@@ -96,7 +96,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const body = await request.json();
     const { id, role } = body;
 
-    if (!id || (role !== "admin" && role !== "super_admin")) {
+    if (!id || (role !== "admin" && role !== "supervisor_admin" && role !== "super_admin")) {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid parameters.");
     }
 
