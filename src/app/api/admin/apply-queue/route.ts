@@ -25,114 +25,86 @@ function checkProfileComplete(profile: Record<string, unknown> | null): boolean 
   });
 }
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export async function GET(request: NextRequest): Promise<Response> {
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
 
     const { searchParams } = new URL(request.url);
-    const claimedBy = searchParams.get("claimed_by"); // 'me', 'unclaimed', or uuid
     const statusFilter = searchParams.get("status"); // optional
 
     const admin = createAdminClient();
 
-    // Fetch all queue items with user/profile/resume data
-    let query = admin
-      .from("job_queue")
+    // Fetch all users with their profiles and their job queue items
+    const { data: usersData, error } = await admin
+      .from("users")
       .select(`
-        *,
-        user:users!user_id(
-          id, email,
-          profile:profiles!profiles_user_id_fkey(full_name, avatar_url, preferred_role, location, phone, headline, assigned_admin_id)
+        id, email, role,
+        profile:profiles!profiles_user_id_fkey(
+          full_name, avatar_url, preferred_role, location, phone, headline, assigned_admin_id
         ),
-        resume:resumes!resume_id(id, title, target_role)
+        job_queue:job_queue!job_queue_user_id_fkey(
+          id, title, company, job_url, status, source, created_at, applied_at, admin_notes, assigned_to,
+          resume:resumes(id, title, target_role)
+        )
       `)
-      .order("created_at", { ascending: false })
-      .limit(500);
-
-    if (statusFilter) {
-      query = query.eq("status", statusFilter as any);
-    }
-
-    const { data, error } = await query;
+      .eq("role", "user");
 
     if (error) {
       console.error("Admin Apply Queue GET Error:", error);
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to fetch queue.");
     }
 
-    // Group items by user
-    const userMap = new Map<string, {
-      user_id: string;
-      full_name: string;
-      email: string;
-      avatar_url: string | null;
-      preferred_role: string | null;
-      profile_complete: boolean;
-      claimed_by: string | null;
-      claimed_at: string | null;
-      jobs: any[];
-      job_counts: { pending: number; processing: number; applied: number; failed: number; skipped: number };
-    }>();
-
-    for (const item of (data || []) as any[]) {
-      const userId = item.user_id;
-      const userInfo = item.user;
-      const profile = userInfo?.profile;
-
-      if (!userMap.has(userId)) {
-        userMap.set(userId, {
-          user_id: userId,
+    const users = (usersData || [])
+      .map((user: any) => {
+        // Safely unwrap nested arrays
+        const rawProfile = user.profile;
+        const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+        
+        let jobQueue = user.job_queue || [];
+        if (statusFilter) {
+          jobQueue = jobQueue.filter((j: any) => j.status === statusFilter);
+        }
+        
+        // Fix resume unwrapping from array if it is an array
+        jobQueue = jobQueue.map((job: any) => ({
+          ...job,
+          resume: Array.isArray(job.resume) ? job.resume[0] : job.resume
+        }));
+        
+        const jobCounts = { pending: 0, processing: 0, applied: 0, failed: 0, skipped: 0 };
+        for (const job of jobQueue) {
+          const st = job.status as string;
+          if (st in jobCounts) {
+            (jobCounts as any)[st]++;
+          }
+        }
+        
+        return {
+          user_id: user.id,
           full_name: profile?.full_name || "Unknown",
-          email: userInfo?.email || "",
+          email: user.email || "",
           avatar_url: profile?.avatar_url || null,
           preferred_role: profile?.preferred_role || null,
           profile_complete: checkProfileComplete(profile),
-          claimed_by: item.claimed_by,
-          claimed_at: item.claimed_at,
-          jobs: [],
-          job_counts: { pending: 0, processing: 0, applied: 0, failed: 0, skipped: 0 },
-        });
-      }
-
-      const group = userMap.get(userId)!;
-
-      // Add the job (strip nested user data to keep payload small)
-      group.jobs.push({
-        id: item.id,
-        title: item.title,
-        company: item.company,
-        job_url: item.job_url,
-        status: item.status,
-        source: item.source,
-        created_at: item.created_at,
-        applied_at: item.applied_at,
-        admin_notes: item.admin_notes,
-        assigned_to: item.assigned_to,
-        resume: item.resume,
-      });
-
-      // Count by status
-      const st = item.status as string;
-      if (st in group.job_counts) {
-        (group.job_counts as any)[st]++;
-      }
-
-      // Use the profile's assigned_admin_id
-      if (profile?.assigned_admin_id) {
-        group.claimed_by = profile.assigned_admin_id;
-      }
-    }
-
-    let users = Array.from(userMap.values());
-
-    // Filter by assigned admin if the user is a standard admin
-    if (adminAuth.role === "admin") {
-      users = users.filter((u) => u.claimed_by === adminAuth.userId);
-    }
-
-    // Sort by: most pending jobs first
-    users.sort((a, b) => b.job_counts.pending - a.job_counts.pending);
+          claimed_by: profile?.assigned_admin_id || null, // Authoritative claimed by
+          claimed_at: null, // no longer tracked at user level
+          jobs: jobQueue.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+          job_counts: jobCounts
+        };
+      })
+      .filter(u => {
+        // If the requester is an admin, they should ONLY see users assigned to them
+        if (adminAuth.role === "admin") {
+          return u.claimed_by === adminAuth.userId;
+        }
+        return true; // Super admins and supervisor admins see everyone
+      })
+      .sort((a, b) => b.job_counts.pending - a.job_counts.pending);
 
     return NextResponse.json(apiSuccess({ users }));
   } catch (err) {
