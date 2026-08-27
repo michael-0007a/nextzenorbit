@@ -7,6 +7,8 @@ import { User, Search, ChevronRight, Shield, AlertTriangle, CheckCircle2 } from 
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
+import { assignAdminToUser } from "./actions";
+
 type UserRow = {
   id: string;
   email: string;
@@ -94,18 +96,13 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
     }));
 
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "assign_admin", user_id: userId, admin_id: adminId || null }),
-      });
-      const json = await res.json();
-      if (json.success) {
+      const res = await assignAdminToUser(userId, adminId || null);
+      if (res.success) {
         toast.success(adminId ? "Admin assigned successfully!" : "Admin unassigned!");
         // Refresh silently in background to update any other stats if needed
         fetchUsers();
       } else {
-        toast.error(json.error?.message || "Failed to assign admin.");
+        toast.error(res.error || "Failed to assign admin.");
         setUsers(previousUsers); // Revert on failure
       }
     } catch {
