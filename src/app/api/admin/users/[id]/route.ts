@@ -13,6 +13,8 @@ import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
 const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -31,7 +33,7 @@ export async function GET(
       .from("users")
       .select(`
         id, email, role, created_at,
-        profile:profiles(
+        profile:profiles!profiles_user_id_fkey(
           full_name, avatar_url, preferred_role, location,
           phone, headline, linkedin_url,
           preferred_location, preferred_salary_min, preferred_salary_max,

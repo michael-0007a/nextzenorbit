@@ -14,6 +14,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSuperAdmin, requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest): Promise<Response> {
   try {
     const auth = await requireAdmin();

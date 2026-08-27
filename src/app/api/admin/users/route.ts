@@ -9,6 +9,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest): Promise<Response> {
   try {
     const adminAuth = await requireAdmin();
