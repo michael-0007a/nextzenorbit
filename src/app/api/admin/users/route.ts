@@ -30,9 +30,11 @@ export async function GET(request: NextRequest): Promise<Response> {
         role,
         created_at,
         profile:profiles!profiles_user_id_fkey(full_name, avatar_url, preferred_role, location, phone, headline, assigned_admin_id),
-        subscription:subscriptions(plan_id, status),
+        subscription:subscriptions!inner(plan_id, status),
         job_queue:job_queue!job_queue_user_id_fkey(status, claimed_by)
-      `, { count: "exact" });
+      `, { count: "exact" })
+      .eq("role", "user")
+      .in("subscriptions.status", ["active", "trialing"]);
 
     if (search) {
       query = query.ilike("email", `%${search}%`);

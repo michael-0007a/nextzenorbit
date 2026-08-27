@@ -1,5 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
-require("dotenv").config({ path: ".env.local" });
+const { loadEnvConfig } = require('@next/env');
+loadEnvConfig(process.cwd());
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

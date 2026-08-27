@@ -11,13 +11,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdmin, isAuthError } from "@/lib/admin/guards";
+import { requireSuperAdmin, requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
-    const auth = await requireSuperAdmin();
+    const auth = await requireAdmin();
     if (isAuthError(auth)) return auth;
+    
+    if (auth.role === "admin") {
+      return apiError(ERROR_CODES.FORBIDDEN, "Supervisor Admin access required.", 403);
+    }
 
     const admin = createAdminClient();
     const { data, error } = await admin

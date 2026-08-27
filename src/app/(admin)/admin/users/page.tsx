@@ -31,7 +31,7 @@ export default async function AdminUsersPage() {
         email,
         profile:profiles!profiles_user_id_fkey(full_name)
       `)
-      .in("role", ["admin", "supervisor_admin", "super_admin"]);
+      .eq("role", "admin");
       
     if (data) {
       admins = data as AdminUser[];
