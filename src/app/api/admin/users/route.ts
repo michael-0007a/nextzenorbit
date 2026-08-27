@@ -56,7 +56,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
 
     // Fetch assigned admin names
-    const allAssignedAdminIds = (data || []).map((u: any) => u.profile?.assigned_admin_id).filter(Boolean);
+    const allAssignedAdminIds = (data || []).map((u: any) => {
+      const p = Array.isArray(u.profile) ? u.profile[0] : u.profile;
+      return p?.assigned_admin_id;
+    }).filter(Boolean);
+    
     const uniqueAdminIds = [...new Set(allAssignedAdminIds)] as string[];
     
     let adminNames: Record<string, string> = {};
@@ -74,15 +78,19 @@ export async function GET(request: NextRequest): Promise<Response> {
     // Process data to include profile completeness and job stats
     const processedData = (data || [])
       .filter((user: any) => {
+        const p = Array.isArray(user.profile) ? user.profile[0] : user.profile;
         // If the requester is an admin, they should only see users assigned to them
         if (adminAuth.role === "admin") {
-          return user.profile?.assigned_admin_id === adminAuth.userId;
+          return p?.assigned_admin_id === adminAuth.userId;
         }
         return true;
       })
       .map((user: any) => {
+      // Safely unwrap nested arrays
+      const profile = Array.isArray(user.profile) ? user.profile[0] : user.profile;
+      const subscription = Array.isArray(user.subscription) ? user.subscription[0] : user.subscription;
+
       // Profile completeness
-      const profile = user.profile;
       const profileComplete = profile
         ? REQUIRED_PROFILE_FIELDS.every((f) => {
             const v = profile[f as keyof typeof profile];
@@ -95,11 +103,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       let claimedByName = claimedBy ? adminNames[claimedBy] || null : null;
       const jobCounts = { pending: 0, processing: 0, applied: 0, failed: 0, skipped: 0 };
       
-      if (user.job_queue) {
-        for (const job of user.job_queue) {
-          if (job.status in jobCounts) {
-            (jobCounts as any)[job.status]++;
-          }
+      const jobQueue = Array.isArray(user.job_queue) ? user.job_queue : (user.job_queue ? [user.job_queue] : []);
+      for (const job of jobQueue) {
+        if (job.status in jobCounts) {
+          (jobCounts as any)[job.status]++;
         }
       }
 
@@ -108,6 +115,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
       return {
         ...rest,
+        profile,
+        subscription,
         profileComplete,
         claimedBy,
         claimedByName,

@@ -49,7 +49,17 @@ export async function GET(
     }
 
     // Check profile completeness
-    const profile = (user as any).profile;
+    const rawProfile = (user as any).profile;
+    const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+    
+    // Also fix subscription array if it exists
+    if ((user as any).subscription && Array.isArray((user as any).subscription)) {
+      (user as any).subscription = (user as any).subscription[0];
+    }
+    
+    // Assign back the unwrapped profile so the frontend gets an object, not an array
+    (user as any).profile = profile;
+
     const profileComplete = profile
       ? REQUIRED_PROFILE_FIELDS.every((f: string) => {
           const v = profile[f];
