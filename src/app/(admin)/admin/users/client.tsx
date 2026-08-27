@@ -37,8 +37,12 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
     try {
       const url = new URL("/api/admin/users", window.location.origin);
       if (search) url.searchParams.set("search", search);
+      url.searchParams.set("t", Date.now().toString());
       
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" }
+      });
       const json = await res.json();
       
       if (json.success) {
