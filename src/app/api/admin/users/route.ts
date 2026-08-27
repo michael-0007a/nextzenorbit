@@ -10,6 +10,8 @@ import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {

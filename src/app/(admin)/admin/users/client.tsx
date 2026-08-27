@@ -72,6 +72,27 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
   }, [search]);
 
   const handleAssign = async (userId: string, adminId: string) => {
+    // Optimistic UI update
+    const previousUsers = [...users];
+    
+    // Find the admin's name
+    let adminName = null;
+    if (adminId) {
+      const admin = admins.find(a => a.id === adminId);
+      adminName = admin?.profile?.full_name || admin?.email || null;
+    }
+    
+    setUsers(prev => prev.map(u => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          claimedBy: adminId || null,
+          claimedByName: adminName
+        };
+      }
+      return u;
+    }));
+
     try {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
@@ -81,12 +102,15 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
       const json = await res.json();
       if (json.success) {
         toast.success(adminId ? "Admin assigned successfully!" : "Admin unassigned!");
+        // Refresh silently in background to update any other stats if needed
         fetchUsers();
       } else {
         toast.error(json.error?.message || "Failed to assign admin.");
+        setUsers(previousUsers); // Revert on failure
       }
     } catch {
       toast.error("Something went wrong.");
+      setUsers(previousUsers); // Revert on failure
     }
   };
 
