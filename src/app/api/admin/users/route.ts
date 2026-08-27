@@ -31,7 +31,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         created_at,
         profile:profiles!profiles_user_id_fkey(full_name, avatar_url, preferred_role, location, phone, headline, assigned_admin_id),
         subscription:subscriptions(plan_id, status),
-        job_queue(status, claimed_by)
+        job_queue:job_queue!job_queue_user_id_fkey(status, claimed_by)
       `, { count: "exact" });
 
     if (search) {
