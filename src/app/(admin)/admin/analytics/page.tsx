@@ -4,10 +4,21 @@ import { useState, useEffect } from "react";
 import { BarChart3, Users, Crown, Briefcase, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
+type AdminPerformance = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  clientsCount: number;
+  jobsApplied: number;
+  jobsPending: number;
+};
+
 type Stats = {
   users: { regular: number; sso: number; total: number };
   subscriptions: { pro_active: number };
   queue: { pending: number; applied: number; total: number };
+  adminPerformance?: AdminPerformance[];
 };
 
 export default function AdminAnalyticsPage() {
@@ -116,6 +127,65 @@ export default function AdminAnalyticsPage() {
           </p>
         </div>
       </div>
+
+      {/* Admin Performance Section */}
+      {stats.adminPerformance && stats.adminPerformance.length > 0 && (
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <h2 className="text-lg font-bold text-foreground">Admin Performance</h2>
+          </div>
+          <div className="rounded-xl border border-border/60 overflow-hidden bg-surface/30">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-white/5 text-text-secondary border-b border-border/60">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Admin</th>
+                  <th className="px-4 py-3 font-medium">Clients Handled</th>
+                  <th className="px-4 py-3 font-medium">Jobs Applied</th>
+                  <th className="px-4 py-3 font-medium">Jobs Pending</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {stats.adminPerformance.map((admin) => (
+                  <tr key={admin.id} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="font-medium text-foreground">{admin.name}</p>
+                        {admin.name !== admin.email && (
+                          <p className="text-xs text-text-secondary">{admin.email}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-secondary/10 text-secondary-light font-medium text-xs">
+                        {admin.clientsCount} clients
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-success/10 text-success font-medium text-xs">
+                        {admin.jobsApplied} applied
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-accent/10 text-accent font-medium text-xs">
+                        {admin.jobsPending} pending
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <a 
+                        href={`/admin/analytics/${admin.id}`}
+                        className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-white/5 text-foreground hover:bg-white/10 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m9 18 6-6-6-6"/></svg>
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

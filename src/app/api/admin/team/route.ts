@@ -26,13 +26,17 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     const admin = createAdminClient();
+    const rolesToFetch = auth.role === "supervisor_admin" 
+      ? ["admin", "supervisor_admin"] 
+      : ["admin", "supervisor_admin", "super_admin"];
+
     const { data, error } = await admin
       .from("users")
       .select(`
         id, email, role, created_at,
-        profile:profiles(full_name, avatar_url)
+        profile:profiles!profiles_user_id_fkey(full_name, avatar_url)
       `)
-      .in("role", ["admin", "supervisor_admin", "super_admin"])
+      .in("role", rolesToFetch)
       .order("created_at", { ascending: false });
 
     if (error) throw error;

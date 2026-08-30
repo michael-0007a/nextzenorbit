@@ -36,12 +36,12 @@ const mainNavItems: NavItem[] = [
 const superAdminNavItems: NavItem[] = [
   { label: "Admin Team", href: "/admin/team", icon: Shield, requireSuperAdmin: true },
   { label: "SSO Users", href: "/admin/sso-users", icon: UserPlus, requireSuperAdmin: true },
-  { label: "Analytics", href: "/admin/analytics", icon: BarChart3, requireSuperAdmin: true },
 ];
 
 const supervisorAdminNavItems: NavItem[] = [
   { label: "Allocate Clients", href: "/admin/users", icon: Users },
   { label: "Admin Team", href: "/admin/team", icon: Shield },
+  { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -189,7 +189,7 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
               </div>
             )}
             <nav className="space-y-1" aria-label="Super admin navigation">
-              {supervisorAdminNavItems.filter(item => item.label === "Allocate Clients").map((item) => renderNavItem(item))}
+              {supervisorAdminNavItems.filter(item => item.label === "Allocate Clients" || item.label === "Analytics").map((item) => renderNavItem(item))}
               {superAdminNavItems.map((item) => renderNavItem(item))}
             </nav>
           </div>
