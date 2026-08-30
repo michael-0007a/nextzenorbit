@@ -27,8 +27,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const admin = createAdminClient();
     const rolesToFetch = auth.role === "supervisor_admin" 
-      ? ["admin", "supervisor_admin"] 
-      : ["admin", "supervisor_admin", "super_admin"];
+      ? ["admin", "supervisor_admin"] as const
+      : ["admin", "supervisor_admin", "super_admin"] as const;
 
     const { data, error } = await admin
       .from("users")
