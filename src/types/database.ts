@@ -28,6 +28,7 @@ export type UserRow = {
   id: string;
   email: string;
   role: UserRole;
+  is_suspended: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -332,8 +333,8 @@ export type Database = {
     Tables: {
       users: {
         Row: UserRow;
-        Insert: { id: string; email: string; role?: UserRole };
-        Update: { email?: string; role?: UserRole };
+        Insert: { id: string; email: string; role?: UserRole; is_suspended?: boolean };
+        Update: { email?: string; role?: UserRole; is_suspended?: boolean };
         Relationships: [];
       };
       profiles: {

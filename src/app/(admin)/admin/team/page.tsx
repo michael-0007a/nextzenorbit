@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Shield, UserPlus, Trash2, Crown, ShieldAlert } from "lucide-react";
+import { Shield, UserPlus, Trash2, Crown, ShieldAlert, Key, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ type AdminUser = {
   id: string;
   email: string;
   role: string;
+  is_suspended?: boolean;
   created_at: string;
   profile: { full_name: string; avatar_url: string | null } | null;
 };
@@ -26,6 +27,11 @@ export default function AdminTeamPage() {
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("admin");
   const [creating, setCreating] = useState(false);
+
+  // Actions state
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchTeam = async () => {
     try {
@@ -114,6 +120,33 @@ export default function AdminTeamPage() {
     }
   };
 
+  const handleAction = async (userId: string, action: string, newPassword?: string) => {
+    try {
+      setActionLoading(true);
+      const res = await fetch("/api/admin/team/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, userId, newPassword }),
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        toast.success(json.data?.message || "Action successful");
+        if (action === "reset_password") {
+          setResetUserId(null);
+          setResetPassword("");
+        }
+        fetchTeam();
+      } else {
+        toast.error(json.error?.message || "Action failed");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -179,6 +212,34 @@ export default function AdminTeamPage() {
         </div>
       )}
 
+      {resetUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="glass-card w-full max-w-md rounded-2xl p-6 border-secondary/30 animate-fade-in shadow-2xl">
+            <h3 className="font-semibold text-foreground mb-4">Reset Password</h3>
+            <div className="space-y-4">
+              <Input
+                label="New Password"
+                type="text"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                placeholder="Enter new password (min 6 chars)"
+              />
+              <div className="flex justify-end gap-3 mt-4">
+                <Button variant="secondary" onClick={() => setResetUserId(null)} disabled={actionLoading}>Cancel</Button>
+                <Button 
+                  variant="primary" 
+                  onClick={() => handleAction(resetUserId, "reset_password", resetPassword)} 
+                  isLoading={actionLoading}
+                  className="bg-secondary text-white hover:bg-secondary-hover"
+                >
+                  Confirm Reset
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-2xl p-4">
         <div className="rounded-xl border border-border/60 overflow-hidden bg-surface/30">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -201,7 +262,7 @@ export default function AdminTeamPage() {
                 </tr>
               ) : (
                 team.map((member) => (
-                  <tr key={member.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={member.id} className={`transition-colors ${member.is_suspended ? "opacity-60 bg-error/5 hover:bg-error/10" : "hover:bg-white/5"}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-secondary-light font-bold text-xs">
@@ -245,6 +306,24 @@ export default function AdminTeamPage() {
                           <option value="super_admin" className="bg-surface text-foreground">Super Admin</option>
                         </select>
                         <span className="text-border/60">|</span>
+                        <button 
+                          onClick={() => setResetUserId(member.id)}
+                          className="text-text-secondary hover:text-foreground p-1"
+                          title="Reset Password"
+                        >
+                          <Key className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to ${member.is_suspended ? 'unsuspend' : 'suspend'} this user?`)) {
+                              handleAction(member.id, member.is_suspended ? 'unsuspend' : 'suspend');
+                            }
+                          }}
+                          className={`${member.is_suspended ? 'text-success hover:text-success/80' : 'text-warning hover:text-warning/80'} p-1`}
+                          title={member.is_suspended ? "Unsuspend User" : "Suspend User"}
+                        >
+                          {member.is_suspended ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                        </button>
                         <button 
                           onClick={() => handleRemove(member.id)}
                           className="text-error hover:text-error/80 p-1"

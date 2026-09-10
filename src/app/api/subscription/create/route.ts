@@ -19,7 +19,7 @@ import { apiError, ERROR_CODES } from "@/types/api";
 import type { PlanId } from "@/types/database";
 
 const createSubscriptionSchema = z.object({
-  plan: z.enum(["pro", "elite"]),
+  plan: z.enum(["free", "pro", "elite"]),
   currency: z.enum(["USD", "INR"]).optional(),
   paymentMethod: z.enum(["usd", "inr"]).optional(),
 });

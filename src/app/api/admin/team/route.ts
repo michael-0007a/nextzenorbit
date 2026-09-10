@@ -33,7 +33,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const { data, error } = await admin
       .from("users")
       .select(`
-        id, email, role, created_at,
+        id, email, role, created_at, is_suspended,
         profile:profiles!profiles_user_id_fkey(full_name, avatar_url)
       `)
       .in("role", rolesToFetch)
