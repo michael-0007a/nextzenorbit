@@ -32,16 +32,16 @@ interface SubscriptionCheckoutProps {
 
 const PLAN_DISPLAY = {
   free: {
-    name: "Plan 1",
-    description: "Plan 1 monthly subscription",
+    name: "Silver",
+    description: "Silver monthly subscription",
   },
   pro: {
-    name: "Plan 2",
-    description: "Plan 2 monthly subscription",
+    name: "Gold",
+    description: "Gold monthly subscription",
   },
   elite: {
-    name: "Plan 3",
-    description: "Plan 3 monthly subscription",
+    name: "Elite",
+    description: "Elite monthly subscription",
   },
 } as const;
 

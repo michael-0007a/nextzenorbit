@@ -371,18 +371,6 @@ export default function AdminUserDetailsPage({
                 Free Plan (No active subscription)
               </p>
             )}
-            {/* Manual activation button — shows when subscription is not active */}
-            {(!user.subscription || user.subscription.status !== "active") && (
-              <Button
-                variant="primary"
-                className="w-full mt-4 text-xs"
-                leftIcon={<CreditCard className="h-3.5 w-3.5" />}
-                isLoading={activatingSubscription}
-                onClick={() => handleActivateSubscription()}
-              >
-                Activate Subscription (30 days)
-              </Button>
-            )}
           </div>
 
           {/* Admin Actions */}
