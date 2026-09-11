@@ -339,7 +339,10 @@ export default function AdminUserDetailsPage({
                 <div className="flex justify-between py-2 border-b border-border/60">
                   <span className="text-text-secondary">Plan</span>
                   <span className="font-medium capitalize">
-                    {user.subscription.plan_id}
+                    {user.subscription.plan_id === 'free' ? 'Silver' : 
+                     user.subscription.plan_id === 'pro' ? 'Gold' : 
+                     user.subscription.plan_id === 'elite' ? 'Elite' : 
+                     user.subscription.plan_id}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border/60">

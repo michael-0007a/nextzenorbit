@@ -235,7 +235,12 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
                     <td className="px-4 py-3">
                       {user.subscription ? (
                         <div>
-                          <p className="font-medium text-foreground capitalize">{user.subscription.plan_id}</p>
+                          <p className="font-medium text-foreground capitalize">
+                            {user.subscription.plan_id === 'free' ? 'Silver' : 
+                             user.subscription.plan_id === 'pro' ? 'Gold' : 
+                             user.subscription.plan_id === 'elite' ? 'Elite' : 
+                             user.subscription.plan_id}
+                          </p>
                           <p className={`text-[10px] uppercase font-bold tracking-wider ${user.subscription.status === 'active' ? 'text-success' : 'text-warning'}`}>
                             {user.subscription.status}
                           </p>
