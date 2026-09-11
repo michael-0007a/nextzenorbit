@@ -78,13 +78,15 @@ export function AdminResumeGeneratorClient({
 
     setOptimizing(true);
     try {
-      // We use the existing user resume optimize endpoint
-      const response = await fetch(`/api/resumes/${baseResume.id}/optimize`, {
+      // Use admin-specific optimize endpoint (bypasses subscription, doesn't mutate original)
+      const response = await fetch(`/api/admin/resumes/optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId,
+          resumeId: baseResume.id,
           jobDescription,
-          embellishmentLevel: "moderate", // Admins use moderate by default
+          embellishmentLevel: "moderate",
         }),
       });
 

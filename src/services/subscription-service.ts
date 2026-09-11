@@ -112,21 +112,26 @@ export async function activateSubscription(
     subscriptionId?: string; // Optional if you want to use it instead of subscriptionIdOrUserId
   }
 ): Promise<void> {
+  // Auto-set billing period if not provided
+  const now = new Date();
+  const defaultPeriodEnd = new Date(now);
+  defaultPeriodEnd.setDate(defaultPeriodEnd.getDate() + 30);
+
   const updatePayload: Record<string, unknown> = {
     status: data.status || "active",
+    current_period_start: data.currentPeriodStart || now.toISOString(),
+    current_period_end: data.currentPeriodEnd || defaultPeriodEnd.toISOString(),
   };
 
   if (data.planId) updatePayload.plan_id = data.planId;
-  if (data.currentPeriodStart) updatePayload.current_period_start = data.currentPeriodStart;
-  if (data.currentPeriodEnd) updatePayload.current_period_end = data.currentPeriodEnd;
+
+  // If subscriptionId provided, also update the payu_subscription_id to ensure consistency
+  if (data.subscriptionId) updatePayload.payu_subscription_id = data.subscriptionId;
 
   let query = dbUpdate(admin, "subscriptions", updatePayload as any);
 
-  if (data.subscriptionId) {
-    query = query.eq("payu_subscription_id", data.subscriptionId);
-  } else {
-    query = query.eq("user_id", subscriptionIdOrUserId);
-  }
+  // Use user_id for the lookup — this is the most reliable key
+  query = query.eq("user_id", subscriptionIdOrUserId);
 
   const { error } = await query;
   if (error) {
@@ -135,7 +140,7 @@ export async function activateSubscription(
   }
 
   console.log(
-    `[subscription-service] Subscription activated: id=${subscriptionIdOrUserId} provider=payu`
+    `[subscription-service] Subscription activated: user=${subscriptionIdOrUserId} status=${data.status || "active"} period_end=${updatePayload.current_period_end}`
   );
 }
 

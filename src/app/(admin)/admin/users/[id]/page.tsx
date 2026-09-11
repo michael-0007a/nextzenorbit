@@ -17,6 +17,7 @@ import {
   FileSignature,
   Send,
   Wand2,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +107,7 @@ export default function AdminUserDetailsPage({
   const [manualCompany, setManualCompany] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [addingManualApp, setAddingManualApp] = useState(false);
+  const [activatingSubscription, setActivatingSubscription] = useState(false);
 
   const fetchUser = async () => {
     try {
@@ -195,6 +197,33 @@ export default function AdminUserDetailsPage({
       toast.error("An error occurred");
     } finally {
       setAddingManualApp(false);
+    }
+  };
+
+  const handleActivateSubscription = async (planId?: string) => {
+    if (!user) return;
+    setActivatingSubscription(true);
+    try {
+      const res = await fetch("/api/admin/subscription/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          plan_id: planId || user.subscription?.plan_id || "pro",
+          duration_days: 30,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(`Subscription activated! Plan: ${json.data.plan_id}, expires: ${new Date(json.data.current_period_end).toLocaleDateString()}`);
+        fetchUser();
+      } else {
+        toast.error(json.error?.message || "Failed to activate subscription.");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setActivatingSubscription(false);
     }
   };
 
@@ -341,6 +370,18 @@ export default function AdminUserDetailsPage({
               <p className="text-sm text-text-secondary">
                 Free Plan (No active subscription)
               </p>
+            )}
+            {/* Manual activation button — shows when subscription is not active */}
+            {(!user.subscription || user.subscription.status !== "active") && (
+              <Button
+                variant="primary"
+                className="w-full mt-4 text-xs"
+                leftIcon={<CreditCard className="h-3.5 w-3.5" />}
+                isLoading={activatingSubscription}
+                onClick={() => handleActivateSubscription()}
+              >
+                Activate Subscription (30 days)
+              </Button>
             )}
           </div>
 
