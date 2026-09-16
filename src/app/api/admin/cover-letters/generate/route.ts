@@ -1,3 +1,4 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Admin API: Generate Cover Letter
  *
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const prompt = COVER_LETTER_PROMPT_V1;
 
     const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
       model: prompt.model,
       messages: [
         { role: "system", content: prompt.system },

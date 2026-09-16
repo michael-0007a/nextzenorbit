@@ -1,8 +1,9 @@
+import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
 /**
  * Job Analyzer Prompts — v1.0.0
  *
  * AI prompts for job description analysis and keyword extraction.
- * Provider: Groq (llama-3.3-70b-versatile)
+ * Provider: Groq (openai/gpt-oss-120b)
  */
 
 export interface AnalysisResult {
@@ -46,7 +47,7 @@ export interface GapAnalysis {
 export const JOB_ANALYZER_PROMPT_V2 = {
   version: "2.0.0",
   name: "job_analyzer_v2",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are an expert ATS (Applicant Tracking System) analyzer specializing in the Indian job market. Your task is to analyze how well a resume matches a job description.
 
@@ -94,7 +95,7 @@ Return ONLY valid JSON.`,
 export const JD_EXTRACTOR_PROMPT = {
   version: "1.0.0",
   name: "jd_extractor",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are a job description parser. Extract structured information from raw job posting text.
 

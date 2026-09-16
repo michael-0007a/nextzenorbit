@@ -1,7 +1,8 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Resume Parser — AI-Powered Resume Text Extraction
  *
- * Extracts text from PDF/DOCX, sends to Groq (llama-3.3-70b-versatile),
+ * Extracts text from PDF/DOCX, sends to Groq (openai/gpt-oss-120b),
  * returns validated ResumeContent.
  *
  * On parse failure: returns empty skeleton for manual entry.
@@ -113,6 +114,7 @@ export async function parseResumeWithAI(
 
   try {
     const completion = await getGroq().chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
       model: RESUME_PARSER_PROMPT_V1.model,
       messages: [
         {

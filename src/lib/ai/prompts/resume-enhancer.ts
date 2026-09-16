@@ -1,14 +1,15 @@
+import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
 /**
  * AI Bullet Rewriter Prompt — v1.0.0
  *
  * Optimizes resume bullet points for impact and ATS compatibility.
- * Provider: Groq (llama-3.3-70b-versatile)
+ * Provider: Groq (openai/gpt-oss-120b)
  */
 
 export const BULLET_REWRITER_PROMPT_V1 = {
   version: "1.0.0",
   name: "bullet_rewriter",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are a resume writer who improves bullet points to be clearer and more professional while sounding natural and human.
 
@@ -59,12 +60,12 @@ Return ONLY a JSON object with the rewritten bullets:
  * Cover Letter Generator Prompt — v1.0.0
  *
  * Generates personalized cover letters based on resume and job description.
- * Provider: Groq (llama-3.3-70b-versatile)
+ * Provider: Groq (openai/gpt-oss-120b)
  */
 export const COVER_LETTER_PROMPT_V1 = {
   version: "1.0.0",
   name: "cover_letter_generator",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are an expert cover letter writer who creates compelling, personalized cover letters for the Indian job market.
 
@@ -139,7 +140,7 @@ Write a compelling cover letter that connects this applicant's experience to thi
 export const SUMMARY_GENERATOR_PROMPT_V1 = {
   version: "1.0.0",
   name: "summary_generator",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are an expert resume writer. Generate a compelling professional summary (3-4 sentences) based on the candidate's experience.
 

@@ -1,3 +1,4 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Resume Tailoring API
  *
@@ -85,6 +86,7 @@ Missing/Gap Skills: ${missingSkills?.join(", ") || "None provided"}
 
     // Call AI
     const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
       model: RESUME_TAILOR_PROMPT_V1.model,
       messages: [
         { role: "system", content: RESUME_TAILOR_PROMPT_V1.system },

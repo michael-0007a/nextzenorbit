@@ -1,3 +1,4 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Admin API: Resume Optimization
  *
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
 
     const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
         { role: "system", content: systemPrompt },

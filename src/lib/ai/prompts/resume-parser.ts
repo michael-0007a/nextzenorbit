@@ -1,9 +1,10 @@
+import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
 /**
  * Resume Parser Prompt — v1.0.0
  *
  * Versioned prompt for AI-powered resume text extraction.
  * Used by the resume upload flow.
- * Provider: Groq (llama-3.3-70b-versatile)
+ * Provider: Groq (openai/gpt-oss-120b)
  *
  * NEVER inline prompts in route handlers — always reference from here.
  */
@@ -11,7 +12,7 @@
 export const RESUME_PARSER_PROMPT_V1 = {
   version: "1.0.0",
   name: "resume_parser",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are a precise resume data extractor. Your ONLY task is to convert raw resume text into a structured JSON object.
 

@@ -76,3 +76,7 @@ PayU implementation references: https://docs.payu.in/docs/hashing-request-and-re
 If migration 035 fails with `column "payu_subscription_id" does not exist`, use the corrected local `035_payment_orders_and_access.sql` and rerun `npx supabase db push`. The migration now adds the PayU transaction column before the backfill and updates the original Razorpay/Cashfree provider constraint to permit PayU. Existing provider records are preserved. Retry-safe DDL also handles objects left by an interrupted/manual attempt. Do not mark this failed migration applied or delete migration history.
 
 Regression tests use the actual `subscriptions` table definition from migration 001, including its provider constraint, and cover installations where PayU was already configured. They verify activation and repeated migration execution without duplicating payment records or extending billing periods.
+
+## Groq model selection
+
+All application text generation uses `openai/gpt-oss-120b`, selected from the enabled Groq model list. The shared model/settings live in `src/lib/ai/model.ts`; resume parsing, optimization, cover letters, job analysis and notes use it. There is no fallback to unavailable Llama models. Redeploy the app after changing this configuration; no database migration is required. Groq reference: https://console.groq.com/docs/model/openai/gpt-oss-120b.

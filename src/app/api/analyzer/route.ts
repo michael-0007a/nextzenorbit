@@ -1,3 +1,4 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Job Analyzer API Route — v2.0
  *
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Call Groq API with enhanced prompt
     const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
       model: JOB_ANALYZER_PROMPT_V2.model,
       messages: [
         { role: "system", content: JOB_ANALYZER_PROMPT_V2.system },

@@ -1,15 +1,16 @@
+import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
 /**
  * AI Resume Improver Prompt — v2.0.0
  *
  * Full resume optimization for ATS compatibility and professional impact.
  * Creates an improved version of the entire resume.
- * Provider: Groq (llama-3.3-70b-versatile)
+ * Provider: Groq (openai/gpt-oss-120b)
  */
 
 export const RESUME_IMPROVER_PROMPT_V1 = {
   version: "2.0.0",
   name: "resume_improver",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are an expert resume writer focused on clarity, professionalism, and authenticity. Your task is to improve a resume while keeping it honest and natural-sounding.
 
@@ -74,7 +75,7 @@ export type EmbellishmentLevel = "conservative" | "moderate" | "aggressive";
 export const JD_OPTIMIZER_PROMPT_V1 = {
   version: "2.0.0",
   name: "jd_optimizer",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   getSystemPrompt: (level: EmbellishmentLevel) => {
     const baseRules = `You are an expert resume writer who tailors resumes to match job descriptions while maintaining authenticity. You write like a human, not an AI.

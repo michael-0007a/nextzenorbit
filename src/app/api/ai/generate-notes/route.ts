@@ -1,3 +1,4 @@
+import { GROQ_TEXT_MODEL, GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 // API Route: /api/ai/generate-notes
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_TEXT_MODEL,
+        ...GROQ_TEXT_OPTIONS,
         messages: [
           { role: 'system', content: 'You are a career expert creating concise, helpful study notes.' },
           { role: 'user', content: `Create detailed study notes about the following topic: ${topic}. Focus on key concepts, best practices, and interview preparation if applicable. Format the response in Markdown.` }

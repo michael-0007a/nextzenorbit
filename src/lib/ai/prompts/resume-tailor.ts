@@ -1,14 +1,15 @@
+import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
 /**
  * Smart Resume Tailoring Prompts — v1.0.0
  *
  * AI prompts for intelligent resume tailoring based on job requirements.
- * Provider: Groq (llama-3.3-70b-versatile)
+ * Provider: Groq (openai/gpt-oss-120b)
  */
 
 export const RESUME_TAILOR_PROMPT_V1 = {
   version: "1.0.0",
   name: "resume_tailor",
-  model: "llama-3.3-70b-versatile",
+  model: GROQ_TEXT_MODEL,
 
   system: `You are a resume writer who helps tailor resumes for specific jobs while keeping content authentic and natural-sounding.
 

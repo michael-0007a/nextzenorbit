@@ -1,3 +1,4 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * AI Resume Improvement API
  *
@@ -88,6 +89,7 @@ export async function POST(
 
     // Call AI for improvement
     const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
       model: RESUME_IMPROVER_PROMPT_V1.model,
       messages: [
         { role: "system", content: RESUME_IMPROVER_PROMPT_V1.system },

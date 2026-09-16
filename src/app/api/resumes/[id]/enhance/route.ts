@@ -1,3 +1,4 @@
+import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * AI Resume Enhancement API
  *
@@ -108,6 +109,7 @@ export async function POST(
       const prompt = BULLET_REWRITER_PROMPT_V1;
 
       const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
         model: prompt.model,
         messages: [
           { role: "system", content: prompt.system },
@@ -151,6 +153,7 @@ export async function POST(
       const prompt = SUMMARY_GENERATOR_PROMPT_V1;
 
       const completion = await groq.chat.completions.create({
+      ...GROQ_TEXT_OPTIONS,
         model: prompt.model,
         messages: [
           { role: "system", content: prompt.system },

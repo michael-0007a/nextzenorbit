@@ -6,7 +6,7 @@
  * Accepts PDF/DOCX file via multipart/form-data.
  * 1. Stores raw file in Supabase Storage (resume-uploads bucket)
  * 2. Extracts text from file
- * 3. Sends text to Groq (llama-3.3-70b-versatile) for structured parsing
+ * 3. Sends text to Groq (openai/gpt-oss-120b) for structured parsing
  * 4. Creates a new resume row with parsed content
  * 5. Deducts AI tokens from user's budget
  *
