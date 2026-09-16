@@ -5,7 +5,7 @@
 1. Apply `supabase/migrations/033_signup_review.sql` to the target Supabase project before deploying the application. It creates the review tables, private resume bucket, atomic rate-limit counters, and service-only submission/review functions. It also removes direct user-table writes from browser roles so users cannot promote themselves.
 2. Keep the existing Google OAuth provider configured and require email confirmation for any enabled email/password registration.
 3. Keep Supabase Auth's own rate limits enabled: requests made directly to Supabase do not pass through this application's counters. SMS setup is not required.
-4. Deploy application code with the existing Supabase service-role and Groq credentials. Do not expose service-role credentials to the browser. Resume processing needs Groq; submission remains incomplete if parsing fails.
+4. Deploy application code with the existing Supabase service-role credentials. Do not expose them to the browser. Groq parsing is optional during signup: applications retain their original uploaded document when parsing fails or times out.
 5. Run the acceptance checks below using test accounts and payment sandbox credentials.
 
 The migration explicitly marks all existing public user accounts as approved legacy accounts. New normal users have no access until their application is approved. Admin and SSO accounts retain their intended access; suspended accounts are denied.
@@ -18,7 +18,7 @@ If the push applied `033_signup_review.sql` and then failed on `033_user_suspens
 
 - Google registration/sign-in sends new users to `/onboarding`.
 - Required fields: name, phone with country code, professional headline, location, preferred role/location/work arrangement, years of experience; LinkedIn, salary range and preferred portals are optional.
-- Phone numbers are entered by the applicant, without SMS or OTP verification. A PDF or DOCX under 5 MB must be uploaded, readable, and processed. Consent is captured with version and timestamp.
+- Phone numbers are entered by the applicant, without SMS or OTP verification. A PDF or DOCX under 5 MB must be uploaded. Consent is captured with version and timestamp. Scanned documents and AI outages do not block submission; admins can review the original file.
 - Submission stores a snapshot of the reviewed profile, a private original resume, and a parsed base resume in one database transaction.
 - Supervisors and super admins review `/admin/signup-applications`. Ordinary admins cannot make review decisions or download the original application file from the review endpoint.
 - Pending/rejected users cannot enter the dashboard or call protected app APIs. Both checkout endpoints and manual subscription activation explicitly require approval.

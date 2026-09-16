@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AdminOriginalFiles } from "@/components/resume/admin-original-files";
 
 type UserDetails = {
   id: string;
@@ -43,6 +44,7 @@ type UserDetails = {
     current_period_end: string | null;
   } | null;
   resumes: Array<{
+    has_export_content: boolean;
     id: string;
     title: string;
     is_base: boolean;
@@ -51,6 +53,7 @@ type UserDetails = {
     updated_at: string;
   }>;
   baseResume: {
+    has_export_content: boolean;
     id: string;
     title: string;
     template_id: string | null;
@@ -452,6 +455,7 @@ export default function AdminUserDetailsPage({
 
         {/* Right Col: Resumes, Cover Letters & Queue */}
         <div className="md:col-span-2 space-y-6">
+          <AdminOriginalFiles userId={user.id} />
           {/* Base Resume Section */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -476,12 +480,12 @@ export default function AdminUserDetailsPage({
                   </div>
                 </div>
                 <button
-                  onClick={() => downloadResume(user.baseResume!.id, user.baseResume!.title)}
+                  onClick={() => user.baseResume!.has_export_content ? downloadResume(user.baseResume!.id, user.baseResume!.title) : document.getElementById("original-files")?.scrollIntoView({ behavior: "smooth" })}
                   disabled={downloadingResume !== null}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  {downloadingResume === user.baseResume.id ? "Downloading..." : "Download PDF"}
+                  {!user.baseResume.has_export_content ? "View original files" : downloadingResume === user.baseResume.id ? "Downloading..." : "Download PDF"}
                 </button>
               </div>
             ) : (
@@ -547,11 +551,11 @@ export default function AdminUserDetailsPage({
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => downloadResume(resume.id, resume.title)}
+                        onClick={() => resume.has_export_content ? downloadResume(resume.id, resume.title) : document.getElementById("original-files")?.scrollIntoView({ behavior: "smooth" })}
                         disabled={downloadingResume !== null}
                         className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
                       >
-                        {downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
+                        {!resume.has_export_content ? "View original files" : downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
                       </button>
                     </div>
                   </div>

@@ -15,7 +15,7 @@ import { ResumePDF } from "@/lib/resume/pdf-document";
 import { getTemplate } from "@/lib/resume/templates";
 import { generateLatex } from "@/lib/resume/latex-templates";
 import { generateWordDocument } from "@/lib/resume/word-document";
-import { resumeContentSchema } from "@/lib/validations/resume";
+import { parseExportContent, hasResumeBody } from "@/lib/resume/export-content";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
 
@@ -109,9 +109,10 @@ export async function GET(
     }
 
     const typedResume = resume as ResumeRow;
+    if (!hasResumeBody(typedResume.content)) return apiError(ERROR_CODES.VALIDATION_ERROR, "This resume has no parsed content. Download the original document from Original uploaded files in the client details page.", 422);
 
     // Parse and validate content
-    const contentResult = resumeContentSchema.safeParse(typedResume.content);
+    const contentResult = parseExportContent(typedResume.content);
     if (!contentResult.success) {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid resume content.", 400);
     }

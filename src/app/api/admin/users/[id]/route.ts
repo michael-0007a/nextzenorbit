@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+import { hasResumeBody } from "@/lib/resume/export-content";
 
 const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
 
@@ -108,13 +109,14 @@ export async function GET(
       .limit(10);
 
     // Find the base resume
-    const baseResume = (resumes || []).find((r: any) => r.is_base) || null;
+    const displayResumes = (resumes || []).map(resume => ({ ...resume, has_export_content: hasResumeBody(resume.content) }));
+    const baseResume = displayResumes.find(resume => resume.is_base) || null;
 
     return NextResponse.json(
       apiSuccess({
         ...user,
         profileComplete,
-        resumes: resumes || [],
+        resumes: displayResumes,
         baseResume,
         queue: queue || [],
         adminResumes: adminResumes || [],

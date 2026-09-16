@@ -225,6 +225,7 @@ export async function POST(request: Request): Promise<Response> {
         user_id: user.id,
         title,
         content: content as ResumeContent,
+        file_url: uploadError ? null : `resume-uploads/${fileName}`,
         is_base: true,
       })
       .select()

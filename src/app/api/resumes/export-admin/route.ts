@@ -13,7 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { ResumePDF } from "@/lib/resume/pdf-document";
 import { getTemplate } from "@/lib/resume/templates";
-import { resumeContentSchema } from "@/lib/validations/resume";
+import { parseExportContent } from "@/lib/resume/export-content";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { AdminResumeRow } from "@/types/database";
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const typedResume = resume as unknown as AdminResumeRow;
 
     // Parse and validate content
-    const contentResult = resumeContentSchema.safeParse(typedResume.content);
+    const contentResult = parseExportContent(typedResume.content);
     if (!contentResult.success) {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid resume content.", 400);
     }

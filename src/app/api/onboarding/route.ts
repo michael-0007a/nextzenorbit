@@ -4,7 +4,8 @@ import { getApplicationAccess } from "@/lib/onboarding";
 import { rateLimit } from "@/lib/rate-limit";
 import { CONSENT_VERSION, onboardingProfileSchema } from "@/lib/validations/onboarding";
 import { extractText, parseResumeWithAI } from "@/lib/ai/parsers/resume-parser";
-import { resumeContentSchema } from "@/lib/validations/resume";
+import { createEmptyResumeContent } from "@/lib/validations/resume";
+import { parseExportContent } from "@/lib/resume/export-content";
 
 export async function POST(request: Request) {
   const admin = createAdminClient();
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     if (Number(request.headers.get("content-length")) > 6 * 1024 * 1024) return Response.json({ error: { message: "Resume must be under 5 MB." } }, { status: 413 });
     const form = await request.formData();
     const profile = onboardingProfileSchema.safeParse(JSON.parse(String(form.get("profile") || "null")));
-    if (!profile.success) return Response.json({ error: { message: profile.error.issues[0]?.message || "Complete the required profile fields and consent." } }, { status: 400 });
+    if (!profile.success) return Response.json({ error: { message: "Please correct the highlighted fields.", fields: profile.error.flatten().fieldErrors } }, { status: 400 });
     const { data: blocks, error: blockError } = await admin.from("registration_blocks").select("kind").in("value", [user.email?.trim().toLowerCase() || "", profile.data.phone.slice(1)]).limit(1);
     if (blockError) throw blockError;
     if (blocks?.length) return Response.json({ error: { message: "Registration is unavailable with these contact details." } }, { status: 403 });
@@ -32,11 +33,26 @@ export async function POST(request: Request) {
     if (isPdf ? buffer.subarray(0, 5).toString() !== "%PDF-" : buffer.subarray(0, 2).toString() !== "PK") {
       return Response.json({ error: { message: "The uploaded file is not a valid PDF or DOCX." } }, { status: 400 });
     }
-    const text = await extractText(buffer, file.type);
-    if (text.trim().length < 50) return Response.json({ error: { message: "We could not read your resume. Upload a PDF with selectable text or a DOCX file." } }, { status: 400 });
-    const parsed = await parseResumeWithAI(text);
-    if (!parsed.parsedByAI) return Response.json({ error: { message: "Resume processing is temporarily unavailable. Your application has not been submitted; please try again." } }, { status: 503 });
-    const content = resumeContentSchema.parse({ ...parsed.content, contact: { ...parsed.content.contact, full_name: profile.data.full_name, email: user.email, phone: profile.data.phone, location: profile.data.location } });
+    const fallback = createEmptyResumeContent({ full_name: profile.data.full_name, email: user.email || "", phone: profile.data.phone, location: profile.data.location });
+    let content = fallback;
+    // The original document is sufficient for admin review. AI is optional and
+    // time-bounded so a provider outage cannot block a valid application.
+    const text = await extractText(buffer, file.type).catch(() => "");
+    if (text.trim()) fallback.custom_sections = [{ id: "uploaded-text", title: "Uploaded resume text", content: text.slice(0, 3000) }];
+    if (text.trim().length >= 50) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const parsed = await Promise.race([
+          parseResumeWithAI(text),
+          new Promise<null>(resolve => { timeout = setTimeout(() => resolve(null), 8000); }),
+        ]);
+        if (parsed?.parsedByAI) {
+          const result = parseExportContent({ ...parsed.content, contact: fallback.contact });
+          if (result.success) content = result.data;
+        }
+      } catch { /* Keep the original document available for manual review. */ }
+      finally { if (timeout) clearTimeout(timeout); }
+    }
     uploadedPath = `${user.id}/${crypto.randomUUID()}.${isPdf ? "pdf" : "docx"}`;
     const { error: uploadError } = await admin.storage.from("signup-resumes").upload(uploadedPath, buffer, { contentType: file.type });
     if (uploadError) throw uploadError;
@@ -52,7 +68,7 @@ export async function POST(request: Request) {
     return Response.json({ success: true }, { status: 201 });
   } catch (error) {
     console.error("Application submission failed:", error);
-    return Response.json({ error: { message: "Unable to submit your application. Refresh to check its status before trying again." } }, { status: 400 });
+    return Response.json({ error: { message: "Unable to save your application. Your form is preserved; please try again." } }, { status: 503 });
   } finally {
     if (uploadedPath) {
       // Preserve the file if a network error hid a committed transaction.
