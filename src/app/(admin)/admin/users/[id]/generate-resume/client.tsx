@@ -53,6 +53,7 @@ export function AdminResumeGeneratorClient({
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [uploadWarning, setUploadWarning] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
@@ -71,7 +72,7 @@ export function AdminResumeGeneratorClient({
 
   async function uploadSource() {
     if (!file) return;
-    setUploading(true); setUploadError("");
+    setUploading(true); setUploadError(""); setUploadWarning("");
     try {
       const form = new FormData(); form.set("file", file); form.set("userId", userId);
       const response = await fetch("/api/admin/resumes/upload", { method: "POST", body: form });
@@ -79,7 +80,8 @@ export function AdminResumeGeneratorClient({
       if (!response.ok) throw new Error(result.error?.message || "Upload failed.");
       const resume = result.data.resume;
       setSources(previous => [resume, ...previous]); setSourceId(resume.id); setContent(resume.content); setFile(null);
-      toast.success("Resume parsed and selected. Review the preview before saving.");
+      setUploadWarning(result.data.warning || "");
+      toast.success(result.data.parsedByAI ? "Resume parsed and selected. Review the preview before saving." : "Resume text imported and selected. Review is required.");
     } catch (error) { setUploadError(error instanceof Error ? error.message : "Upload failed."); }
     finally { setUploading(false); }
   }
@@ -219,13 +221,14 @@ export function AdminResumeGeneratorClient({
               <label className="block text-sm font-medium">Saved resumes
                 <select className="mt-2 w-full rounded-lg border border-border bg-background p-3" value={sourceId} disabled={uploading || optimizing || saving} onChange={event => {
                   const source = sources.find(item => item.id === event.target.value);
-                  setSourceId(event.target.value); if (source) setContent(source.content);
+                  setUploadWarning(""); setSourceId(event.target.value); if (source) setContent(source.content);
                 }}>
                   <option value="" disabled>Choose a resume</option>
                   {sources.map(source => <option key={source.id} value={source.id}>{source.title}</option>)}
                 </select>
               </label>
               {!sources.length && <p className="text-sm text-text-secondary">No parsed resume is available yet. Upload a source below.</p>}
+              {(uploadWarning || baseResume?.content.custom_sections.some(section => section.id.startsWith("uploaded-text"))) && <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">{uploadWarning || "This source contains extracted resume text. Review the preview before generating a final resume."}</p>}
               <ResumeFileUpload file={file} onChange={setFile} disabled={uploading || optimizing || saving} error={uploadError} />
               <Button className="w-full" onClick={uploadSource} disabled={!file || uploading || optimizing || saving}>{uploading ? "Uploading and parsing…" : "Upload and parse resume"}</Button>
               <p className="text-xs text-text-secondary">Changing the source resets the preview. Optimizing creates a separate draft and preserves the source.</p>

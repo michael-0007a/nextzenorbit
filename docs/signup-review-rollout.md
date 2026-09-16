@@ -65,7 +65,7 @@ Apply `035_payment_orders_and_access.sql` with `supabase db push` before deployi
 - Set `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_APP_URL` and the matching test/production `NEXT_PUBLIC_PAYU_URL`. Merchant key/salt must belong to the same PayU environment. Configure PayU callbacks to `/api/webhooks/payu`.
 - Before production rollout, complete a PayU sandbox payment, reload `/subscription`, simulate a lost browser return and use Check payment status. Confirm a second checkout does not interrupt an existing paid plan. Local tests mock PayU and cannot verify the merchant account configuration.
 
-Admin resume generation now offers a saved-source selector and PDF/DOCX upload/parsing. The source is retained as a client resume and original private file; optimization saves a separate admin draft. Scanned/empty documents and unavailable parsing show actionable errors without saving an empty generated resume.
+Admin resume generation now offers a saved-source selector and PDF/DOCX upload/parsing. The source is retained as a client resume and original private file; optimization saves a separate admin draft. Scanned/empty documents show an actionable error. When AI parsing fails or times out, readable documents are imported as extracted-text sources with an explicit review notice; the complete original is retained. Text previews are limited to 15,000 characters with a truncation notice. AI optimization still requires the production Groq configuration to be working.
 
 Validation: `npm run test:signup` includes local PostgreSQL payment/access tests and admin upload/middleware checks. No live accounts, payments or storage files are changed by those tests.
 

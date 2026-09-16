@@ -124,11 +124,12 @@ test('Unpaid API/page requests are blocked while approved checkout stays availab
 });
 
 test('Admin upload parses and saves a selected source without a client subscription; empty files never create resumes', async () => {
-  let stored = 0, inserted = 0, readable = true;
+  let stored = 0, inserted = 0, readable = true, aiAvailable = true, throwAi = false;
+  let insertedContent;
   const content = { contact:{full_name:'Test Client',email:'client@example.com'}, summary:{text:'Experienced engineer with several successful projects.'} };
   const admin = {
     from(table) {
-      const q = { select(){return q}, eq(){return q}, async maybeSingle(){return {data:{id:'client'}}}, insert(value){assert.equal(value.is_base,false); assert.ok(value.file_url.startsWith('resume-uploads/')); inserted++; return q}, async single(){return {data:{id:'source',title:'resume',content,template_id:'classic'}}} };
+      const q = { select(){return q}, eq(){return q}, async maybeSingle(){return {data:{id:'client'}}}, insert(value){assert.equal(value.is_base,false); assert.ok(value.file_url.startsWith('resume-uploads/')); insertedContent=value.content; inserted++; return q}, async single(){return {data:{id:'source',title:'resume',content:insertedContent,template_id:'classic'}}} };
       return q;
     },
     storage: { from(bucket){assert.equal(bucket,'resume-uploads');return { async upload(){stored++;return {error:null}} }} },
@@ -137,15 +138,26 @@ test('Admin upload parses and saves a selected source without a client subscript
     '@/lib/admin/guards': { requireAdmin: async()=>({userId:'admin',role:'admin'}),isAuthError:r=>r instanceof Response },
     '@/lib/rate-limit': {rateLimit:async()=>null},
     '@/lib/supabase/admin': {createAdminClient:()=>admin},
-    '@/lib/ai/parsers/resume-parser': {extractText:async()=>readable?'A professional resume with sufficient text for extraction and parsing.':'',parseResumeWithAI:async()=>({content,parsedByAI:true})},
+    '@/lib/ai/parsers/resume-parser': {extractText:async()=>readable?'A professional resume with sufficient text for extraction and parsing.':'',parseResumeWithAI:async()=>{if(throwAi) throw new Error("Provider timeout"); return {content,parsedByAI:aiAvailable}}},
   };
   const route=loadSource('src/app/api/admin/resumes/upload/route.ts',mocks);
   const request=()=>{ const f=new FormData();f.set('userId','00000000-0000-4000-8000-000000000001');f.set('file',new File(['%PDF-resume'],'resume.pdf',{type:'application/pdf'}));return new Request('https://example.com/api/admin/resumes/upload',{method:'POST',body:f}); };
   assert.equal((await route.POST(request())).status,201);
   assert.equal(inserted,1);assert.equal(stored,1);
+  aiAvailable=false;
+  const fallbackResponse = await route.POST(request());
+  assert.equal(fallbackResponse.status,201);
+  const fallbackBody = await fallbackResponse.json();
+  assert.equal(fallbackBody.data.parsedByAI,false);
+  assert.match(fallbackBody.data.warning,/extracted text/);
+  assert.equal(insertedContent.custom_sections[0].content,'A professional resume with sufficient text for extraction and parsing.');
+  assert.deepEqual(insertedContent.experience,[]);
+  throwAi=true;
+  assert.equal((await route.POST(request())).status,201);
+  assert.equal(inserted,3);assert.equal(stored,3);
   readable=false;
   assert.equal((await route.POST(request())).status,422);
-  assert.equal(inserted,1);assert.equal(stored,1);
+  assert.equal(inserted,3);assert.equal(stored,3);
   const forbidden=loadSource('src/app/api/admin/resumes/upload/route.ts',{...mocks,'@/lib/admin/guards':{requireAdmin:async()=>new Response(null,{status:403}),isAuthError:r=>r instanceof Response}});
   assert.equal((await forbidden.POST(request())).status,403);
 });
@@ -178,4 +190,19 @@ test('Admin recovery cannot manually activate a plan without a verified payment'
   });
   const response=await route.POST(new Request('https://example.com/api/admin/subscription/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:'00000000-0000-4000-8000-000000000001',plan_id:'elite',duration_days:365})}));
   assert.equal(response.status,409);
+});
+
+
+test('Extracted text fallback preserves text and flags schema-limit truncation', () => {
+  const { resumeFromExtractedText } = loadSource('src/lib/resume/text-fallback.ts', {});
+  const { parseExportContent } = loadSource('src/lib/resume/export-content.ts', {});
+  const text = 'Career history and professional experience. '.repeat(100);
+  const result = resumeFromExtractedText(text, {full_name:'Client',email:'client@example.com'});
+  assert.equal(result.content.custom_sections.map(s=>s.content).join(''),text.trim());
+  assert.equal(result.truncated,false);
+  assert.equal(parseExportContent(result.content).success,true);
+  const long = resumeFromExtractedText('a'.repeat(18000));
+  assert.equal(long.truncated,true);
+  assert.equal(long.content.custom_sections.length,5);
+  assert.equal(parseExportContent(long.content).success,true);
 });
