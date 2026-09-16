@@ -1,11 +1,11 @@
 import { getCachedUser, getCachedProfile } from "@/lib/supabase/server";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
-import { GlobalPaywall } from "@/components/subscription/global-paywall";
 import { getApplicationAccess } from "@/lib/onboarding";
+import { signOut } from "@/app/(auth)/actions";
+import { hasServiceAccess } from "@/lib/service-access";
 
 // Force dynamic rendering to always fetch fresh profile data
 export const dynamic = "force-dynamic";
@@ -50,6 +50,12 @@ export default async function DashboardLayout({
 
   if (await getApplicationAccess(user) !== "approved") redirect("/onboarding");
 
+  const requestHeaders = await headers();
+  if (!await hasServiceAccess(user.id)) {
+    if (requestHeaders.get("x-next-pathname") !== "/subscription") redirect("/subscription");
+    return <main className="min-h-screen bg-background px-4 py-10 text-foreground"><div className="mx-auto mb-8 max-w-4xl rounded-2xl border border-primary/30 bg-primary/5 p-6"><p className="text-sm font-semibold text-primary">Application approved · Payment required</p><h1 className="mt-2 text-2xl font-bold">Choose your plan to get started</h1><p className="mt-2 text-text-secondary">Your profile has been accepted. Resume generation, cover letters and all other services unlock after payment is confirmed.</p><form action={signOut} className="mt-4"><button className="text-sm underline">Sign out</button></form></div>{children}</main>;
+  }
+
   const profile = await getCachedProfile(user.id);
 
   if (profile && profile.has_agreed_to_terms === false) {
@@ -83,16 +89,8 @@ export default async function DashboardLayout({
 
   const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined;
 
-  const supabase = await createClient();
-  const { data: userData } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
   return (
     <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
-      <GlobalPaywall isSsoUser={userData?.role === "sso_user"} />
       <div className="absolute inset-0 bg-space" />
       <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.07),transparent_60%)]" />
       <Sidebar isProfileComplete={profileComplete} />

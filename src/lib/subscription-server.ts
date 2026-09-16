@@ -1,3 +1,4 @@
+import { hasServiceAccess } from "@/lib/service-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSubscriptionActive, getPlanLimits } from "@/lib/subscription";
 import type { SubscriptionRow } from "@/types/database";
@@ -7,6 +8,7 @@ import type { SubscriptionRow } from "@/types/database";
  * by evaluating their active subscription tier and current monthly usage.
  */
 export async function checkAiTokenUsage(userId: string): Promise<{ allowed: boolean; error?: string }> {
+  if (!await hasServiceAccess(userId)) return { allowed: false, error: "An active paid subscription is required." };
   const admin = createAdminClient();
   
   // 1. Fetch user's subscription

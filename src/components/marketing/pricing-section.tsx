@@ -1,20 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PLANS } from "@/lib/subscription";
-import { useCurrency, formatPrice } from "@/hooks/use-currency";
+import { formatPrice } from "@/hooks/use-currency";
 
 export function PricingSection() {
-  const currency = useCurrency();
+  const currency = "INR";
 
   const pricing = [
     {
       name: "Silver",
       priceDisplay: formatPrice(PLANS.free[`price_${currency.toLowerCase()}` as keyof typeof PLANS.free] as number, currency),
       description: "Launch-ready essentials to get started.",
-      features: ["175 job applications/month", "Assigned recruiter support", "Advanced resume parsing", "Priority support"],
+      features: ["300 job applications/month", "Assigned recruiter support", "Advanced resume parsing", "Priority support"],
       highlight: false,
     },
     {
@@ -22,7 +21,7 @@ export function PricingSection() {
       priceDisplay: formatPrice(PLANS.pro[`price_${currency.toLowerCase()}` as keyof typeof PLANS.pro] as number, currency),
       description: "For serious job seekers ready to move fast.",
       features: [
-        "350 job applications/month",
+        "400 job applications/month",
         "Assigned recruiter support",
         "Cover letter studio",
         "Priority support",
@@ -70,6 +69,7 @@ export function PricingSection() {
             ))}
           </div>
 
+          <p className="mt-5 text-xs text-text-secondary">For selected candidates. Approval comes before payment; services start after payment confirmation.</p>
           <Link
             href="/register"
             className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5 ${
@@ -78,7 +78,7 @@ export function PricingSection() {
                 : "border border-border bg-white/5 text-foreground"
             }`}
           >
-            Get Started
+            Apply for admission
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

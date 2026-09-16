@@ -348,6 +348,12 @@ export type SignupApplicationRow = {
 export type Database = {
   public: {
     Tables: {
+      payment_orders: {
+        Row: { txnid: string; user_id: string; plan_id: PlanId; amount_paise: number; currency: string; status: string; provider_payment_id: string | null; created_at: string; paid_at: string | null };
+        Insert: { txnid: string; user_id: string; plan_id: PlanId; amount_paise: number; currency: string };
+        Update: never;
+        Relationships: [];
+      };
       signup_applications: {
         Row: SignupApplicationRow;
         Insert: SignupApplicationRow;
@@ -495,6 +501,7 @@ export type Database = {
     };
     Views: {};
     Functions: {
+      complete_payu_payment: { Args: { p_txnid: string; p_amount_paise: number; p_payment_id: string }; Returns: undefined };
       consume_request_limit: { Args: { p_key: string; p_limit: number; p_seconds: number }; Returns: boolean };
       submit_signup_application: { Args: { p_user_id: string; p_profile: Record<string, unknown>; p_resume_path: string; p_resume_name: string; p_content: ResumeContent; p_consent_version: string }; Returns: undefined };
       review_signup_application: { Args: { p_user_id: string; p_reviewer_id: string; p_decision: string; p_reason: string }; Returns: undefined };

@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { SubscriptionDetails } from "@/components/subscription/subscription-details";
+import { PaymentStatus } from "@/components/subscription/payment-status";
 import { PlanCards } from "@/components/subscription/plan-cards";
 import { isSubscriptionActive } from "@/lib/subscription";
 import type { SubscriptionRow, AiUsageRow } from "@/types/database";
@@ -52,11 +53,12 @@ export default async function SubscriptionPage() {
         title="Subscription"
         description="Manage your plan, billing, and usage."
       />
-      <SubscriptionDetails
+      <PaymentStatus />
+      {isSubscriptionActive(subscription) && <SubscriptionDetails
         subscription={subscription}
         aiUsage={aiUsage}
         resumeCount={resumeCount}
-      />
+      />}
       <PlanCards currentPlanId={isSubscriptionActive(subscription) ? (subscription?.plan_id ?? null) : null} />
     </div>
   );

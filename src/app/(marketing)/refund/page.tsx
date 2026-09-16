@@ -15,6 +15,7 @@ export default function RefundPage() {
         </p>
       </div>
 
+      <p className="mb-8 rounded-xl border border-border p-5 text-text-secondary">Applying and awaiting review do not require payment. Only selected, approved candidates can purchase a plan. Services unlock after payment is confirmed. If you were charged but your subscription has not updated, check payment status on your plan page or contact support before paying again.</p>
       <div className="prose prose-invert max-w-none text-text-secondary space-y-8">
         <section className="bg-destructive/5 border border-destructive/20 p-6 rounded-xl">
           <h2 className="text-2xl font-bold text-foreground mb-4">1. No Refunds</h2>
@@ -22,7 +23,7 @@ export default function RefundPage() {
             <strong className="text-foreground">All purchases and subscription payments are final and non-refundable.</strong>
           </p>
           <p className="mt-2">
-            Due to the nature of our digital services, which include instant access to AI processing resources, automated application queues, and immediate recruiter support allocation, we incur upfront costs as soon as a subscription is activated. As a result, we cannot offer refunds, prorated or otherwise, for any subscription plan under any circumstances.
+            Due to the nature of our digital services, which include access to AI processing resources after confirmed payment, automated application queues, and immediate recruiter support allocation, we incur upfront costs as soon as a subscription is activated. As a result, we cannot offer refunds, prorated or otherwise, for any subscription plan under any circumstances.
           </p>
         </section>
 

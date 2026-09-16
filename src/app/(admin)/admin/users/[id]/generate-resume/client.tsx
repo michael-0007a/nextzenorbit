@@ -25,26 +25,34 @@ import { ResumePreview } from "@/components/resume/resume-preview";
 import { createEmptyResumeContent, type ResumeContent } from "@/lib/validations/resume";
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
+import { ResumeFileUpload } from "@/components/forms/resume-file-upload";
+import { hasResumeBody } from "@/lib/resume/export-content";
 
 interface AdminResumeGeneratorClientProps {
   userId: string;
   userName: string;
   userEmail: string;
-  baseResume: {
+  resumes: {
     id: string;
     title: string;
     content: ResumeContent;
     template_id: string | null;
-  } | null;
+  }[];
 }
 
 export function AdminResumeGeneratorClient({
   userId,
   userName,
   userEmail,
-  baseResume,
+  resumes,
 }: AdminResumeGeneratorClientProps) {
   const router = useRouter();
+  const [sources, setSources] = useState(resumes);
+  const [sourceId, setSourceId] = useState(resumes[0]?.id || "");
+  const baseResume = sources.find(resume => resume.id === sourceId) || null;
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
@@ -60,6 +68,21 @@ export function AdminResumeGeneratorClient({
       email: userEmail,
     })
   );
+
+  async function uploadSource() {
+    if (!file) return;
+    setUploading(true); setUploadError("");
+    try {
+      const form = new FormData(); form.set("file", file); form.set("userId", userId);
+      const response = await fetch("/api/admin/resumes/upload", { method: "POST", body: form });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || "Upload failed.");
+      const resume = result.data.resume;
+      setSources(previous => [resume, ...previous]); setSourceId(resume.id); setContent(resume.content); setFile(null);
+      toast.success("Resume parsed and selected. Review the preview before saving.");
+    } catch (error) { setUploadError(error instanceof Error ? error.message : "Upload failed."); }
+    finally { setUploading(false); }
+  }
 
   const handleOptimize = async () => {
     if (!jobDescription.trim()) {
@@ -146,9 +169,9 @@ export function AdminResumeGeneratorClient({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+      <div className="flex flex-wrap gap-4 items-center justify-between pb-4 border-b border-border mb-4">
         <div className="flex items-center gap-4">
           <Link
             href={`/admin/users/${userId}`}
@@ -178,7 +201,7 @@ export function AdminResumeGeneratorClient({
           <Button
             variant="primary"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || optimizing || uploading || !baseResume || !hasResumeBody(content)}
             leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           >
             {saving ? "Saving..." : "Save Resume for User"}
@@ -187,14 +210,27 @@ export function AdminResumeGeneratorClient({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col xl:flex-row gap-6 min-h-0">
         {/* Left Column: Form */}
-        <div className="w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-8">
-          {!baseResume && (
-            <div className="p-4 rounded-lg bg-warning/10 border border-warning/20 text-warning-foreground text-sm">
-              <strong>Warning:</strong> This user does not have a base resume. Optimization will not work until they create one.
-            </div>
-          )}
+        <div className="w-full xl:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-8">
+          <Card>
+            <CardHeader><CardTitle>1. Choose a base resume</CardTitle><CardDescription>Select a saved resume or upload a new source for this client.</CardDescription></CardHeader>
+            <CardBody className="space-y-4">
+              <label className="block text-sm font-medium">Saved resumes
+                <select className="mt-2 w-full rounded-lg border border-border bg-background p-3" value={sourceId} disabled={uploading || optimizing || saving} onChange={event => {
+                  const source = sources.find(item => item.id === event.target.value);
+                  setSourceId(event.target.value); if (source) setContent(source.content);
+                }}>
+                  <option value="" disabled>Choose a resume</option>
+                  {sources.map(source => <option key={source.id} value={source.id}>{source.title}</option>)}
+                </select>
+              </label>
+              {!sources.length && <p className="text-sm text-text-secondary">No parsed resume is available yet. Upload a source below.</p>}
+              <ResumeFileUpload file={file} onChange={setFile} disabled={uploading || optimizing || saving} error={uploadError} />
+              <Button className="w-full" onClick={uploadSource} disabled={!file || uploading || optimizing || saving}>{uploading ? "Uploading and parsing…" : "Upload and parse resume"}</Button>
+              <p className="text-xs text-text-secondary">Changing the source resets the preview. Optimizing creates a separate draft and preserves the source.</p>
+            </CardBody>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -269,7 +305,7 @@ export function AdminResumeGeneratorClient({
                 variant="secondary"
                 className="w-full"
                 onClick={handleOptimize}
-                disabled={optimizing || !jobDescription.trim() || !baseResume}
+                disabled={optimizing || saving || uploading || !jobDescription.trim() || !baseResume}
                 leftIcon={optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
               >
                 {optimizing ? "Optimizing via AI..." : "Optimize Base Resume"}
@@ -290,11 +326,11 @@ export function AdminResumeGeneratorClient({
             </span>
           </div>
           <div className="flex-1 overflow-auto p-4 flex justify-center">
-            <ResumePreview
+            {baseResume ? <ResumePreview
               content={content}
               templateId={baseResume?.template_id || "classic"}
               scale={0.7}
-            />
+            /> : <p className="py-24 text-center text-text-secondary">Choose or upload a base resume to see the preview.</p>}
           </div>
         </div>
       </div>

@@ -11,9 +11,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getPaymentProvider, calculateGST, PLAN_PRICING } from "@/lib/payments";
+import { getPaymentProvider } from "@/lib/payments";
 import { apiError, ERROR_CODES } from "@/types/api";
 import { requireApprovedAccount } from "@/lib/onboarding";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createPaymentOrder } from "@/services/subscription-service";
+import { PLANS } from "@/lib/subscription";
 import { rateLimit } from "@/lib/rate-limit";
 
 const createOrderSchema = z.object({
@@ -52,45 +55,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const { planId, billingCycle, currency = "USD" } = parsed.data;
-
-    // 3. Calculate amount
-    const plan = PLAN_PRICING[planId];
-    
-    // The amount in PLAN_PRICING is in base currency, we need to convert it to paise/cents
-    const baseCurrencyAmount =
-      billingCycle === "annual" 
-        ? plan.annual[currency as keyof typeof plan.annual] 
-        : plan.monthly[currency as keyof typeof plan.monthly];
-        
-    const basePaise = Math.round(baseCurrencyAmount * 100);
-    
-    const { base, gst, total } = calculateGST(basePaise);
-
-    // 4. Create order
-    const provider = getPaymentProvider();
-    const order = await provider.createOrder({
-      amountPaise: total,
-      currency: currency,
-      receipt: `${planId}_${user.id}_${Date.now()}`,
-      notes: {
-        user_id: user.id,
-        plan_id: planId,
-        billing_cycle: billingCycle,
-        base_amount: String(base),
-        gst_amount: String(gst),
-        firstname: user.user_metadata?.full_name || "Customer",
-        email: user.email || "",
-      },
-    });
+    const { planId, billingCycle, currency = "INR" } = parsed.data;
+    if (currency !== "INR" || billingCycle !== "monthly") return apiError(ERROR_CODES.VALIDATION_ERROR, "Only monthly INR checkout is available.", 400);
+    const amount = PLANS[planId].price_paise;
+    const order = await getPaymentProvider("INR").createSubscription({ planId, customerId: user.id, email: user.email || "", totalAmountPaise: amount, currency });
+    await createPaymentOrder(createAdminClient(), user.id, { subscriptionId: order.subscriptionId, planId, amountPaise: amount, currency });
 
     return NextResponse.json({
       success: true,
       data: {
-        orderId: order.orderId,
-        amount: order.amount,
-        currency: order.currency,
+        orderId: order.subscriptionId,
+        amount,
+        currency,
         provider: order.provider,
+        payu: order.payu,
         keyId: process.env.PAYU_MERCHANT_KEY,
       },
     });

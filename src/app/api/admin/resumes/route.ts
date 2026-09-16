@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+import { hasResumeBody, parseExportContent } from "@/lib/resume/export-content";
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "user_id, title, and content are required.");
     }
 
+    const parsedContent = parseExportContent(content);
+    if (!parsedContent.success || !hasResumeBody(parsedContent.data)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose or upload a populated base resume before saving.", 422);
+
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("admin_resumes")
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         user_id,
         admin_id: adminAuth.userId,
         title,
-        content,
+        content: parsedContent.data,
         job_title: job_title || null,
         company: company || null,
         job_description: job_description || null,

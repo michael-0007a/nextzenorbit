@@ -38,7 +38,7 @@ export const usdGatewayProvider: PaymentProvider = {
 
   async verifyPayment(params: VerifyPaymentParams): Promise<VerificationResult> {
     // TODO: Replace with actual gateway verification
-    return { verified: true, paymentId: params.paymentId };
+    return { verified: false, paymentId: params.paymentId };
   },
 
   async createSubscription(params: SubscriptionParams): Promise<SubscriptionResult> {

@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentProvider } from "@/lib/payments";
 import { PLANS } from "@/lib/subscription";
-import { upsertSubscriptionCreated } from "@/services/subscription-service";
+import { createPaymentOrder } from "@/services/subscription-service";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { PlanId } from "@/types/database";
 import { requireApprovedAccount } from "@/lib/onboarding";
@@ -68,6 +68,8 @@ export async function POST(request: Request) {
 
     const { plan, paymentMethod = "inr" } = parsed.data;
     
+    if (paymentMethod !== "inr" || parsed.data.currency === "USD") return apiError(ERROR_CODES.VALIDATION_ERROR, "Only INR checkout is currently available.", 400);
+
     // Determine currency from payment method
     const currency = paymentMethod === "inr" ? "INR" : "USD";
 
@@ -92,12 +94,12 @@ export async function POST(request: Request) {
     // 5. Determine the provider type for DB storage
     const providerType = paymentMethod === "inr" ? "payu" : "usd_gateway";
 
-    // 6. Save to database (upsert subscription row)
+    // 6. Persist this checkout without changing the current subscription
     const admin = createAdminClient();
-    await upsertSubscriptionCreated(admin, user.id, {
+    await createPaymentOrder(admin, user.id, {
       subscriptionId: result.subscriptionId,
       planId: plan as PlanId,
-      provider: providerType as any,
+      provider: "payu",
       currency,
       amountPaise: totalAmountPaise,
     });

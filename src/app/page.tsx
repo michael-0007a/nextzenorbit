@@ -90,10 +90,10 @@ export default async function HomePage({
   ];
 
   const platformSteps = [
-    "Upload your resume. ORBIT extracts every signal instantly.",
-    "Analyze job descriptions and get precision match scores.",
-    "Tailor resumes and cover letters in one click.",
-    "Track applications and optimize each follow-up.",
+    "Register, give consent, and complete your professional profile.",
+    "Upload your resume for review by our admissions team.",
+    "If selected, choose a plan and complete payment.",
+    "Once payment is confirmed, unlock your career services.",
   ];
 
   const integrations = [
@@ -166,7 +166,7 @@ export default async function HomePage({
               href="/register"
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-light px-5 py-2 text-sm font-semibold text-white shadow-[0_15px_35px_rgba(255,0,61,0.35)] transition-transform duration-300 hover:-translate-y-0.5"
             >
-              Start Free Trial
+              Apply to Join
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -184,7 +184,7 @@ export default async function HomePage({
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-2 text-xs uppercase tracking-[0.4em] text-text-secondary">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  Made for job seekers
+                  Selective candidate admission
                 </div>
 
                 <h1 className="font-display mt-7 text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-6xl">
@@ -193,7 +193,7 @@ export default async function HomePage({
                 </h1>
 
                 <p className="mt-5 max-w-xl text-lg text-text-secondary">
-                  See your fit fast, tailor your resume, and track every application in one calm place.
+                  Apply with your profile and resume. Our team reviews every application. If selected, choose a paid plan to unlock resume tools, cover letters and application support.
                 </p>
 
                 <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -201,7 +201,7 @@ export default async function HomePage({
                     href="/register"
                     className="inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-primary to-primary-light px-8 py-4 text-base font-semibold text-white shadow-[0_20px_45px_rgba(255,0,61,0.35)] transition-transform duration-300 hover:-translate-y-0.5"
                   >
-                    Start Free Trial
+                    Apply to Join
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                   <Link
@@ -216,7 +216,7 @@ export default async function HomePage({
                 <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-text-secondary">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Free to start
+                    Free to apply
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -523,7 +523,7 @@ export default async function HomePage({
               </p>
             </div>
 
-            <PricingSection />
+            <p className="mt-4 text-text-secondary">Admission is selective. Apply with your profile and resume first. Only approved candidates can pay; all services unlock after payment confirmation.</p><PricingSection />
           </div>
         </section>
       </main>

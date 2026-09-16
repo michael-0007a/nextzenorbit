@@ -52,3 +52,27 @@ Staging acceptance:
 6. Admin: create a cover letter and a tailored resume; download PDFs as admin, supervisor and super admin.
 
 No live database migration, Google OAuth, payment, or AI generation is performed by the automated tests.
+
+## Paid access and payment migration (035)
+
+Apply `035_payment_orders_and_access.sql` with `supabase db push` before deploying the matching app changes. It adds immutable checkout transaction records, atomic/idempotent PayU activation, and restrictive paid-access policies on service tables and resume storage. It preserves known historical PayU transaction IDs from subscriptions. Do not rename an already-applied migration.
+
+- Approved regular accounts can only choose/pay for a plan until payment is confirmed. Trials, missing billing end dates and expired subscriptions do not unlock services. Existing admin and SSO role exceptions remain; suspended accounts are blocked.
+- Checkout now supports monthly INR PayU payments. The USD provider is a placeholder and is rejected by checkout until a real provider is integrated.
+- A new checkout never pauses/overwrites an active subscription. Each payment uses a separate random transaction ID. Repeated callbacks do not add duplicate billing periods.
+- Invalid PayU response hashes are rejected. Activation verifies the original order amount and commits the payment and subscription together. No email fallback is used.
+- The plan page has **Check payment status**, which reconciles the user's five latest pending transactions with PayU and can activate a payment whose callback was lost. Users and admins can enter an exact transaction reference to recover older payments. Admins use Verify payment & sync plan on the client page; this verifies PayU rather than granting unpaid access.
+- Set `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_APP_URL` and the matching test/production `NEXT_PUBLIC_PAYU_URL`. Merchant key/salt must belong to the same PayU environment. Configure PayU callbacks to `/api/webhooks/payu`.
+- Before production rollout, complete a PayU sandbox payment, reload `/subscription`, simulate a lost browser return and use Check payment status. Confirm a second checkout does not interrupt an existing paid plan. Local tests mock PayU and cannot verify the merchant account configuration.
+
+Admin resume generation now offers a saved-source selector and PDF/DOCX upload/parsing. The source is retained as a client resume and original private file; optimization saves a separate admin draft. Scanned/empty documents and unavailable parsing show actionable errors without saving an empty generated resume.
+
+Validation: `npm run test:signup` includes local PostgreSQL payment/access tests and admin upload/middleware checks. No live accounts, payments or storage files are changed by those tests.
+
+PayU implementation references: https://docs.payu.in/docs/hashing-request-and-response and https://docs.payu.in/reference/verify_payment_api.
+
+### Recovering from the missing PayU column in migration 035
+
+If migration 035 fails with `column "payu_subscription_id" does not exist`, use the corrected local `035_payment_orders_and_access.sql` and rerun `npx supabase db push`. The migration now adds the PayU transaction column before the backfill and updates the original Razorpay/Cashfree provider constraint to permit PayU. Existing provider records are preserved. Retry-safe DDL also handles objects left by an interrupted/manual attempt. Do not mark this failed migration applied or delete migration history.
+
+Regression tests use the actual `subscriptions` table definition from migration 001, including its provider constraint, and cover installations where PayU was already configured. They verify activation and repeated migration execution without duplicating payment records or extending billing periods.

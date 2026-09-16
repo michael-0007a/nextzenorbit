@@ -15,7 +15,7 @@ import { Check, X } from "lucide-react";
 import type { PlanId } from "@/types/database";
 import { formatPrice } from "@/hooks/use-currency";
 import SubscriptionCheckout from "@/components/SubscriptionCheckout";
-import { PaymentMethodSelector, type PaymentMethod } from "@/components/subscription/payment-method-selector";
+
 
 interface PlanCardsProps {
   currentPlanId: PlanId | null;
@@ -27,8 +27,8 @@ const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {
     { label: "300 Applications/month", included: true },
     { label: "Assigned recruiter support", included: true },
     { label: "Advanced resume parsing", included: true },
-    { label: "Cover letter generator", included: false },
-    { label: "Priority AI processing", included: false },
+    { label: "Cover letter generator", included: true },
+    { label: "Priority AI processing", included: true },
   ],
   pro: [
     { label: "Unlimited Resumes", included: true },
@@ -36,7 +36,7 @@ const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {
     { label: "Assigned recruiter support", included: true },
     { label: "Advanced resume parsing", included: true },
     { label: "Cover letter generator", included: true },
-    { label: "Priority AI processing", included: false },
+    { label: "Priority AI processing", included: true },
   ],
   elite: [
     { label: "Unlimited Resumes", included: true },
@@ -51,15 +51,11 @@ const planFeatures: Record<PlanId, { label: string; included: boolean }[]> = {
 export function PlanCards({ currentPlanId }: PlanCardsProps) {
   const plans: PlanId[] = ["free", "pro", "elite"];
   const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+
 
   const handleSelectPlan = (planId: PlanId) => {
     setSelectedPlan(planId);
-    setPaymentMethod(null);
-  };
 
-  const handlePaymentMethodSelect = (method: PaymentMethod) => {
-    setPaymentMethod(method);
   };
 
   return (
@@ -70,7 +66,7 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
           const plan = PLANS[planId];
           const isCurrent = planId === currentPlanId;
           const features = planFeatures[planId];
-          const showCheckout = selectedPlan === planId && paymentMethod;
+          const showCheckout = selectedPlan === planId;
 
           return (
             <Card
@@ -84,7 +80,7 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                 </div>
                 <CardDescription>
                   <span className="text-2xl font-bold text-foreground">
-                    {formatPrice(plan.price_usd, "USD")}
+                    {formatPrice(plan.price_inr, "INR")}
                   </span>
                   <span className="text-text-secondary">/month</span>
                 </CardDescription>
@@ -116,18 +112,18 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
                 ) : showCheckout ? (
                   <SubscriptionCheckout
                     plan={planId as "free" | "pro" | "elite"}
-                    currency={paymentMethod === "inr" ? "INR" : "USD"}
-                    paymentMethod={paymentMethod!}
+                    currency="INR"
+                    paymentMethod="inr"
                     className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Pay with {paymentMethod === "inr" ? "INR" : "USD"}
+                    Pay in INR
                   </SubscriptionCheckout>
                 ) : (
                   <button
                     onClick={() => handleSelectPlan(planId)}
                     className="w-full h-10 rounded-full bg-gradient-to-r from-primary to-primary-light text-white text-sm font-medium transition-transform duration-300 hover:-translate-y-0.5"
                   >
-                    Upgrade
+                    Choose plan
                   </button>
                 )}
               </CardFooter>
@@ -136,15 +132,6 @@ export function PlanCards({ currentPlanId }: PlanCardsProps) {
         })}
       </div>
 
-      {/* Payment Method Selector Modal */}
-      {selectedPlan && !paymentMethod && (
-        <PaymentMethodSelector
-          plan={selectedPlan}
-          open={true}
-          onClose={() => setSelectedPlan(null)}
-          onSelect={handlePaymentMethodSelect}
-        />
-      )}
     </div>
   );
 }

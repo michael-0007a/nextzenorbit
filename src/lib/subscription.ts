@@ -53,8 +53,8 @@ export function isTrialActive(sub: SubscriptionRow | null): boolean {
 export function isSubscriptionActive(sub: SubscriptionRow | null): boolean {
   if (!sub) return false;
   return (
-    sub.status === "active" ||
-    (sub.status === "trialing" && isTrialActive(sub))
+    sub.status === "active" && !!sub.current_period_end &&
+    new Date(sub.current_period_end).getTime() > Date.now()
   );
 }
 
@@ -72,6 +72,7 @@ export function canCreateResume(
   sub: SubscriptionRow | null,
   currentCount: number
 ): boolean {
+  if (!isSubscriptionActive(sub)) return false;
   const planId = isSubscriptionActive(sub) ? (sub?.plan_id ?? "free") : "free";
   const limits = getPlanLimits(planId);
   return currentCount < limits.resumes;
@@ -81,6 +82,7 @@ export function canTrackApplication(
   sub: SubscriptionRow | null,
   monthCount: number
 ): boolean {
+  if (!isSubscriptionActive(sub)) return false;
   const planId = isSubscriptionActive(sub) ? (sub?.plan_id ?? "free") : "free";
   const limits = getPlanLimits(planId);
   return monthCount < limits.applications_per_month;

@@ -9,7 +9,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, SubscriptionRow, PlanId } from "@/types/database";
-import { dbInsert, dbUpdate } from "@/lib/supabase/helpers";
+import { dbUpdate } from "@/lib/supabase/helpers";
 import { isSubscriptionActive } from "@/lib/subscription";
 
 // ── Query helpers ──
@@ -54,10 +54,10 @@ export async function hasActiveSubscription(
 // ── Mutation helpers (use admin/service-role client) ──
 
 /**
- * Create or update a subscription row when a new subscription is created.
- * Uses upsert semantics — if the user already has a subscription row, it's updated.
+ * Persist a separate checkout transaction before redirecting to PayU.
+ * Existing subscriptions are unchanged until payment is verified.
  */
-export async function upsertSubscriptionCreated(
+export async function createPaymentOrder(
   admin: SupabaseClient<Database>,
   userId: string,
   data: {
@@ -68,80 +68,11 @@ export async function upsertSubscriptionCreated(
     amountPaise?: number;
   }
 ): Promise<void> {
-  const existing = await getSubscription(admin, userId);
-  const provider = data.provider || "payu";
-
-  const updateData: any = {
-    provider,
-    plan_id: data.planId,
-    status: "paused", // Initially paused until webhook/callback activates it
-    currency: data.currency || "INR",
-    amount_paise: data.amountPaise || null,
-    payu_subscription_id: data.subscriptionId,
-  };
-
-  if (existing) {
-    // Update existing row
-    await dbUpdate(admin, "subscriptions", updateData).eq("user_id", userId);
-  } else {
-    // Insert new row
-    await dbInsert(admin, "subscriptions", {
-      user_id: userId,
-      ...updateData,
-    });
-  }
-
-  console.log(
-    `[subscription-service] Subscription created for user=${userId} plan=${data.planId} sub=${data.subscriptionId} provider=${provider}`
-  );
-}
-
-/**
- * Activate a subscription when payment is successful.
- * Marks the subscription as active.
- */
-export async function activateSubscription(
-  admin: SupabaseClient<Database>,
-  subscriptionIdOrUserId: string,
-  data: {
-    planId?: PlanId;
-    currentPeriodStart?: string;
-    currentPeriodEnd?: string;
-    provider?: "payu";
-    status?: "active" | "trialing" | "past_due" | "canceled" | "unpaid";
-    subscriptionId?: string; // Optional if you want to use it instead of subscriptionIdOrUserId
-  }
-): Promise<void> {
-  // Auto-set billing period if not provided
-  const now = new Date();
-  const defaultPeriodEnd = new Date(now);
-  defaultPeriodEnd.setDate(defaultPeriodEnd.getDate() + 30);
-
-  const updatePayload: Record<string, unknown> = {
-    status: data.status || "active",
-    current_period_start: data.currentPeriodStart || now.toISOString(),
-    current_period_end: data.currentPeriodEnd || defaultPeriodEnd.toISOString(),
-  };
-
-  if (data.planId) updatePayload.plan_id = data.planId;
-
-  // If subscriptionId provided, also update the payu_subscription_id to ensure consistency
-  if (data.subscriptionId) updatePayload.payu_subscription_id = data.subscriptionId;
-
-  let query = dbUpdate(admin, "subscriptions", updatePayload as any);
-
-  // Use user_id for the lookup — this is the most reliable key
-  query = query.eq("user_id", subscriptionIdOrUserId);
-
-  const { error } = await query;
-  if (error) {
-    console.error(`[subscription-service] activateSubscription error:`, error);
-    throw error;
-  }
-
-  console.log(
-    `[subscription-service] Subscription activated: user=${subscriptionIdOrUserId} status=${data.status || "active"} period_end=${updatePayload.current_period_end}`
-  );
+  const { error } = await admin.from("payment_orders").insert({
+    txnid: data.subscriptionId, user_id: userId, plan_id: data.planId,
+    currency: data.currency || "INR", amount_paise: data.amountPaise!,
+  });
+  if (error) throw error;
 }
 
 /**

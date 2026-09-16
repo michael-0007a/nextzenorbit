@@ -95,7 +95,8 @@ export interface ParseResult {
 }
 
 export async function parseResumeWithAI(
-  resumeText: string
+  resumeText: string,
+  options?: { signal: AbortSignal }
 ): Promise<ParseResult> {
   // Guard: if text is too short, skip AI and return skeleton
   if (resumeText.length < 50) {
@@ -126,7 +127,7 @@ export async function parseResumeWithAI(
       temperature: 0.1, // Low temp for factual extraction
       max_tokens: 4000,
       response_format: { type: "json_object" },
-    });
+    }, options ? { signal: options.signal, maxRetries: 0 } : undefined);
 
     const rawOutput = completion.choices[0]?.message?.content;
     const tokensUsed = completion.usage?.total_tokens ?? 0;

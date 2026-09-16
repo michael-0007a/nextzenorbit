@@ -11,7 +11,7 @@ export default function TermsPage() {
           Terms of Service
         </h1>
         <p className="mt-4 text-lg text-text-secondary">
-          Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          Last updated: September 16, 2026
         </p>
       </div>
 
@@ -26,7 +26,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">2. Description of Service</h2>
           <p>
-            NextZenOrbit provides AI-powered tools for job seekers, including resume parsing, cover letter generation, interview preparation, and automated job application queues.
+            NextZenOrbit provides career tools to selected candidates. To apply, register, provide consent, complete your professional profile and upload a resume. Our supervisors or superadmins review your application. Registration does not guarantee acceptance. Rejected applicants cannot register again using the same email or matching phone number, including under another email. Phone numbers are supplied by applicants; SMS verification is not required.
           </p>
         </section>
 
@@ -50,7 +50,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">5. Subscriptions and Payments</h2>
           <p>
-            Some features of NextZenOrbit require a paid subscription. Payments are processed securely via PayU. Subscriptions automatically renew unless canceled before the end of the current billing cycle.
+            Only approved candidates can choose a plan and make payment. Approval alone does not grant access to services. Resume generation, cover letters and other career services require a confirmed payment and an active paid subscription. Payments are processed via PayU in INR. Each successful monthly purchase provides 30 days of access; another confirmed payment is required to extend access. If payment has been debited but access has not updated, use Check payment status on your plan page or contact support before paying again.
           </p>
         </section>
 

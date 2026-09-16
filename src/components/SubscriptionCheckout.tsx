@@ -57,11 +57,13 @@ export default function SubscriptionCheckout({
   children,
 }: SubscriptionCheckoutProps) {
   const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
   const [agreed, setAgreed] = useState(false);
   
   const activeCurrency: Currency = paymentMethod === "inr" ? "INR" : "USD";
 
   const handleSubscribe = useCallback(async () => {
+    setCheckoutError("");
     setLoading(true);
 
     try {
@@ -76,6 +78,7 @@ export default function SubscriptionCheckout({
 
       if (!res.ok || !json.success) {
         const message = json.error?.message || "Failed to create subscription";
+        setCheckoutError(message);
         onFailure?.(message);
         setLoading(false);
         return;
@@ -121,6 +124,7 @@ export default function SubscriptionCheckout({
       setLoading(false);
     } catch (error) {
       console.error("Subscription checkout error:", error);
+      setCheckoutError("Something went wrong. Please try again.");
       onFailure?.("Something went wrong. Please try again.");
       setLoading(false);
     }
@@ -132,6 +136,7 @@ export default function SubscriptionCheckout({
 
   return (
     <div className="w-full flex flex-col items-center gap-3">
+      {checkoutError && <p role="alert" className="text-sm text-error">{checkoutError}</p>}
       <div className="flex items-start gap-2 px-1">
         <input 
           type="checkbox" 

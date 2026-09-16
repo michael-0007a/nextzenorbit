@@ -139,6 +139,7 @@ export default function AdminUserDetailsPage({
   const [manualCompany, setManualCompany] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [addingManualApp, setAddingManualApp] = useState(false);
+  const [paymentReference, setPaymentReference] = useState("");
   const [activatingSubscription, setActivatingSubscription] = useState(false);
 
   const fetchUser = async () => {
@@ -232,7 +233,7 @@ export default function AdminUserDetailsPage({
     }
   };
 
-  const handleActivateSubscription = async (planId?: string) => {
+  const handleActivateSubscription = async () => {
     if (!user) return;
     setActivatingSubscription(true);
     try {
@@ -241,8 +242,7 @@ export default function AdminUserDetailsPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user.id,
-          plan_id: planId || user.subscription?.plan_id || "pro",
-          duration_days: 30,
+          txnid: paymentReference.trim() || undefined,
         }),
       });
       const json = await res.json();
@@ -366,6 +366,11 @@ export default function AdminUserDetailsPage({
           {/* Subscription */}
           <div className="glass-card rounded-2xl p-6">
             <h3 className="font-semibold text-foreground mb-4">Subscription</h3>
+            <div className="mb-5 space-y-3 rounded-xl border border-border p-3">
+              <p className="text-xs text-text-secondary">Recover a completed PayU payment. Services unlock only after verification.</p>
+              <label className="block text-xs">Transaction reference (optional)<input value={paymentReference} onChange={event => setPaymentReference(event.target.value)} maxLength={100} disabled={activatingSubscription} className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-sm" placeholder="Check a specific payment" /></label>
+              <Button variant="secondary" disabled={activatingSubscription} onClick={handleActivateSubscription}>{activatingSubscription ? "Verifying…" : "Verify payment & sync plan"}</Button>
+            </div>
             {user.subscription ? (
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between py-2 border-b border-border/60">

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { getApplicationAccess } from "@/lib/onboarding";
+import { hasServiceAccess } from "@/lib/service-access";
 
 export default async function proxy(request: NextRequest) {
   // 1. Refresh session
@@ -14,6 +15,10 @@ export default async function proxy(request: NextRequest) {
     try {
       if (await getApplicationAccess(user) !== "approved") {
         return NextResponse.json({ success: false, error: { code: "APPROVAL_REQUIRED", message: "Complete your application and wait for approval before accessing this feature." } }, { status: 403 });
+      }
+      const checkoutPaths = ["/api/subscription", "/api/subscription/create", "/api/payments/create-order", "/api/payments/reconcile"];
+      if (!checkoutPaths.includes(path) && !await hasServiceAccess(user.id)) {
+        return NextResponse.json({ success: false, error: { code: "PAYMENT_REQUIRED", message: "Choose a plan and complete payment to unlock services." } }, { status: 402 });
       }
     } catch {
       return NextResponse.json({ success: false, error: { message: "Account status is temporarily unavailable." } }, { status: 503 });
@@ -28,6 +33,16 @@ export default async function proxy(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && (isProtectedRoute || path === "/subscription") && !path.startsWith("/onboarding")) {
+    try {
+      const approved = await getApplicationAccess(user) === "approved";
+      const destination = !approved ? "/onboarding" : path !== "/subscription" && !await hasServiceAccess(user.id) ? "/subscription" : null;
+      if (destination) return NextResponse.redirect(new URL(destination, request.url));
+    } catch {
+      return new NextResponse("Account status is temporarily unavailable. Please retry.", { status: 503 });
+    }
   }
 
   // 3. Block sso_user from /billing (since they get everything for free and don't need billing)

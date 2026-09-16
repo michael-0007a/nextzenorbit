@@ -1,146 +1,29 @@
-/**
- * Admin API: Manual Subscription Activation
- *
- * POST /api/admin/subscription/activate
- *
- * Allows admins to manually activate a user's subscription.
- * Use when a payment was received but the webhook failed to activate.
- *
- * Body: { user_id: string, plan_id?: "free" | "pro" | "elite", duration_days?: number }
- */
-
-import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
-import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
-import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireApprovedAccount } from "@/lib/onboarding";
+import { reconcileUserPayments } from "@/lib/payments/reconcile";
+import { rateLimit } from "@/lib/rate-limit";
+import { z } from "zod";
+export const maxDuration = 60;
 
-const activateSchema = z.object({
-  user_id: z.string().uuid(),
-  plan_id: z.enum(["free", "pro", "elite"]).optional(),
-  duration_days: z.number().min(1).max(365).optional().default(30),
-});
-
-export async function POST(request: NextRequest): Promise<Response> {
+// Recover actual payments; an admin action cannot grant an unpaid subscription.
+export async function POST(request: Request): Promise<Response> {
+  const auth = await requireAdmin();
+  if (isAuthError(auth)) return auth;
+  const limited = await rateLimit("admin-payment-reconcile", auth.userId, 10, 300);
+  if (limited) return limited;
   try {
-    const adminAuth = await requireAdmin();
-    if (isAuthError(adminAuth)) return adminAuth;
-
-    const body = await request.json();
-    const parsed = activateSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return apiError(
-        ERROR_CODES.VALIDATION_ERROR,
-        "Invalid request.",
-        400,
-        parsed.error.flatten()
-      );
-    }
-
-    const { user_id, plan_id, duration_days } = parsed.data;
-    const approvalError = await requireApprovedAccount(user_id);
-    if (approvalError) return approvalError;
-    const admin = createAdminClient();
-
-    // Check user exists
-    const { data: user } = await admin
-      .from("users")
-      .select("id, email")
-      .eq("id", user_id)
-      .single();
-
-    if (!user) {
-      return apiError(ERROR_CODES.NOT_FOUND, "User not found.", 404);
-    }
-
-    // Calculate billing period
-    const now = new Date();
-    const periodEnd = new Date(now);
-    periodEnd.setDate(periodEnd.getDate() + duration_days);
-
-    // Check if user has an existing subscription row
-    const { data: existingSub } = await admin
-      .from("subscriptions")
-      .select("id, plan_id, status")
-      .eq("user_id", user_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingSub) {
-      // Update existing subscription
-      const updateData: Record<string, unknown> = {
-        status: "active",
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-      };
-      if (plan_id) updateData.plan_id = plan_id;
-
-      const { error } = await admin
-        .from("subscriptions")
-        .update(updateData)
-        .eq("id", existingSub.id);
-
-      if (error) {
-        console.error("[admin/subscription/activate] Update error:", error);
-        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to activate subscription.", 500);
-      }
-
-      console.log(
-        `[admin/subscription/activate] ✅ Activated existing subscription for user=${user_id} plan=${plan_id || existingSub.plan_id} by admin=${adminAuth.userId}`
-      );
-
-      return NextResponse.json(
-        apiSuccess({
-          user_id,
-          email: user.email,
-          plan_id: plan_id || existingSub.plan_id,
-          status: "active",
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          action: "updated",
-        })
-      );
-    } else {
-      // Create new subscription row
-      const { error } = await admin
-        .from("subscriptions")
-        .insert({
-          user_id,
-          provider: "payu",
-          plan_id: plan_id || "pro",
-          status: "active",
-          currency: "INR",
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-        });
-
-      if (error) {
-        console.error("[admin/subscription/activate] Insert error:", error);
-        return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to create subscription.", 500);
-      }
-
-      console.log(
-        `[admin/subscription/activate] ✅ Created new subscription for user=${user_id} plan=${plan_id || "pro"} by admin=${adminAuth.userId}`
-      );
-
-      return NextResponse.json(
-        apiSuccess({
-          user_id,
-          email: user.email,
-          plan_id: plan_id || "pro",
-          status: "active",
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          action: "created",
-        }),
-        { status: 201 }
-      );
-    }
-  } catch (err) {
-    console.error("[admin/subscription/activate] Exception:", err);
-    return apiError(ERROR_CODES.INTERNAL_ERROR, "Something went wrong.", 500);
+    const parsed = z.object({ user_id: z.string().uuid(), txnid: z.string().trim().regex(/^[a-zA-Z0-9_-]{1,100}$/).optional() }).safeParse(await request.json());
+    if (!parsed.success) return Response.json({ error: { message: "Provide a valid client and transaction reference." } }, { status: 400 });
+    const blocked = await requireApprovedAccount(parsed.data.user_id);
+    if (blocked) return blocked;
+    const confirmed = await reconcileUserPayments(parsed.data.user_id, parsed.data.txnid);
+    if (!confirmed) return Response.json({ error: { message: "No completed payment was verified. Access remains unchanged." } }, { status: 409 });
+    const { data, error } = await createAdminClient().from("subscriptions").select("plan_id,status,current_period_end").eq("user_id", parsed.data.user_id).single();
+    if (error) throw error;
+    return Response.json({ success: true, data });
+  } catch (error) {
+    console.error("Admin payment reconciliation failed:", error);
+    return Response.json({ error: { message: "Payment verification is temporarily unavailable. Please retry." } }, { status: 503 });
   }
 }

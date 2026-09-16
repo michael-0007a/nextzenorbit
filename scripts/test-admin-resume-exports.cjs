@@ -60,7 +60,7 @@ for (const profile of [{ full_name: 'Test Client' }, [{ full_name: 'Test Client'
     const result = await page({ params: Promise.resolve({ id: 'client' }) });
     assert.equal(result.props.userId, 'client');
     assert.equal(result.props.userName, profile ? 'Test Client' : 'client@example.com');
-    assert.equal(result.props.baseResume, null);
+    assert.deepEqual(result.props.resumes, []);
   });
 }
 

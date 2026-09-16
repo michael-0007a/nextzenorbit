@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Ensure user exists
     const { data: existingUser } = await admin
       .from("users")
-      .select("id")
+      .select("id, role, is_suspended")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -102,7 +102,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         .gte("created_at", today.toISOString()),
     ]);
 
-    if (!canTrackApplication(subRes.data as SubscriptionRow | null, todayCountRes.count ?? 0)) {
+    const exempt = existingUser && !existingUser.is_suspended && ["admin", "super_admin", "supervisor_admin", "sso_user"].includes(existingUser.role);
+    if (!exempt && !canTrackApplication(subRes.data as SubscriptionRow | null, todayCountRes.count ?? 0)) {
       return apiError(
         ERROR_CODES.SUBSCRIPTION_REQUIRED,
         "Daily job application tracking limit reached for your plan. Please upgrade to track more applications.",

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:signup": "node --test --test-isolation=none scripts/test-onboarding.cjs scripts/test-signup-migration.cjs scripts/test-resume-upload.cjs",
+    "test:signup": "node --test --test-isolation=none scripts/test-onboarding.cjs scripts/test-signup-migration.cjs scripts/test-resume-upload.cjs scripts/test-payment-access.cjs",
     "seed:career-workspace": "npx tsx scripts/seed/index.ts",
     "wipe:client-data": "node scripts/wipe-client-data.js"
   },

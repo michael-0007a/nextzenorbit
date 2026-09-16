@@ -19,6 +19,7 @@ import {
   type EmbellishmentLevel,
 } from "@/lib/ai/prompts/resume-improver";
 import { apiError, ERROR_CODES } from "@/types/api";
+import { parseExportContent, hasResumeBody } from "@/lib/resume/export-content";
 import type { ResumeRow } from "@/types/database";
 
 const groq = new Groq({
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       .select("id, user_id, content, template_id")
       .eq("id", resumeId)
       .eq("user_id", userId)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (resumeError || !resume) {
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const typedResume = resume as ResumeRow;
+    if (!hasResumeBody(typedResume.content)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose or upload a populated base resume.", 422);
 
     // Prepare content for AI
     const resumeString = JSON.stringify(typedResume.content, null, 2);
@@ -148,11 +151,14 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Invalid response structure.", 500);
     }
 
+    const validatedContent = parseExportContent(result.resumeContent);
+    if (!validatedContent.success || !hasResumeBody(validatedContent.data)) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
+
     // Return optimized content WITHOUT mutating the original resume
     return NextResponse.json({
       success: true,
       data: {
-        content: result.resumeContent,
+        content: validatedContent.data,
         matchScore: result.matchScore,
         changesApplied: result.changesApplied,
         keywordsIncorporated: result.keywordsIncorporated || [],

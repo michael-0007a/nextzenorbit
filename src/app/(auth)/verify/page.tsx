@@ -10,7 +10,7 @@ export default function VerifyPage() {
       <h1 className="font-display text-2xl font-semibold text-foreground">Check your email</h1>
       <p className="text-sm text-text-secondary">
         We&apos;ve sent a verification link to your email address.
-        Click the link to activate your account and start your free trial.
+        Click the link to verify your email, then complete your profile and upload a resume for admission review.
       </p>
       <p className="text-xs text-text-secondary">
         Didn&apos;t receive it? Check your spam folder or{" "}

@@ -82,7 +82,7 @@ export async function POST(request: Request): Promise<Response> {
     // Ensure user exists in public.users table (required for FK constraint)
     const { data: existingUser } = await admin
       .from("users")
-      .select("id")
+      .select("id, role, is_suspended")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -103,7 +103,8 @@ export async function POST(request: Request): Promise<Response> {
         .eq("user_id", user.id),
     ]);
 
-    if (!canCreateResume(subRes.data as SubscriptionRow | null, countRes.count ?? 0)) {
+    const exempt = existingUser && !existingUser.is_suspended && ["admin", "super_admin", "supervisor_admin", "sso_user"].includes(existingUser.role);
+    if (!exempt && !canCreateResume(subRes.data as SubscriptionRow | null, countRes.count ?? 0)) {
       return apiError(
         ERROR_CODES.SUBSCRIPTION_REQUIRED,
         "Resume limit reached. Upgrade your plan to create more.",

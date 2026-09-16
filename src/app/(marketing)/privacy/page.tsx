@@ -13,7 +13,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-4 text-lg text-text-secondary">
-          Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          Last updated: September 16, 2026
         </p>
       </div>
 
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
               <Eye className="h-6 w-6" />
             </div>
             <h3 className="text-foreground font-semibold mb-2">Full Transparency</h3>
-            <p className="text-sm">You own your data and can delete it at any time.</p>
+            <p className="text-sm">Contact us to request access to or deletion of your personal data.</p>
           </div>
         </div>
 
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
             When you use NextZenOrbit, we collect the following types of information:
           </p>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Account Information:</strong> Name, email address, and profile picture (via Google OAuth).</li>
+            <li><strong>Account Information:</strong> Name, email address, profile picture (via Google OAuth), applicant-supplied phone number, consent record and admission review status.</li>
             <li><strong>Professional Data:</strong> Resumes, cover letters, and professional preferences you upload or generate.</li>
             <li><strong>Usage Data:</strong> Information about your job search queries and applications processed through our platform.</li>
           </ul>
@@ -56,7 +56,9 @@ export default function PrivacyPage() {
           <h2 className="text-2xl font-bold text-foreground mt-12 mb-4">2. How We Use Your Information</h2>
           <p>We use the collected information to:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Provide, maintain, and improve our services.</li>
+            <li>Review your application and uploaded resume before making payment available. Authorized supervisors and superadmins review these details.</li>
+            <li>Prevent repeat applications after rejection by matching email addresses and normalized phone numbers, including across different email addresses. We do not use SMS verification.</li>
+            <li>Provide, maintain, and improve our services after confirmed payment.</li>
             <li>Process your job applications automatically as requested.</li>
             <li>Generate tailored cover letters and interview notes.</li>
             <li>Communicate with you regarding service updates or account issues.</li>
@@ -74,7 +76,7 @@ export default function PrivacyPage() {
 
           <h2 className="text-2xl font-bold text-foreground mt-12 mb-4">4. Data Retention and Deletion</h2>
           <p>
-            We retain your data as long as your account is active. You can request deletion of your account and all associated data at any time by contacting our support team or using the delete option in your account settings.
+            We retain account and application information to operate the service and review admissions. You can request deletion by contacting our support team. Rejected email addresses and normalized phone numbers are retained separately to prevent repeat applications, including after an account is deleted. Contact privacy@nextzenorbit.com to request review of a contact block or discuss retention.
           </p>
 
           <h2 className="text-2xl font-bold text-foreground mt-12 mb-4">5. Changes to This Policy</h2>

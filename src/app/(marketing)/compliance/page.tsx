@@ -11,7 +11,7 @@ export default function CompliancePage() {
           Compliance & Legal Disclosures
         </h1>
         <p className="mt-4 text-lg text-text-secondary">
-          Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          Last updated: September 16, 2026
         </p>
       </div>
 
@@ -40,7 +40,7 @@ export default function CompliancePage() {
         <section>
           <h2 className="text-2xl font-bold text-foreground mb-4">4. Payment Processing Compliance</h2>
           <p>
-            All payment transactions are processed securely through PayU. NextZenOrbit does not store your full credit card information on our servers. We comply with Payment Card Industry Data Security Standards (PCI DSS) through our payment partners.
+            Admission is selective: candidates submit a profile, consent and resume for review by a supervisor or superadmin. Only approved candidates can pay. Services remain locked until payment is confirmed and require an active paid subscription. Approval is not a promise of employment. All payment transactions are processed securely through PayU. NextZenOrbit does not store your full credit card information on our servers. We comply with Payment Card Industry Data Security Standards (PCI DSS) through our payment partners.
           </p>
         </section>
 

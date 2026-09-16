@@ -8,7 +8,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
-import type { ResumeContent } from "@/lib/validations/resume";
+import { hasResumeBody, parseExportContent } from "@/lib/resume/export-content";
 import { redirect } from "next/navigation";
 import { AdminResumeGeneratorClient } from "./client";
 
@@ -40,33 +40,14 @@ export default async function AdminResumeGeneratorPage({ params }: Props) {
     redirect("/admin/users");
   }
 
-  // Fetch base resume
-  const { data: baseResume } = await admin
-    .from("resumes")
-    .select("id, title, content, template_id")
-    .eq("user_id", id)
-    .eq("is_base", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  // If no base resume, try to get the most recent one
-  const { data: fallbackResume } = !baseResume
-    ? await admin
-        .from("resumes")
-        .select("id, title, content, template_id")
-        .eq("user_id", id)
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    : { data: null };
-
-  const resumeToUse = (baseResume || fallbackResume) as unknown as {
-    id: string;
-    title: string;
-    content: ResumeContent;
-    template_id: string | null;
-  } | null;
+  const { data: savedResumes, error: resumesError } = await admin.from("resumes")
+    .select("id,title,content,template_id,is_base").eq("user_id", id).is("deleted_at", null)
+    .order("is_base", { ascending: false }).order("updated_at", { ascending: false });
+  if (resumesError) throw new Error("Unable to load client resumes.");
+  const resumes = (savedResumes || []).flatMap(resume => {
+    const content = parseExportContent(resume.content);
+    return content.success && hasResumeBody(content.data) ? [{ ...resume, content: content.data }] : [];
+  });
 
   const rawProfile = user.profile as unknown as
     | { full_name: string | null }
@@ -78,7 +59,7 @@ export default async function AdminResumeGeneratorPage({ params }: Props) {
       userId={id}
       userName={profile?.full_name || user.email || "Unknown User"}
       userEmail={user.email || ""}
-      baseResume={resumeToUse}
+      resumes={resumes}
     />
   );
 }
