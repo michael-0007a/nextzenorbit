@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ResumePreview } from "@/components/resume/resume-preview";
-import type { ResumeContent } from "@/lib/validations/resume";
+import { createEmptyResumeContent, type ResumeContent } from "@/lib/validations/resume";
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 
@@ -33,8 +33,8 @@ interface AdminResumeGeneratorClientProps {
   baseResume: {
     id: string;
     title: string;
-    content: any;
-    template_id: string;
+    content: ResumeContent;
+    template_id: string | null;
   } | null;
 }
 
@@ -55,14 +55,10 @@ export function AdminResumeGeneratorClient({
   
   // Start with base content or empty
   const [content, setContent] = useState<ResumeContent>(
-    baseResume?.content || {
-      contact: { full_name: userName, email: userEmail, phone: "", location: "" },
-      summary: { text: "" },
-      experience: [],
-      education: [],
-      skills: [],
-      projects: [],
-    }
+    baseResume?.content || createEmptyResumeContent({
+      full_name: userName,
+      email: userEmail,
+    })
   );
 
   const handleOptimize = async () => {
@@ -259,7 +255,7 @@ export function AdminResumeGeneratorClient({
                 AI Optimization
               </CardTitle>
               <CardDescription>
-                Paste the job description to tailor the user's base resume.
+                Paste the job description to tailor the user&apos;s base resume.
               </CardDescription>
             </CardHeader>
             <CardBody className="flex-1 flex flex-col min-h-0 space-y-4">

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import { GlobalPaywall } from "@/components/subscription/global-paywall";
+import { getApplicationAccess } from "@/lib/onboarding";
 
 // Force dynamic rendering to always fetch fresh profile data
 export const dynamic = "force-dynamic";
@@ -46,6 +47,8 @@ export default async function DashboardLayout({
   if (!user) {
     redirect("/login");
   }
+
+  if (await getApplicationAccess(user) !== "approved") redirect("/onboarding");
 
   const profile = await getCachedProfile(user.id);
 

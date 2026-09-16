@@ -14,7 +14,6 @@ export default function RegisterPage() {
     if (!agreedToTerms) return;
     setLoading(true);
     setError(null);
-    document.cookie = "accepted_terms=true; path=/; max-age=3600";
     const result = await signInWithGoogle();
     if (result?.error) {
       setError(result.error);
@@ -27,7 +26,7 @@ export default function RegisterPage() {
       <div className="space-y-2 text-center">
         <h1 className="font-display text-2xl font-semibold text-foreground">Create your account</h1>
         <p className="text-sm text-text-secondary">
-          Start your 7-day free trial. No credit card required.
+          Complete your profile and upload a resume for review. Payment opens after approval.
         </p>
       </div>
 

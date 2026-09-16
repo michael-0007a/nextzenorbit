@@ -1,4 +1,4 @@
--- Migration: User Suspension
+-- Migration 034: User Suspension
 -- Adds is_suspended to users table to quickly load status in the admin UI.
 
 ALTER TABLE public.users

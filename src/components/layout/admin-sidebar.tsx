@@ -39,6 +39,7 @@ const superAdminNavItems: NavItem[] = [
 ];
 
 const supervisorAdminNavItems: NavItem[] = [
+  { label: "Signup Applications", href: "/admin/signup-applications", icon: UserPlus },
   { label: "Allocate Clients", href: "/admin/users", icon: Users },
   { label: "Admin Team", href: "/admin/team", icon: Shield },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
@@ -189,7 +190,7 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
               </div>
             )}
             <nav className="space-y-1" aria-label="Super admin navigation">
-              {supervisorAdminNavItems.filter(item => item.label === "Allocate Clients" || item.label === "Analytics").map((item) => renderNavItem(item))}
+              {supervisorAdminNavItems.filter(item => item.label !== "Admin Team").map((item) => renderNavItem(item))}
               {superAdminNavItems.map((item) => renderNavItem(item))}
             </nav>
           </div>

@@ -328,9 +328,38 @@ export type AdminCoverLetterRow = {
 // ── Supabase Database type ──
 // Compatible with @supabase/supabase-js v2.98+
 
+export type SignupApplicationRow = {
+  user_id: string;
+  email: string;
+  phone: string | null;
+  status: "pending" | "approved" | "rejected";
+  profile: Record<string, unknown>;
+  resume_path: string | null;
+  resume_name: string | null;
+  consent_version: string | null;
+  consented_at: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  rejection_reason: string | null;
+  legacy_account: boolean;
+};
+
 export type Database = {
   public: {
     Tables: {
+      signup_applications: {
+        Row: SignupApplicationRow;
+        Insert: SignupApplicationRow;
+        Update: Partial<SignupApplicationRow>;
+        Relationships: [];
+      };
+      registration_blocks: {
+        Row: { kind: string; value: string; created_at: string };
+        Insert: { kind: string; value: string };
+        Update: { kind?: string; value?: string };
+        Relationships: [];
+      };
       users: {
         Row: UserRow;
         Insert: { id: string; email: string; role?: UserRole; is_suspended?: boolean };
@@ -465,7 +494,11 @@ export type Database = {
       };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      consume_request_limit: { Args: { p_key: string; p_limit: number; p_seconds: number }; Returns: boolean };
+      submit_signup_application: { Args: { p_user_id: string; p_profile: Record<string, unknown>; p_resume_path: string; p_resume_name: string; p_content: ResumeContent; p_consent_version: string }; Returns: undefined };
+      review_signup_application: { Args: { p_user_id: string; p_reviewer_id: string; p_decision: string; p_reason: string }; Returns: undefined };
+    };
     Enums: {};
     CompositeTypes: {};
   };

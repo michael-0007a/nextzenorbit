@@ -33,11 +33,11 @@ export async function requireAdmin(): Promise<AuthenticatedAdmin | Response> {
   const admin = createAdminClient();
   const { data: userRow } = await admin
     .from("users")
-    .select("role")
+    .select("role, is_suspended")
     .eq("id", user.id)
     .single();
 
-  if (!userRow || !["admin", "supervisor_admin", "super_admin"].includes(userRow.role)) {
+  if (!userRow || userRow.is_suspended || !["admin", "supervisor_admin", "super_admin"].includes(userRow.role)) {
     return apiError(ERROR_CODES.FORBIDDEN, "Admin access required.", 403);
   }
 

@@ -14,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 import { z } from "zod";
+import { requireApprovedAccount } from "@/lib/onboarding";
 
 const activateSchema = z.object({
   user_id: z.string().uuid(),
@@ -39,6 +40,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const { user_id, plan_id, duration_days } = parsed.data;
+    const approvalError = await requireApprovedAccount(user_id);
+    if (approvalError) return approvalError;
     const admin = createAdminClient();
 
     // Check user exists
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       const { error } = await admin
         .from("subscriptions")
         .update(updateData)
-        .eq("id", existingSub.id) as any;
+        .eq("id", existingSub.id);
 
       if (error) {
         console.error("[admin/subscription/activate] Update error:", error);
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           currency: "INR",
           current_period_start: now.toISOString(),
           current_period_end: periodEnd.toISOString(),
-        } as any) as any;
+        });
 
       if (error) {
         console.error("[admin/subscription/activate] Insert error:", error);

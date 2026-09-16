@@ -46,7 +46,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       .eq("id", user.id)
       .single();
       
-    const isAdmin = userData?.role === "admin";
+    const isAdmin = ["admin", "supervisor_admin", "super_admin"].includes(
+      userData?.role || ""
+    );
     
     let query = admin
       .from("admin_resumes")

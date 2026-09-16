@@ -1,11 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
+import { getApplicationAccess } from "@/lib/onboarding";
 
 export default async function proxy(request: NextRequest) {
   // 1. Refresh session
   const { user, supabaseResponse } = await updateSession(request);
   const path = request.nextUrl.pathname;
+
+  // Protect direct API calls too; hiding dashboard/payment links is insufficient.
+  const onboardingApi = path === "/api/onboarding" || path.startsWith("/api/onboarding/");
+  if (user && path.startsWith("/api/") && !onboardingApi && !path.startsWith("/api/auth/") && !path.startsWith("/api/webhooks/")) {
+    try {
+      if (await getApplicationAccess(user) !== "approved") {
+        return NextResponse.json({ success: false, error: { code: "APPROVAL_REQUIRED", message: "Complete your application and wait for approval before accessing this feature." } }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ success: false, error: { message: "Account status is temporarily unavailable." } }, { status: 503 });
+    }
+  }
 
   // 2. Protect specific routes based on role or auth
   // Ensure the user is signed in to access protected user areas

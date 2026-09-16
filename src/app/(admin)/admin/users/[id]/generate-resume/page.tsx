@@ -8,6 +8,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import type { ResumeContent } from "@/lib/validations/resume";
 import { redirect } from "next/navigation";
 import { AdminResumeGeneratorClient } from "./client";
 
@@ -25,16 +26,19 @@ export default async function AdminResumeGeneratorPage({ params }: Props) {
   const admin = createAdminClient();
 
   // Fetch user info
-  const { data: user } = await admin
+  const { data: user, error: userError } = await admin
     .from("users")
     .select(`
       id, email,
-      profile:profiles(full_name)
+      profile:profiles!profiles_user_id_fkey(full_name)
     `)
     .eq("id", id)
     .single();
 
-  if (!user) redirect("/admin/users");
+  if (userError || !user) {
+    console.error("Admin resume generator user fetch error:", userError);
+    redirect("/admin/users");
+  }
 
   // Fetch base resume
   const { data: baseResume } = await admin
@@ -57,14 +61,24 @@ export default async function AdminResumeGeneratorPage({ params }: Props) {
         .maybeSingle()
     : { data: null };
 
-  const resumeToUse = baseResume || fallbackResume;
+  const resumeToUse = (baseResume || fallbackResume) as unknown as {
+    id: string;
+    title: string;
+    content: ResumeContent;
+    template_id: string | null;
+  } | null;
+
+  const rawProfile = user.profile as unknown as
+    | { full_name: string | null }
+    | Array<{ full_name: string | null }>;
+  const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
 
   return (
     <AdminResumeGeneratorClient
       userId={id}
-      userName={(user as any).profile?.full_name || user.email || "Unknown User"}
+      userName={profile?.full_name || user.email || "Unknown User"}
       userEmail={user.email || ""}
-      baseResume={resumeToUse as any}
+      baseResume={resumeToUse}
     />
   );
 }

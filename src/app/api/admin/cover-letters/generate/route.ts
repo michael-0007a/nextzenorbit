@@ -16,6 +16,7 @@ import { COVER_LETTER_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { resumeContentSchema } from "@/lib/validations/resume";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
+import { rateLimit } from "@/lib/rate-limit";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -34,6 +35,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
+    const limited = await rateLimit("admin-cover-letter", adminAuth.userId, 10, 60);
+    if (limited) return limited;
 
     const body = await request.json();
     const parsed = adminGenerateSchema.safeParse(body);
@@ -57,6 +60,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       .select("id, user_id, content")
       .eq("id", resumeId)
       .eq("user_id", userId)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (error || !resume) {

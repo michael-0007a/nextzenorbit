@@ -86,10 +86,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     //    but we need to update the role and full name.
     
     // Update role
-    await admin.from("users").update({ role }).eq("id", newUserId);
+    const { error: userError } = await admin.from("users").upsert({ id: newUserId, email: authData.user.email!, role });
+    if (userError) { await admin.auth.admin.deleteUser(newUserId); throw userError; }
     
     // Update profile
-    await admin.from("profiles").update({ full_name }).eq("id", newUserId);
+    const { error: profileError } = await admin.from("profiles").upsert({ user_id: newUserId, full_name }, { onConflict: "user_id" });
+    if (profileError) { await admin.auth.admin.deleteUser(newUserId); throw profileError; }
 
     return NextResponse.json(apiSuccess({ id: newUserId, email, role, full_name }));
   } catch (err) {
@@ -111,7 +113,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
 
     // Prevent removing the last super admin (basic safeguard)
-    if (role === "admin" && id === auth.userId) {
+    if (role !== "super_admin" && id === auth.userId) {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Cannot demote yourself.");
     }
 

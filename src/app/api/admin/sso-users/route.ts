@@ -23,7 +23,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       .from("users")
       .select(`
         id, email, role, created_at,
-        profile:profiles(full_name, avatar_url)
+        profile:profiles!profiles_user_id_fkey(full_name, avatar_url)
       `)
       .eq("role", "sso_user")
       .order("created_at", { ascending: false });
@@ -70,10 +70,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     // 2. The trigger creates the users and profiles rows automatically.
     
     // Update role
-    await admin.from("users").update({ role: "sso_user" }).eq("id", newUserId);
+    const { error: userError } = await admin.from("users").upsert({ id: newUserId, email: authData.user.email!, role: "sso_user" });
+    if (userError) { await admin.auth.admin.deleteUser(newUserId); throw userError; }
     
     // Update profile
-    await admin.from("profiles").update({ full_name }).eq("id", newUserId);
+    const { error: profileError } = await admin.from("profiles").upsert({ user_id: newUserId, full_name }, { onConflict: "user_id" });
+    if (profileError) { await admin.auth.admin.deleteUser(newUserId); throw profileError; }
 
     // 3. Create active free subscription for them (so they don't hit paywalls)
     // The trigger might have created a trial subscription, so we update it or insert if missing

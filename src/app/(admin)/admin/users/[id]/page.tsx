@@ -101,6 +101,35 @@ export default function AdminUserDetailsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingNotification, setSendingNotification] = useState(false);
+  const [downloadingResume, setDownloadingResume] = useState<string | null>(null);
+
+  const downloadResume = async (id: string, title: string, adminGenerated = false) => {
+    setDownloadingResume(id);
+    try {
+      const response = await fetch(adminGenerated
+        ? `/api/resumes/export-admin?id=${id}&format=pdf`
+        : `/api/resumes/${id}/export?format=pdf`);
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error?.message || "Failed to download PDF. Please try again.");
+      }
+      if (!response.headers.get("content-type")?.includes("application/pdf")) {
+        throw new Error("The PDF could not be downloaded. Please sign in again and retry.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${title.replace(/[^a-zA-Z0-9]/g, "_") || "resume"}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to download PDF. Please try again.");
+    } finally {
+      setDownloadingResume(null);
+    }
+  };
 
   const [showManualApp, setShowManualApp] = useState(false);
   const [manualTitle, setManualTitle] = useState("");
@@ -446,14 +475,14 @@ export default function AdminUserDetailsPage({
                     </span>
                   </div>
                 </div>
-                <a
-                  href={`/api/resumes/${user.baseResume.id}/export?format=pdf&template=${user.baseResume.template_id || "classic"}`}
-                  download
+                <button
+                  onClick={() => downloadResume(user.baseResume!.id, user.baseResume!.title)}
+                  disabled={downloadingResume !== null}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Download PDF
-                </a>
+                  {downloadingResume === user.baseResume.id ? "Downloading..." : "Download PDF"}
+                </button>
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-warning/5 border border-warning/20 text-center">
@@ -517,13 +546,13 @@ export default function AdminUserDetailsPage({
                       </p>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <a
-                        href={`/api/resumes/${resume.id}/export?format=pdf&template=${resume.template_id || "classic"}`}
-                        download
+                      <button
+                        onClick={() => downloadResume(resume.id, resume.title)}
+                        disabled={downloadingResume !== null}
                         className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
                       >
-                        Download PDF
-                      </a>
+                        {downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -572,21 +601,10 @@ export default function AdminUserDetailsPage({
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
-                        onClick={async () => {
-                          const res = await fetch(
-                            `/api/resumes/export-admin?id=${resume.id}&format=pdf`
-                          );
-                          if (res.ok) {
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `${resume.title.replace(/\s+/g, "_")}.pdf`;
-                            a.click();
-                          }
-                        }}
+                        onClick={() => downloadResume(resume.id, resume.title, true)}
+                        disabled={downloadingResume !== null}
                       >
-                        Download PDF
+                        {downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
                       </button>
                     </div>
                   </div>

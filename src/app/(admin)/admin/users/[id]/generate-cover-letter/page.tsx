@@ -29,7 +29,7 @@ export default async function AdminCoverLetterGeneratorPage({ params }: Props) {
     .from("users")
     .select(`
       id, email,
-      profile:profiles(full_name)
+      profile:profiles!profiles_user_id_fkey(full_name)
     `)
     .eq("id", id)
     .single();
@@ -59,12 +59,15 @@ export default async function AdminCoverLetterGeneratorPage({ params }: Props) {
 
   const resumeToUse = baseResume || fallbackResume;
 
+  const rawProfile = user.profile;
+  const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
+
   return (
     <AdminCoverLetterGeneratorClient
       userId={id}
-      userName={(user as any).profile?.full_name || user.email || "Unknown User"}
+      userName={profile?.full_name || user.email || "Unknown User"}
       userEmail={user.email || ""}
-      baseResume={resumeToUse as any}
+      baseResume={resumeToUse}
     />
   );
 }

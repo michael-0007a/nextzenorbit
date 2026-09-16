@@ -92,7 +92,7 @@ export function AdminCoverLetterGeneratorClient({
       }
     } catch (error) {
       console.error("Generate error:", error);
-      toast.error("Failed to generate cover letter. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to generate cover letter. Please try again.");
     } finally {
       setGenerating(false);
     }
@@ -129,7 +129,7 @@ export function AdminCoverLetterGeneratorClient({
       }
     } catch (error) {
       console.error("Save error:", error);
-      toast.error("Failed to save cover letter. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to save cover letter. Please try again.");
     } finally {
       setSaving(false);
     }

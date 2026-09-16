@@ -84,11 +84,28 @@ export async function GET(
       .from("resumes")
       .select("id, user_id, title, content, template_id")
       .eq("id", id)
-      .eq("user_id", user.id)
       .maybeSingle();
 
     if (error || !resume) {
       return apiError(ERROR_CODES.NOT_FOUND, "Resume not found.", 404);
+    }
+
+    // Resume owners and every supported admin role may export a resume. The
+    // admin panel downloads client-owned resumes through this same endpoint.
+    if (resume.user_id !== user.id) {
+      const { data: requestingUser } = await admin
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const isAdmin = ["admin", "supervisor_admin", "super_admin"].includes(
+        requestingUser?.role || ""
+      );
+
+      if (!isAdmin) {
+        return apiError(ERROR_CODES.NOT_FOUND, "Resume not found.", 404);
+      }
     }
 
     const typedResume = resume as ResumeRow;

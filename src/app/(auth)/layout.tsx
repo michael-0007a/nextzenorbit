@@ -67,7 +67,7 @@ export default function AuthLayout({
                 href="/register"
                 className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-light px-5 py-2 text-sm font-semibold text-white shadow-[0_15px_35px_rgba(255,0,61,0.35)] transition-transform duration-300 hover:-translate-y-0.5"
               >
-                Start Free Trial
+                Apply to Join
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

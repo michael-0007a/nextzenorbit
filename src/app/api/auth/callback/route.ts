@@ -8,14 +8,15 @@
  */
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getApplicationAccess } from "@/lib/onboarding";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const requestedNext = searchParams.get("next") ?? "/dashboard";
+  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") && !requestedNext.includes("\\") ? requestedNext : "/dashboard";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
@@ -54,39 +55,27 @@ export async function GET(request: Request) {
 
   if (!existingUser) {
     // New Google user — create rows
-    const now = new Date().toISOString();
-    const trialEnd = new Date(
-      Date.now() + 7 * 24 * 60 * 60 * 1000
-    ).toISOString();
-
-    const cookieStore = await cookies();
-    const hasAgreedToTerms = cookieStore.get("accepted_terms")?.value === "true";
 
     // Insert user
-    await admin.from("users").insert({
+    const { error: userError } = await admin.from("users").insert({
       id: user.id,
       email: user.email!,
       role: "user",
     });
+    if (userError) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/login?error=registration_unavailable`);
+    }
 
     // Insert profile with Google name + avatar
     await admin.from("profiles").insert({
       user_id: user.id,
       full_name: googleName || user.email?.split("@")[0] || "",
       avatar_url: googleAvatar,
-      has_agreed_to_terms: hasAgreedToTerms,
+      has_agreed_to_terms: false,
     });
 
-    // Insert subscription with 7-day trial
-    await admin.from("subscriptions").insert({
-      user_id: user.id,
-      provider: "payu",
-      plan_id: "free",
-      status: "trialing",
-      trial_starts_at: now,
-      trial_ends_at: trialEnd,
-      currency: "INR",
-    });
+    // Subscription creation is deferred until the application is approved.
   } else {
     // Returning user — always sync name & avatar from Google
     const { data: profile } = await admin
@@ -121,5 +110,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  const access = await getApplicationAccess(user);
+  return NextResponse.redirect(`${origin}${access === "approved" ? next : "/onboarding"}`);
 }

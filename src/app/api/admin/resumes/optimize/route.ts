@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { rateLimit } from "@/lib/rate-limit";
 import Groq from "groq-sdk";
 import { z } from "zod";
 import {
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
+    const limited = await rateLimit("admin-resume-optimize", adminAuth.userId, 10, 60);
+    if (limited) return limited;
 
     const body = await request.json();
     const parsed = adminOptimizeSchema.safeParse(body);

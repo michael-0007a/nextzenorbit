@@ -17,6 +17,8 @@ import { PLANS } from "@/lib/subscription";
 import { upsertSubscriptionCreated } from "@/services/subscription-service";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { PlanId } from "@/types/database";
+import { requireApprovedAccount } from "@/lib/onboarding";
+import { rateLimit } from "@/lib/rate-limit";
 
 const createSubscriptionSchema = z.object({
   plan: z.enum(["free", "pro", "elite"]),
@@ -35,6 +37,11 @@ export async function POST(request: Request) {
     if (!user) {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
     }
+
+    const approvalError = await requireApprovedAccount(user.id);
+    if (approvalError) return approvalError;
+    const limited = await rateLimit("checkout", user.id, 5, 300);
+    if (limited) return limited;
 
     // 2. Validate input
     let body: unknown;

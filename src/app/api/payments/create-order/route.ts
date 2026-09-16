@@ -13,6 +13,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getPaymentProvider, calculateGST, PLAN_PRICING } from "@/lib/payments";
 import { apiError, ERROR_CODES } from "@/types/api";
+import { requireApprovedAccount } from "@/lib/onboarding";
+import { rateLimit } from "@/lib/rate-limit";
 
 const createOrderSchema = z.object({
   planId: z.enum(["pro", "elite"]),
@@ -31,6 +33,11 @@ export async function POST(request: Request) {
     if (!user) {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
     }
+
+    const approvalError = await requireApprovedAccount(user.id);
+    if (approvalError) return approvalError;
+    const limited = await rateLimit("checkout", user.id, 5, 300);
+    if (limited) return limited;
 
     // 2. Validate input
     const body = await request.json();

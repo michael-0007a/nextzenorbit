@@ -9,6 +9,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+import { z } from "zod";
+
+const letterSchema = z.object({
+  user_id: z.string().uuid(), title: z.string().trim().min(1).max(200),
+  content: z.string().trim().min(1).max(30000), job_title: z.string().max(200).optional(),
+  company_name: z.string().max(200).optional(), job_description: z.string().max(10000).optional(),
+});
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -47,12 +54,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
 
-    const body = await request.json();
-    const { user_id, title, content, job_title, company_name, job_description } = body;
-
-    if (!user_id || !title || !content) {
-      return apiError(ERROR_CODES.VALIDATION_ERROR, "user_id, title, and content are required.");
-    }
+    const parsed = letterSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return apiError(ERROR_CODES.VALIDATION_ERROR, "Provide a valid client, title and cover letter content.", 400);
+    const { user_id, title, content, job_title, company_name, job_description } = parsed.data;
 
     const admin = createAdminClient();
     const { data, error } = await admin
