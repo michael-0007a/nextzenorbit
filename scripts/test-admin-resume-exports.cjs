@@ -7,17 +7,18 @@ const path = require('node:path');
 const ts = require('typescript');
 
 const root = path.resolve(__dirname, '..');
-module.exports = { loadSource };
+module.exports = { loadSource, exportHandler };
 function loadSource(relativePath, mocks, cache = new Map()) {
   const filename = path.resolve(root, relativePath);
   if (cache.has(filename)) return cache.get(filename).exports;
   const module = { exports: {} };
   cache.set(filename, module);
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   }).outputText;
   const localRequire = (name) => {
     if (Object.hasOwn(mocks, name)) return mocks[name];
+    if (name.endsWith('.json')) return require(path.resolve(path.dirname(filename), name));
     if (name.startsWith('@/')) {
       const base = `src/${name.slice(2)}`;
       const source = [base + '.ts', base + '.tsx', base + '/index.ts'].find(p => fs.existsSync(path.join(root, p)));
@@ -64,7 +65,7 @@ for (const profile of [{ full_name: 'Test Client' }, [{ full_name: 'Test Client'
   });
 }
 
-function exportHandler(adminGenerated, { role = 'user', signedIn = true, owner = false, missing = false } = {}) {
+function exportHandler(adminGenerated, { role = 'user', signedIn = true, owner = false, missing = false, overrides = {} } = {}) {
   const resume = {
     id: 'resume-id', user_id: owner ? 'viewer' : 'client', title: 'Client Resume', template_id: 'classic',
     content: { contact: { full_name: 'Test Client', email: 'client@example.com' }, summary: { text: 'Experienced developer.' } },
@@ -88,6 +89,7 @@ function exportHandler(adminGenerated, { role = 'user', signedIn = true, owner =
   const mocks = {
     '@/lib/supabase/server': { createClient: async () => ({ auth: { getUser: async () => ({ data: { user: signedIn ? { id: 'viewer' } : null } }) } }) },
     '@/lib/supabase/admin': { createAdminClient: () => database },
+    ...overrides,
   };
   return loadSource(adminGenerated ? 'src/app/api/resumes/export-admin/route.ts' : 'src/app/api/resumes/[id]/export/route.ts', mocks).GET;
 }

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (uploadError) throw uploadError;
     const { data: resume, error } = await admin.from("resumes").insert({ user_id: userId, title: file.name.replace(/\.(pdf|docx)$/i, ""), content, template_id: "classic", is_base: false, file_url: `resume-uploads/${path}` }).select("id,title,content,template_id").single();
     if (error) throw error;
-    return Response.json({ success: true, data: { resume, parsedByAI, warning: parsedByAI ? null : `AI parsing was unavailable. The extracted text is saved as your base resume; review it before saving a generated resume.${fallback.truncated ? " The preview contains the first 15,000 characters; the complete original file is retained." : ""}` } }, { status: 201 });
+    return Response.json({ success: true, data: { resume, parsedByAI, warning: parsedByAI ? null : `AI parsing was unavailable. The extracted text is saved as your base resume; review it before saving a generated resume.${fallback.truncated ? " The preview contains the first 150,000 characters; the complete original file is retained." : ""}` } }, { status: 201 });
   } catch (error) {
     console.error("Admin resume upload failed:", error);
     return Response.json({ error: { message: "Unable to parse and save this resume. Please try again." } }, { status: 503 });

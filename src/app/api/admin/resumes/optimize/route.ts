@@ -1,3 +1,5 @@
+import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
+import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Admin API: Resume Optimization
@@ -30,6 +32,8 @@ const groq = new Groq({
 const adminOptimizeSchema = z.object({
   userId: z.string().uuid(),
   resumeId: z.string().uuid(),
+  targetPages: targetPagesSchema,
+  templateId: z.string().max(50).optional(),
   jobDescription: z.string().min(10, "Job description too short").max(15000),
   embellishmentLevel: z.enum(["conservative", "moderate", "aggressive"]).default("moderate"),
 });
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
-    const { userId, resumeId, jobDescription, embellishmentLevel } = parsed.data;
+    const { userId, resumeId, jobDescription, embellishmentLevel, targetPages } = parsed.data;
 
     const admin = createAdminClient();
 
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const typedResume = resume as ResumeRow;
+    const requestedPages = targetPages === undefined ? typedResume.content.layout?.target_pages : targetPages;
     if (!hasResumeBody(typedResume.content)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose or upload a populated base resume.", 422);
 
     // Prepare content for AI
@@ -90,16 +95,17 @@ export async function POST(request: NextRequest): Promise<Response> {
       ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: systemPrompt + "\n\n" + resumeLengthInstruction(requestedPages) },
         { role: "user", content: userPrompt },
       ],
       temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
-      max_tokens: 6000,
+      max_tokens: 24000,
+      response_format: { type: "json_object" },
     });
 
     const responseText = completion.choices[0]?.message?.content;
 
-    if (!responseText) {
+    if (!responseText || completion.choices[0]?.finish_reason === "length") {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Empty AI response.", 500);
     }
 
@@ -156,17 +162,21 @@ export async function POST(request: NextRequest): Promise<Response> {
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success || !hasResumeBody(validatedContent.data)) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
 
+    const fitted = await fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id);
+
     // Return optimized content WITHOUT mutating the original resume
     return NextResponse.json({
       success: true,
       data: {
-        content: validatedContent.data,
+        content: fitted.content,
+        pageCount: fitted.pageCount,
+        layoutWarnings: fitted.layoutWarnings,
         matchScore: result.matchScore,
         changesApplied: result.changesApplied,
         keywordsIncorporated: result.keywordsIncorporated || [],
         keywordsMissing: result.keywordsMissing || [],
         embellishmentLevel,
-        tokensUsed: completion.usage?.total_tokens || 0,
+        tokensUsed: (completion.usage?.total_tokens || 0) + fitted.tokensUsed,
       },
     });
   } catch (err) {

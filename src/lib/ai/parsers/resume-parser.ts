@@ -1,3 +1,4 @@
+import { resumeFromExtractedText } from "@/lib/resume/text-fallback";
 import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * Resume Parser — AI-Powered Resume Text Extraction
@@ -11,9 +12,10 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 
 import Groq from "groq-sdk";
 import mammoth from "mammoth";
+import JSZip from "jszip";
 import { extractText as extractPdfText } from "unpdf";
 import {
-  resumeContentSchema,
+  resumeContentFormSchema,
   createEmptyResumeContent,
   type ResumeContent,
 } from "@/lib/validations/resume";
@@ -59,7 +61,18 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
   try {
     const result = await mammoth.extractRawText({ buffer });
-    return result.value.trim();
+    // Mammoth omits headers/footers, where uploaded resumes often keep contact
+    // information. Keep those details in the extraction input, once per part.
+    const archive = await JSZip.loadAsync(buffer);
+    const parts: string[] = [];
+    for (const name of Object.keys(archive.files).filter(name => /^word\/(header|footer)\d+\.xml$/.test(name)).sort()) {
+      const xml = await archive.file(name)!.async("string");
+      const text = Array.from(xml.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g), match => match[1]
+        .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&")
+      ).join(" ").trim();
+      if (text && !parts.includes(text)) parts.push(text);
+    }
+    return [...parts, result.value].join("\n\n").trim();
   } catch (error) {
     console.error("DOCX extraction error:", error);
     return "";
@@ -109,8 +122,9 @@ export async function parseResumeWithAI(
     };
   }
 
-  // Truncate very long resumes to avoid token limits (max ~8K chars)
-  const truncated = resumeText.slice(0, 8000);
+  // Do not silently discard the tail of a resume. Oversized inputs use the
+  // existing raw-text fallback so the uploader can review the full document.
+  if (resumeText.length > 100000) return { content: resumeFromExtractedText(resumeText).content, rawText: resumeText, tokensUsed: 0, parsedByAI: false };
 
   try {
     const completion = await getGroq().chat.completions.create({
@@ -123,21 +137,21 @@ export async function parseResumeWithAI(
         },
         {
           role: "user",
-          content: RESUME_PARSER_PROMPT_V1.userTemplate(truncated),
+          content: RESUME_PARSER_PROMPT_V1.userTemplate(resumeText),
         },
       ],
       temperature: 0.1, // Low temp for factual extraction
-      max_tokens: 4000,
+      max_tokens: 24000,
       response_format: { type: "json_object" },
     }, options ? { signal: options.signal, maxRetries: 0 } : undefined);
 
     const rawOutput = completion.choices[0]?.message?.content;
     const tokensUsed = completion.usage?.total_tokens ?? 0;
 
-    if (!rawOutput) {
+    if (!rawOutput || completion.choices[0]?.finish_reason === "length") {
       console.error("AI parser returned empty response");
       return {
-        content: createEmptyResumeContent(),
+        content: resumeFromExtractedText(resumeText).content,
         rawText: resumeText,
         tokensUsed,
         parsedByAI: false,
@@ -149,7 +163,7 @@ export async function parseResumeWithAI(
     const normalized = normalizeAIOutput(parsed);
 
     // Validate with lenient schema
-    const validated = resumeContentSchema.safeParse(normalized);
+    const validated = resumeContentFormSchema.safeParse(normalized);
 
     if (!validated.success) {
       console.error("AI output failed validation:", validated.error.flatten());
@@ -162,10 +176,10 @@ export async function parseResumeWithAI(
         partialContent.summary = { text: parsed.summary.text };
       }
       return {
-        content: partialContent,
+        content: resumeFromExtractedText(resumeText, partialContent.contact).content,
         rawText: resumeText,
         tokensUsed,
-        parsedByAI: true, // Partially parsed
+        parsedByAI: false, // Let the upload route retain the full raw-text fallback
       };
     }
 
@@ -178,7 +192,7 @@ export async function parseResumeWithAI(
   } catch (error) {
     console.error("AI parser error:", error);
     return {
-      content: createEmptyResumeContent(),
+      content: resumeFromExtractedText(resumeText).content,
       rawText: resumeText,
       tokensUsed: 0,
       parsedByAI: false,

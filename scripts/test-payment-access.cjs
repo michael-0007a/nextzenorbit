@@ -201,8 +201,11 @@ test('Extracted text fallback preserves text and flags schema-limit truncation',
   assert.equal(result.content.custom_sections.map(s=>s.content).join(''),text.trim());
   assert.equal(result.truncated,false);
   assert.equal(parseExportContent(result.content).success,true);
-  const long = resumeFromExtractedText('a'.repeat(18000));
+  const complete = resumeFromExtractedText('a'.repeat(18000));
+  assert.equal(complete.truncated,false);
+  assert.equal(complete.content.custom_sections.map(s=>s.content).join('').length,18000);
+  const long = resumeFromExtractedText('a'.repeat(180000));
   assert.equal(long.truncated,true);
-  assert.equal(long.content.custom_sections.length,5);
+  assert.equal(long.content.custom_sections.length,50);
   assert.equal(parseExportContent(long.content).success,true);
 });

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:signup": "node --test --test-isolation=none scripts/test-onboarding.cjs scripts/test-signup-migration.cjs scripts/test-resume-upload.cjs scripts/test-payment-access.cjs",
     "seed:career-workspace": "npx tsx scripts/seed/index.ts",
-    "wipe:client-data": "node scripts/wipe-client-data.js"
+    "wipe:client-data": "node scripts/wipe-client-data.js",
+    "test:resumes": "node --test --test-isolation=none scripts/test-resume-layout.cjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
@@ -37,7 +38,8 @@
     "supabase": "^2.78.1",
     "tailwind-merge": "^3.5.0",
     "unpdf": "^1.4.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "jszip": "3.10.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

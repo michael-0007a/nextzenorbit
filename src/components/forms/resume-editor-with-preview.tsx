@@ -56,6 +56,7 @@ import { LanguagesSection } from "@/components/forms/resume-sections/languages-s
 
 // New components
 import { ResumeActions } from "@/components/resume/resume-actions";
+import { ResumeLengthSelector } from "@/components/resume/resume-length-selector";
 import { ResumePreview } from "@/components/resume/resume-preview";
 
 interface ResumeEditorWithPreviewProps {
@@ -260,6 +261,17 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
           <ResumeActions
             resumeId={resume.id}
             currentTemplateId={templateId}
+            targetPages={watchedContent.layout?.target_pages ?? null}
+            onBeforeAction={async () => {
+              if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+              const parsed = resumeContentFormSchema.parse(methods.getValues());
+              const response = await fetch(`/api/resumes/${resume.id}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: parsed, title, template_id: templateId }),
+              });
+              if (!response.ok) throw new Error("Could not save your current changes. Please retry.");
+              setLastSaved(new Date());
+            }}
             onTemplateChange={handleTemplateChange}
             onContentUpdate={(content) => {
               // Update form with AI-improved content
@@ -270,6 +282,11 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
         </div>
       </div>
 
+      <div className="mb-4">
+        <ResumeLengthSelector value={watchedContent.layout?.target_pages ?? null} onChange={pages => {
+          methods.setValue("layout", { target_pages: pages }, { shouldDirty: true });
+        }} />
+      </div>
       {/* Main content area */}
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
         {/* Editor Panel */}

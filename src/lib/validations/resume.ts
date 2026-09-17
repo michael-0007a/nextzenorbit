@@ -45,7 +45,7 @@ export const experienceEntrySchema = z.object({
   start_date: z.string().max(20).default(""), // "Jan 2023" or "2023-01"
   end_date: z.string().max(20).optional().default(""), // empty = "Present"
   is_current: z.boolean().optional().default(false),
-  bullets: z.array(z.string().max(500)).max(10).default([]),
+  bullets: z.array(z.string().max(2000)).max(100).default([]),
 });
 
 // ── Education Entry ──
@@ -58,14 +58,14 @@ export const educationEntrySchema = z.object({
   start_date: z.string().max(20).optional().default(""),
   end_date: z.string().max(20).optional().default(""),
   gpa: z.string().max(20).optional().default(""),
-  bullets: z.array(z.string().max(500)).max(5).default([]),
+  bullets: z.array(z.string().max(2000)).max(100).default([]),
 });
 
 // ── Skill ──
 export const skillSchema = z.object({
   id: z.string(),
   category: z.string().max(80).optional().default(""), // e.g. "Languages", "Frameworks"
-  items: z.array(z.string().max(60)).max(30).default([]),
+  items: z.array(z.string().max(120)).max(100).default([]),
 });
 
 // ── Project Entry ──
@@ -75,7 +75,7 @@ export const projectEntrySchema = z.object({
   description: z.string().max(1000).optional().default(""),
   url: z.string().max(250).optional().default(""),
   technologies: z.array(z.string().max(60)).max(20).default([]),
-  bullets: z.array(z.string().max(500)).max(5).default([]),
+  bullets: z.array(z.string().max(2000)).max(100).default([]),
 });
 
 // ── Certification Entry ──
@@ -106,6 +106,7 @@ export const customSectionSchema = z.object({
 
 // ── Full Resume Content ──
 export const resumeContentSchema = z.object({
+  layout: z.object({ target_pages: z.number().int().min(1).max(10).nullable().default(null) }).optional(),
   contact: contactInfoSchema.optional().default({
     full_name: "",
     email: "",
@@ -122,11 +123,12 @@ export const resumeContentSchema = z.object({
   projects: z.array(projectEntrySchema).max(15).default([]),
   certifications: z.array(certificationEntrySchema).max(20).default([]),
   languages: z.array(languageEntrySchema).max(10).default([]),
-  custom_sections: z.array(customSectionSchema).max(5).default([]),
+  custom_sections: z.array(customSectionSchema).max(50).default([]),
 });
 
 // Lenient form schema - allows incomplete data during editing
 export const resumeContentFormSchema = z.object({
+  layout: z.object({ target_pages: z.number().int().min(1).max(10).nullable().default(null) }).optional(),
   contact: contactInfoFormSchema.optional().default({
     full_name: "",
     email: "",
@@ -143,7 +145,7 @@ export const resumeContentFormSchema = z.object({
   projects: z.array(projectEntrySchema).max(15).default([]),
   certifications: z.array(certificationEntrySchema).max(20).default([]),
   languages: z.array(languageEntrySchema).max(10).default([]),
-  custom_sections: z.array(customSectionSchema).max(5).default([]),
+  custom_sections: z.array(customSectionSchema).max(50).default([]),
 });
 
 // ── Inferred Types ──

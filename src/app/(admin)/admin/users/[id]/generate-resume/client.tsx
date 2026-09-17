@@ -21,6 +21,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ResumeLengthSelector } from "@/components/resume/resume-length-selector";
+import { TemplateSelector } from "@/components/resume/template-selector";
 import { ResumePreview } from "@/components/resume/resume-preview";
 import { createEmptyResumeContent, type ResumeContent } from "@/lib/validations/resume";
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,6 +52,7 @@ export function AdminResumeGeneratorClient({
   const [sources, setSources] = useState(resumes);
   const [sourceId, setSourceId] = useState(resumes[0]?.id || "");
   const baseResume = sources.find(resume => resume.id === sourceId) || null;
+  const [templateId, setTemplateId] = useState(resumes[0]?.template_id || "classic");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -108,6 +111,8 @@ export function AdminResumeGeneratorClient({
           resumeId: baseResume.id,
           jobDescription,
           embellishmentLevel: "moderate",
+          targetPages: content.layout?.target_pages ?? null,
+          templateId,
         }),
       });
 
@@ -116,6 +121,7 @@ export function AdminResumeGeneratorClient({
       if (data.success) {
         toast.success(`Resume optimized! Match score: ${data.data.matchScore}%`);
         setContent(data.data.content);
+        if (data.data.layoutWarnings?.length) toast.info(data.data.layoutWarnings.join(" "));
         
         // Auto-update title if we have company
         if (company) {
@@ -150,7 +156,7 @@ export function AdminResumeGeneratorClient({
           job_title: jobTitle,
           company,
           job_description: jobDescription,
-          template_id: baseResume?.template_id || "classic",
+          template_id: templateId,
         }),
       });
 
@@ -329,9 +335,11 @@ export function AdminResumeGeneratorClient({
             </span>
           </div>
           <div className="flex-1 overflow-auto p-4 flex justify-center">
+            <ResumeLengthSelector value={content.layout?.target_pages ?? null} onChange={pages => setContent(previous => ({ ...previous, layout: { target_pages: pages } }))} />
+            <TemplateSelector selectedId={templateId} onSelect={template => setTemplateId(template.id)} className="mb-4" />
             {baseResume ? <ResumePreview
               content={content}
-              templateId={baseResume?.template_id || "classic"}
+              templateId={templateId}
               scale={0.7}
             /> : <p className="py-24 text-center text-text-secondary">Choose or upload a base resume to see the preview.</p>}
           </div>

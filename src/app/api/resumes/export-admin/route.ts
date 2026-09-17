@@ -1,3 +1,4 @@
+import { unsupportedPdfCharacters } from "@/lib/resume/layout";
 /**
  * Admin Resume Export API — PDF Generation
  *
@@ -12,6 +13,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { ResumePDF } from "@/lib/resume/pdf-document";
+import { generateWordDocument } from "@/lib/resume/word-document";
+import { generateLatex } from "@/lib/resume/latex-templates";
 import { getTemplate } from "@/lib/resume/templates";
 import { parseExportContent } from "@/lib/resume/export-content";
 import { apiError, ERROR_CODES } from "@/types/api";
@@ -31,6 +34,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     // Get params from query
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const format = searchParams.get("format") || "pdf";
+    if (!["pdf", "docx", "latex"].includes(format)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Supported formats: pdf, docx, latex", 400);
     
     if (!id) {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Resume ID is required", 400);
@@ -78,7 +83,19 @@ export async function GET(request: NextRequest): Promise<Response> {
     const filename = typedResume.title.replace(/[^a-zA-Z0-9]/g, "_");
 
     // PDF generation
-    const template = getTemplate(typedResume.template_id || "classic");
+    const template = getTemplate(searchParams.get("template") || typedResume.template_id || "classic");
+    if (format === "docx") {
+      const buffer = await generateWordDocument(content, { template });
+      return new Response(new Uint8Array(buffer), { headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="${filename}.docx"`,
+      } });
+    }
+    if (format === "latex") return new Response(generateLatex(content, template.id), { headers: {
+      "Content-Type": "application/x-tex", "Content-Disposition": `attachment; filename="${filename}.tex"`,
+    } });
+    if (unsupportedPdfCharacters(content, template).length) return apiError(ERROR_CODES.VALIDATION_ERROR,
+      "This resume contains characters not supported by the PDF font. Download Word to preserve them.", 422);
     const buffer = await renderToBuffer(
       ResumePDF({ content, template })
     );

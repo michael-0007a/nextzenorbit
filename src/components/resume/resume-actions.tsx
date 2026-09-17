@@ -51,6 +51,8 @@ interface ResumeVersion {
 interface ResumeActionsProps {
   resumeId: string;
   currentTemplateId: string;
+  targetPages?: number | null;
+  onBeforeAction?: () => Promise<void>;
   onTemplateChange: (template: BaseTemplate) => void;
   onContentUpdate?: (content: unknown) => void;
   isPro?: boolean;
@@ -62,6 +64,8 @@ type EmbellishmentLevel = "conservative" | "moderate" | "aggressive";
 export function ResumeActions({
   resumeId,
   currentTemplateId,
+  targetPages = null,
+  onBeforeAction,
   onTemplateChange,
   onContentUpdate,
   className,
@@ -96,20 +100,20 @@ export function ResumeActions({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Export with format - use LaTeX for PDF generation by default for better quality
-  const handleExport = async (format: "pdf" | "docx" | "latex", useLatex = true) => {
+  // Export the saved page plan.
+  const handleExport = async (format: "pdf" | "docx" | "latex") => {
     setExporting(true);
     setExportFormat(format);
     setShowExportMenu(false);
     try {
-      // Use LaTeX for PDF by default for professional quality
-      const latexParam = format === "pdf" && useLatex ? "&latex=true" : "";
+      await onBeforeAction?.();
       const response = await fetch(
-        `/api/resumes/${resumeId}/export?format=${format}&template=${currentTemplateId}${latexParam}`
+        `/api/resumes/${resumeId}/export?format=${format}&template=${currentTemplateId}`
       );
 
       if (!response.ok) {
-        throw new Error("Export failed");
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error?.message || "Export failed");
       }
 
       const blob = await response.blob();
@@ -129,7 +133,7 @@ export function ResumeActions({
       toast.success(`${formatNames[format]} downloaded successfully!`);
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to export. Please try again.");
     } finally {
       setExporting(false);
       setExportFormat(null);
@@ -207,15 +211,18 @@ export function ResumeActions({
   const handleImprove = async () => {
     setImproving(true);
     try {
+      await onBeforeAction?.();
       const response = await fetch(`/api/resumes/${resumeId}/improve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetPages }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success("Resume improved! Refreshing...");
+        toast.success(`Resume improved: ${data.data.pageCount} pages. Review the preview.`);
+        if (data.data.layoutWarnings?.length) toast.info(data.data.layoutWarnings.join(" "));
         onContentUpdate?.(data.data.content);
         setTimeout(() => window.location.reload(), 500);
       } else {
@@ -243,11 +250,13 @@ export function ResumeActions({
 
     setOptimizing(true);
     try {
+      await onBeforeAction?.();
       const response = await fetch(`/api/resumes/${resumeId}/optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobDescription,
+          targetPages,
           embellishmentLevel,
           userAcknowledged: embellishmentLevel === "aggressive" ? userAcknowledged : undefined,
         }),
@@ -262,6 +271,7 @@ export function ResumeActions({
         toast.success(
           `Resume optimized! Match score: ${data.data.matchScore}%. Refreshing...`
         );
+        if (data.data.layoutWarnings?.length) toast.info(data.data.layoutWarnings.join(" "));
         onContentUpdate?.(data.data.content);
         setTimeout(() => window.location.reload(), 500);
       } else {
@@ -301,12 +311,12 @@ export function ResumeActions({
               >
                 <button
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                  onClick={() => handleExport("pdf", true)}
+                  onClick={() => handleExport("pdf")}
                 >
                   <FileText className="h-4 w-4 text-red-500" />
                   <div className="flex flex-col items-start">
                     <span>PDF (Professional)</span>
-                    <span className="text-xs text-muted-foreground">LaTeX typeset, best quality</span>
+                    <span className="text-xs text-muted-foreground">Matches the page preview</span>
                   </div>
                 </button>
                 <button
@@ -324,13 +334,7 @@ export function ResumeActions({
                   <FileCode className="h-4 w-4 text-green-500" />
                   <span>LaTeX Source (.tex)</span>
                 </button>
-                <button
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors"
-                  onClick={() => handleExport("pdf", false)}
-                >
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="text-xs">PDF (Basic fallback)</span>
-                </button>
+
               </motion.div>
             )}
           </AnimatePresence>
@@ -580,7 +584,7 @@ export function ResumeActions({
                 <div className="flex-1">
                   <p className="font-medium text-foreground">Enhance Strategically</p>
                   <p className="text-sm text-text-secondary mt-0.5">
-                    Strengthen language, add implied skills, reasonable estimates.
+                    Clarify achievements and explain context supported by your experience.
                   </p>
                   <span className="inline-block mt-1.5 text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded">
                     Recommended
@@ -607,7 +611,7 @@ export function ResumeActions({
                 <div className="flex-1">
                   <p className="font-medium text-foreground">Maximize Match</p>
                   <p className="text-sm text-text-secondary mt-0.5">
-                    Creative embellishment for maximum impact. Use with caution.
+                    Rewrite thoroughly for the role while keeping your claims factual.
                   </p>
                 </div>
               </button>
@@ -621,8 +625,7 @@ export function ResumeActions({
                 <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
                 <div className="space-y-3">
                   <p className="text-sm text-foreground">
-                    <strong>Important:</strong> This mode may add skills, quantify achievements,
-                    and enhance descriptions beyond what&apos;s explicitly stated in your resume.
+                    This mode substantially rewrites your summary and bullets. Review the wording before applying.
                   </p>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input

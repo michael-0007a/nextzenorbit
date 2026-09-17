@@ -4,7 +4,7 @@ import { createEmptyResumeContent, type ContactInfo } from "@/lib/validations/re
 export function resumeFromExtractedText(text: string, contact: Partial<ContactInfo> = {}) {
   const content = createEmptyResumeContent(contact);
   const cleaned = text.replace(/\u0000/g, "").trim();
-  const retained = cleaned.slice(0, 15000);
+  const retained = cleaned.slice(0, 150000);
   for (let offset = 0; offset < retained.length; offset += 3000) {
     content.custom_sections.push({
       id: `uploaded-text-${offset / 3000}`,

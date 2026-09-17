@@ -106,23 +106,23 @@ export default function AdminUserDetailsPage({
   const [sendingNotification, setSendingNotification] = useState(false);
   const [downloadingResume, setDownloadingResume] = useState<string | null>(null);
 
-  const downloadResume = async (id: string, title: string, adminGenerated = false) => {
+  const downloadResume = async (id: string, title: string, adminGenerated = false, format: "pdf" | "docx" = "pdf") => {
     setDownloadingResume(id);
     try {
       const response = await fetch(adminGenerated
-        ? `/api/resumes/export-admin?id=${id}&format=pdf`
-        : `/api/resumes/${id}/export?format=pdf`);
+        ? `/api/resumes/export-admin?id=${id}&format=${format}`
+        : `/api/resumes/${id}/export?format=${format}`);
       if (!response.ok) {
         const result = await response.json().catch(() => null);
         throw new Error(result?.error?.message || "Failed to download PDF. Please try again.");
       }
-      if (!response.headers.get("content-type")?.includes("application/pdf")) {
+      if (!response.headers.get("content-type")?.includes(format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
         throw new Error("The PDF could not be downloaded. Please sign in again and retry.");
       }
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${title.replace(/[^a-zA-Z0-9]/g, "_") || "resume"}.pdf`;
+      link.download = `${title.replace(/[^a-zA-Z0-9]/g, "_") || "resume"}.${format}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -562,6 +562,8 @@ export default function AdminUserDetailsPage({
                       >
                         {!resume.has_export_content ? "View original files" : downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
                       </button>
+                      {resume.has_export_content && <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20" disabled={downloadingResume !== null}
+                        onClick={() => downloadResume(resume.id, resume.title, false, "docx")}>Download Word</button>}
                     </div>
                   </div>
                 ))}
@@ -615,6 +617,8 @@ export default function AdminUserDetailsPage({
                       >
                         {downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
                       </button>
+                      <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20" disabled={downloadingResume !== null}
+                        onClick={() => downloadResume(resume.id, resume.title, true, "docx")}>Download Word</button>
                     </div>
                   </div>
                 ))}

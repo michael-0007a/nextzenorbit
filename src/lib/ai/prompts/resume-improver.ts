@@ -20,6 +20,11 @@ CORE PRINCIPLES:
 3. Focus on WHAT was done and WHY it mattered, not fake impact numbers
 4. Use clear, direct language — not overly polished corporate speak
 
+COMPLETENESS AND VOICE:
+- Preserve every role, substantive achievement, project, qualification, link and custom section. There is no one-page limit.
+- Explain implied context only when directly supported by the source: what was built, how it worked, who used it. Do not assume tools, scale, outcomes or leadership.
+- Use specific, varied sentences. Avoid generic summaries, repetitive action verbs and padded claims. Never add filler just to fill a page.
+
 REWRITING RULES:
 
 PROFESSIONAL SUMMARY:
@@ -38,11 +43,11 @@ EXPERIENCE BULLETS:
 SKILLS:
 - Group by category (Languages, Frameworks, Tools, etc.)
 - Only list skills actually mentioned or clearly implied by experience
-- Remove outdated or irrelevant skills
+- Retain supplied skills; put relevant skills first
 
 EDUCATION:
 - Clean, consistent formatting
-- Include relevant details like GPA only if impressive
+- Preserve supplied GPA, dates, locations and education details
 
 STRICT RULES:
 - NEVER add percentages like "improved by 30%" unless explicitly in original
@@ -53,7 +58,7 @@ STRICT RULES:
 
 OUTPUT FORMAT:
 Return ONLY valid JSON matching the exact structure of the input resume content.
-The structure should have: contact, summary, experience, education, skills, projects, certifications, languages.
+The structure should have: contact, summary, experience, education, skills, projects, certifications, languages, custom_sections.
 Preserve all field names and structure exactly.`,
 
   user: (resumeContent: string) => `Improve this resume to be clearer and more professional.
@@ -81,7 +86,7 @@ export const JD_OPTIMIZER_PROMPT_V1 = {
     const baseRules = `You are an expert resume writer who tailors resumes to match job descriptions while maintaining authenticity. You write like a human, not an AI.
 
 CORE PRINCIPLES:
-1. KEYWORD ALIGNMENT — Extract and use ALL important keywords from the JD naturally
+1. KEYWORD ALIGNMENT — Use relevant JD terminology only when supported by the resume
 2. SKILLS MATCHING — Highlight relevant skills the candidate actually has
 3. EXPERIENCE REFRAMING — Show how existing experience relates to the role
 4. HONEST LANGUAGE — Never invent metrics, numbers, or capabilities
@@ -89,72 +94,24 @@ CORE PRINCIPLES:
 CRITICAL KEYWORD TASK:
 1. First, extract ALL required skills/keywords from the job description
 2. For each keyword, find relevant experience in the resume to incorporate it naturally
-3. Ensure every critical keyword appears at least once in the optimized resume
+3. Include only evidenced keywords. Report unsupported requirements in keywordsMissing
 4. Track which keywords were successfully incorporated`;
 
     const levelRules = {
-      conservative: `
-OPTIMIZATION MODE: CONSERVATIVE
-
-ALLOWED:
-✓ Rephrase existing content using JD keywords — incorporate AS MANY as possible
-✓ Reorder sections/bullets to prioritize JD-relevant items
-✓ Improve clarity and sentence structure
-✓ Add synonyms of existing skills (e.g., "JS" → "JavaScript")
-✓ Make implicit skills explicit (Git for developers, etc.)
-
-NOT ALLOWED:
-✗ Adding skills not evidenced by experience
-✗ Fabricating achievements or metrics
-✗ Inventing projects or responsibilities
-✗ Adding percentages or numbers not in original
-
-GOAL: Make existing qualifications clearer and incorporate maximum JD keywords naturally.`,
-
-      moderate: `
-OPTIMIZATION MODE: MODERATE
-
-ALLOWED:
-✓ Everything in Conservative mode PLUS:
-✓ Add related technologies commonly used together (React → add Redux if relevant)
-✓ Expand acronyms and add standard related tech
-✓ Rephrase "assisted" or "participated" as "collaborated" or "contributed"
-✓ Add JD keywords naturally to relevant experience bullets — aim for 90%+ of required keywords
-✓ Make the connection to the role more explicit
-✓ Add skills to the skills section if related to existing experience
-
-NOT ALLOWED:
-✗ Adding fake percentages or metrics (CRITICAL - never do this)
-✗ Inventing user counts, revenue numbers, or team sizes
-✗ Claiming skills completely unrelated to experience
-✗ Using AI-sounding words like "spearheaded", "leveraged", "orchestrated"
-
-GOAL: Incorporate nearly all JD keywords while staying authentic.`,
-
-      aggressive: `
-OPTIMIZATION MODE: AGGRESSIVE
-⚠️ USER HAS ACKNOWLEDGED FULL RESPONSIBILITY
-
-ALLOWED:
-✓ Add ALL required skills from JD — 100% keyword coverage is the target
-✓ Add preferred/nice-to-have skills that fit their trajectory
-✓ Transform team involvement into clearer ownership language
-✓ Rewrite summary specifically for this role
-✓ Add every relevant keyword from the JD naturally
-✓ Assume senior-level responsibility where experience supports it
-✓ Add skills to skills section that are plausibly learned
-
-STILL NOT ALLOWED (sounds fake):
-✗ Inventing specific percentages (e.g., "improved by 47%")
-✗ Fake dollar amounts or user counts
-✗ Using AI-cliché words: spearheaded, orchestrated, leveraged, pioneered
-✗ Making claims that couldn't be defended in an interview
-
-GOAL: 100% keyword coverage. Every JD requirement should have resume evidence.`,
+      conservative: "Improve clarity and order while staying close to the candidate's wording.",
+      moderate: "Rephrase and reorder relevant details. Explain directly supported context to make achievements understandable.",
+      aggressive: "Rewrite the summary and bullets thoroughly for relevance, preserving all facts. Never add unevidenced skills or assume seniority.",
     };
 
     return `${baseRules}
 ${levelRules[level]}
+
+QUALITY AND COMPLETENESS:
+- Preserve every role, substantive achievement, project, qualification, contact detail, URL and custom section. Reordering is allowed; dropping facts to fit a page is not.
+- There is no page limit. The renderer handles pagination. Do not add filler to fill pages.
+- Expand implied context only when directly supported. Never infer tools, metrics, ownership, scale or outcomes.
+- Use concrete, natural language and varied sentences. Avoid generic AI phrases and keyword stuffing.
+- Keep unsupported JD requirements in keywordsMissing. Match scores are estimates, never ATS acceptance probabilities.
 
 OUTPUT FORMAT:
 Return ONLY valid JSON with this exact structure:
@@ -166,14 +123,14 @@ Return ONLY valid JSON with this exact structure:
   "keywordsMissing": ["keyword1", ...keywords that couldn't be added naturally]
 }
 
-REMINDER: Do NOT add fake percentages or metrics. Keep language natural but maximize keyword coverage.`;
+REMINDER: Do NOT add fake percentages or metrics. Keep language natural and factually supported.`;
   },
 
   user: (
     resumeContent: string,
     jobDescription: string,
     level: EmbellishmentLevel
-  ) => `TASK: Tailor this resume for the job description with MAXIMUM keyword coverage.
+  ) => `TASK: Tailor this resume for the job description using only supported qualifications.
 
 OPTIMIZATION LEVEL: ${level.toUpperCase()}
 
@@ -186,7 +143,7 @@ ${jobDescription}
 INSTRUCTIONS:
 1. FIRST: Extract ALL required skills, technologies, and keywords from the JD
 2. For EACH keyword: Find where it can be incorporated naturally in the resume
-3. Add keywords to skills section, experience bullets, and summary
+3. Add evidenced keywords to skills, bullets and summary; report the rest as missing
 4. Track which keywords were added and which couldn't be incorporated
 5. Keep language authentic — avoid fake metrics or AI-sounding phrases
 

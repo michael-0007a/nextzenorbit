@@ -1,3 +1,6 @@
+import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
+import { parseExportContent } from "@/lib/resume/export-content";
+import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * JD-Based Resume Optimization API
@@ -31,6 +34,7 @@ const groq = new Groq({
 });
 
 const optimizeRequestSchema = z.object({
+  targetPages: targetPagesSchema,
   jobDescription: z.string().min(50, "Job description too short").max(15000),
   embellishmentLevel: z.enum(["conservative", "moderate", "aggressive"]),
   userAcknowledged: z.boolean().optional(), // Required for aggressive mode
@@ -73,7 +77,7 @@ export async function POST(
       );
     }
 
-    const { jobDescription, embellishmentLevel, userAcknowledged } = parsed.data;
+    const { jobDescription, embellishmentLevel, userAcknowledged, targetPages } = parsed.data;
 
     // Require acknowledgment for aggressive mode
     if (embellishmentLevel === "aggressive" && !userAcknowledged) {
@@ -99,6 +103,7 @@ export async function POST(
     }
 
     const typedResume = resume as ResumeRow;
+    const requestedPages = targetPages === undefined ? typedResume.content.layout?.target_pages : targetPages;
 
     // Save current state as a version (backup)
     const { data: maxVersion } = await admin
@@ -138,16 +143,17 @@ export async function POST(
       ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: systemPrompt + "\n\n" + resumeLengthInstruction(requestedPages) },
         { role: "user", content: userPrompt },
       ],
       temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
-      max_tokens: 6000,
+      max_tokens: 24000,
+      response_format: { type: "json_object" },
     });
 
     const responseText = completion.choices[0]?.message?.content;
 
-    if (!responseText) {
+    if (!responseText || completion.choices[0]?.finish_reason === "length") {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Empty AI response.", 500);
     }
 
@@ -201,6 +207,11 @@ export async function POST(
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Invalid response structure.", 500);
     }
 
+    const validatedContent = parseExportContent(result.resumeContent);
+    if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
+    const fitted = await fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id);
+    result.resumeContent = fitted.content;
+
     // Update resume with optimized content
     const { error: updateError } = await admin
       .from("resumes")
@@ -234,19 +245,21 @@ export async function POST(
     });
 
     // Track AI usage
-    await trackAIUsage(admin, user.id, completion.usage?.total_tokens || 0);
+    await trackAIUsage(admin, user.id, (completion.usage?.total_tokens || 0) + fitted.tokensUsed);
 
     return NextResponse.json({
       success: true,
       data: {
         content: result.resumeContent,
+        pageCount: fitted.pageCount,
+        layoutWarnings: fitted.layoutWarnings,
         matchScore: result.matchScore,
         changesApplied: result.changesApplied,
         keywordsIncorporated: result.keywordsIncorporated || [],
         keywordsMissing: result.keywordsMissing || [],
         versionCreated: backupVersionNumber + 1,
         embellishmentLevel,
-        tokensUsed: completion.usage?.total_tokens || 0,
+        tokensUsed: (completion.usage?.total_tokens || 0) + fitted.tokensUsed,
       },
     });
   } catch (err) {

@@ -430,6 +430,19 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: Resum
                     </p>
                   )}
                 </CardBody>
+                <div className="px-4 pb-3 flex gap-3">
+                  {(["pdf", "docx"] as const).map(format => <button key={format} className="text-sm text-primary hover:underline" onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/resumes/export-admin?id=${resume.id}&format=${format}`);
+                      if (!response.ok) throw new Error("Download failed");
+                      const url = URL.createObjectURL(await response.blob());
+                      const link = document.createElement("a"); link.href = url;
+                      link.download = `${resume.title.replace(/[^a-zA-Z0-9]/g, "_")}.${format}`;
+                      document.body.appendChild(link); link.click(); link.remove();
+                      setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    } catch { toast.error("Could not download this resume. Please retry."); }
+                  }}>Download {format === "pdf" ? "PDF" : "Word"}</button>)}
+                </div>
                 <CardFooter className="text-xs text-warning flex items-center border-t border-border pt-3">
                   <Clock className="mr-1.5 h-3 w-3" />
                   Expires {new Date(resume.expires_at).toLocaleDateString()}

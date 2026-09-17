@@ -49,13 +49,13 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
       accent: "#0f4c75",
     },
     fonts: {
-      heading: "Helvetica-Bold",
-      body: "Helvetica",
+      heading: "Times-Bold",
+      body: "Times-Roman",
     },
     layout: {
-      margins: { top: 40, right: 40, bottom: 40, left: 40 },
+      margins: { top: 40, right: 42, bottom: 40, left: 42 },
       headerStyle: "centered",
-      sectionSpacing: 16,
+      sectionSpacing: 12,
       showDividers: true,
     },
   },
@@ -72,7 +72,7 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
       text: "#111827",
       muted: "#6b7280",
       background: "#ffffff",
-      accent: "#3b82f6",
+      accent: "#1e40af",
     },
     fonts: {
       heading: "Helvetica-Bold",
@@ -81,7 +81,7 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
     layout: {
       margins: { top: 36, right: 36, bottom: 36, left: 36 },
       headerStyle: "left",
-      sectionSpacing: 14,
+      sectionSpacing: 10,
       showDividers: false,
     },
   },
@@ -96,7 +96,7 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
       primary: "#2d3436",
       secondary: "#636e72",
       text: "#2d3436",
-      muted: "#74b9ff",
+      muted: "#475569",
       background: "#ffffff",
       accent: "#6c5ce7",
     },
@@ -105,8 +105,8 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
       body: "Helvetica",
     },
     layout: {
-      margins: { top: 32, right: 32, bottom: 32, left: 32 },
-      headerStyle: "split",
+      margins: { top: 42, right: 42, bottom: 42, left: 42 },
+      headerStyle: "left",
       sectionSpacing: 12,
       showDividers: false,
     },
@@ -114,7 +114,8 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
 ];
 
 export function getTemplate(id: string): ResumeTemplate {
-  return RESUME_TEMPLATES.find((t) => t.id === id) ?? RESUME_TEMPLATES[0];
+  const aliases: Record<string, string> = { "classic-professional": "classic", "modern-tech": "modern", "deedy-resume": "creative", "academic-cv": "classic", "jake-resume": "classic", "software-engineer": "modern" };
+  return RESUME_TEMPLATES.find((t) => t.id === (aliases[id] || id)) ?? RESUME_TEMPLATES[0];
 }
 
 export function getFreeTemplates(): ResumeTemplate[] {

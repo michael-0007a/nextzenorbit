@@ -1,3 +1,6 @@
+import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
+import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
+import { parseExportContent } from "@/lib/resume/export-content";
 import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 /**
  * AI Resume Improvement API
@@ -47,6 +50,9 @@ export async function POST(
       );
     }
 
+    const requestBody = await request.text();
+    const lengthResult = targetPagesSchema.safeParse(requestBody ? JSON.parse(requestBody).targetPages : undefined);
+    if (!lengthResult.success) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose Auto or 1-10 pages.", 400);
     const admin = createAdminClient();
 
     // Fetch current resume
@@ -62,6 +68,7 @@ export async function POST(
     }
 
     const typedResume = resume as ResumeRow;
+    const requestedPages = lengthResult.data === undefined ? typedResume.content.layout?.target_pages : lengthResult.data;
 
     // Save current state as a version (backup before improvement)
     const { data: maxVersion } = await admin
@@ -92,16 +99,17 @@ export async function POST(
       ...GROQ_TEXT_OPTIONS,
       model: RESUME_IMPROVER_PROMPT_V1.model,
       messages: [
-        { role: "system", content: RESUME_IMPROVER_PROMPT_V1.system },
+        { role: "system", content: RESUME_IMPROVER_PROMPT_V1.system + "\n\n" + resumeLengthInstruction(requestedPages) },
         { role: "user", content: RESUME_IMPROVER_PROMPT_V1.user(resumeString) },
       ],
       temperature: 0.6,
-      max_tokens: 4000,
+      max_tokens: 24000,
+      response_format: { type: "json_object" },
     });
 
     const responseText = completion.choices[0]?.message?.content;
 
-    if (!responseText) {
+    if (!responseText || completion.choices[0]?.finish_reason === "length") {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Empty AI response.", 500);
     }
 
@@ -130,6 +138,11 @@ export async function POST(
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Invalid resume structure from AI.", 500);
     }
 
+    const validatedContent = parseExportContent(improvedContent);
+    if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
+    const fitted = await fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id);
+    improvedContent = fitted.content;
+
     // Update resume with improved content
     const { error: updateError } = await admin
       .from("resumes")
@@ -157,14 +170,16 @@ export async function POST(
     });
 
     // Track AI usage
-    await trackAIUsage(admin, user.id, completion.usage?.total_tokens || 0);
+    await trackAIUsage(admin, user.id, (completion.usage?.total_tokens || 0) + fitted.tokensUsed);
 
     return NextResponse.json({
       success: true,
       data: {
         content: improvedContent,
+        pageCount: fitted.pageCount,
+        layoutWarnings: fitted.layoutWarnings,
         versionCreated: backupVersionNumber + 1,
-        tokensUsed: completion.usage?.total_tokens || 0,
+        tokensUsed: (completion.usage?.total_tokens || 0) + fitted.tokensUsed,
       },
     });
   } catch (err) {

@@ -11,24 +11,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LATEX_TEMPLATES, type LaTeXTemplate } from "@/lib/resume/latex-templates";
+import { RESUME_TEMPLATES, getTemplate } from "@/lib/resume/templates";
 import type { ResumeTemplate } from "@/lib/resume/templates";
 
 interface TemplateSelectorProps {
   selectedId: string;
-  onSelect: (template: ResumeTemplate | LaTeXTemplate) => void;
+  onSelect: (template: ResumeTemplate) => void;
   className?: string;
 }
-
-// Preview colors for LaTeX templates
-const LATEX_TEMPLATE_COLORS: Record<string, { primary: string; accent: string; bg: string }> = {
-  "classic-professional": { primary: "#1a1a2e", accent: "#0f4c75", bg: "#ffffff" },
-  "modern-tech": { primary: "#111827", accent: "#3b82f6", bg: "#ffffff" },
-  "deedy-resume": { primary: "#2d3748", accent: "#4f46e5", bg: "#fafafa" },
-  "academic-cv": { primary: "#1e293b", accent: "#0ea5e9", bg: "#ffffff" },
-  "jake-resume": { primary: "#1f2937", accent: "#10b981", bg: "#ffffff" },
-  "software-engineer": { primary: "#0f172a", accent: "#8b5cf6", bg: "#ffffff" },
-};
 
 export function TemplateSelector({
   selectedId,
@@ -37,15 +27,15 @@ export function TemplateSelector({
 }: TemplateSelectorProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const renderTemplateCard = (template: LaTeXTemplate) => {
-    const isSelected = selectedId === template.id;
+  const renderTemplateCard = (template: ResumeTemplate) => {
+    const isSelected = getTemplate(selectedId).id === template.id;
     const isHovered = hoveredId === template.id;
-    const colors = LATEX_TEMPLATE_COLORS[template.id] || LATEX_TEMPLATE_COLORS["classic-professional"];
+    const colors = { primary: template.colors.primary, accent: template.colors.accent, bg: template.colors.background };
 
     return (
       <motion.button
         key={template.id}
-        onClick={() => onSelect(template as unknown as ResumeTemplate)}
+        onClick={() => onSelect(template)}
         onMouseEnter={() => setHoveredId(template.id)}
         onMouseLeave={() => setHoveredId(null)}
         className={cn(
@@ -67,7 +57,7 @@ export function TemplateSelector({
             {/* Header */}
             <div
               className="h-4 rounded"
-              style={{ backgroundColor: colors.primary, opacity: 0.8 }}
+              style={{ backgroundColor: colors.primary, opacity: 0.8, width: template.layout.headerStyle === "centered" ? "70%" : "90%", alignSelf: template.layout.headerStyle === "centered" ? "center" : "flex-start" }}
             />
             <div
               className="h-1.5 w-2/3 rounded"
@@ -118,7 +108,7 @@ export function TemplateSelector({
           <div className="absolute top-1 right-1">
             <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-500/90 text-white text-[8px] font-bold">
               <FileText className="h-2 w-2" />
-              LaTeX
+              A4
             </span>
           </div>
 
@@ -168,10 +158,10 @@ export function TemplateSelector({
           Choose a Template
         </h3>
         <p className="text-xs text-text-secondary mb-4">
-          All templates use professional LaTeX typesetting for high-quality PDF output.
+          Choose a readable single-column layout. Preview, PDF and Word share the same content and page plan.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {LATEX_TEMPLATES.map(renderTemplateCard)}
+          {RESUME_TEMPLATES.map(renderTemplateCard)}
         </div>
       </div>
     </div>

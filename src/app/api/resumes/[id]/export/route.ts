@@ -1,3 +1,4 @@
+import { unsupportedPdfCharacters } from "@/lib/resume/layout";
 /**
  * Resume Export API — PDF & Word Generation
  *
@@ -19,36 +20,6 @@ import { parseExportContent, hasResumeBody } from "@/lib/resume/export-content";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
 
-// LaTeX compilation service URL (using latex.ytotech.com - free LaTeX API)
-const LATEX_API_URL = "https://latex.ytotech.com/builds/sync";
-
-async function compileLatexToPdf(latexCode: string): Promise<Buffer> {
-  const response = await fetch(LATEX_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      compiler: "pdflatex",
-      resources: [
-        {
-          main: true,
-          content: latexCode,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("LaTeX compilation error:", errorText);
-    throw new Error("LaTeX compilation failed");
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -66,9 +37,8 @@ export async function GET(
 
     // Get params from query
     const { searchParams } = new URL(request.url);
-    const templateId = searchParams.get("template") || "classic-professional";
+    const templateId = searchParams.get("template");
     const format = searchParams.get("format") || "pdf";
-    const useLatex = searchParams.get("latex") === "true";
 
     if (!["pdf", "docx", "latex"].includes(format)) {
       return apiError(
@@ -118,12 +88,13 @@ export async function GET(
     }
 
     const content = contentResult.data;
+    const template = getTemplate(templateId || typedResume.template_id || "classic");
     const filename = typedResume.title.replace(/[^a-zA-Z0-9]/g, "_");
 
     // Generate based on format
     if (format === "latex") {
       // Return raw LaTeX source
-      const latexCode = generateLatex(content, templateId);
+      const latexCode = generateLatex(content, template.id);
       return new Response(latexCode, {
         status: 200,
         headers: {
@@ -135,7 +106,7 @@ export async function GET(
 
     if (format === "docx") {
       // Generate Word document
-      const docxBuffer = await generateWordDocument(content);
+      const docxBuffer = await generateWordDocument(content, { template });
       const uint8Array = new Uint8Array(docxBuffer);
       return new Response(uint8Array, {
         status: 200,
@@ -148,31 +119,9 @@ export async function GET(
       });
     }
 
-    // PDF generation
-    let pdfBuffer: Buffer;
-
-    if (useLatex) {
-      // Use LaTeX compilation for PDF
-      const latexCode = generateLatex(content, templateId);
-      try {
-        pdfBuffer = await compileLatexToPdf(latexCode);
-      } catch (latexError) {
-        console.error("LaTeX PDF generation failed, falling back to react-pdf:", latexError);
-        // Fallback to react-pdf if LaTeX fails
-        const template = getTemplate(typedResume.template_id || "classic");
-        const buffer = await renderToBuffer(
-          ResumePDF({ content, template })
-        );
-        pdfBuffer = Buffer.from(buffer);
-      }
-    } else {
-      // Use react-pdf for PDF generation (default)
-      const template = getTemplate(typedResume.template_id || templateId);
-      const buffer = await renderToBuffer(
-        ResumePDF({ content, template })
-      );
-      pdfBuffer = Buffer.from(buffer);
-    }
+    if (unsupportedPdfCharacters(content, template).length) return apiError(ERROR_CODES.VALIDATION_ERROR,
+      "This resume contains characters not supported by the PDF font. Download Word to preserve them.", 422);
+    const pdfBuffer = Buffer.from(await renderToBuffer(ResumePDF({ content, template })));
 
     const uint8ArrayPdf = new Uint8Array(pdfBuffer);
     return new Response(uint8ArrayPdf, {
