@@ -25,25 +25,33 @@ export function useUser(): UseUserReturn {
     const supabase = createClient();
 
     // Get initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+    let active = true;
+    let authChanged = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active || authChanged) return;
+      setUser(session?.user ?? null);
       setLoading(false);
+    }).catch(() => {
+      if (active) setLoading(false);
     });
 
     // Subscribe to auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      authChanged = true;
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
 
   const signOut = useCallback(async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     setUser(null);
   }, []);
 

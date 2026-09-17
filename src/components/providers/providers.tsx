@@ -2,6 +2,7 @@
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { SessionLogout } from "@/components/layout/session-logout";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -21,8 +22,11 @@ export function Providers({ children }: ProvidersProps) {
       disableTransitionOnChange
     >
       {children}
+      <SessionLogout />
       <Toaster
         position="bottom-right"
+        offset={{ bottom: 88, right: 16 }}
+        mobileOffset={{ bottom: 88, right: 16, left: 16 }}
         toastOptions={{
           duration: 3000,
           className:

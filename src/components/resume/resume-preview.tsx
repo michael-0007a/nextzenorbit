@@ -6,19 +6,19 @@ import type { ResumeContent } from "@/lib/validations/resume";
 import { getTemplate } from "@/lib/resume/templates";
 import { layoutResume, PAPER } from "@/lib/resume/layout";
 
-export function ResumePreview({ content, templateId = "classic", className, scale = 0.55 }: {
-  content: ResumeContent; templateId?: string; className?: string; scale?: number;
+export function ResumePreview({ content, templateId = "classic", className, scale = 0.55, showDetails = true }: {
+  content: ResumeContent; templateId?: string; className?: string; scale?: number; showDetails?: boolean;
 }) {
   const template = getTemplate(templateId);
   const layout = useMemo(() => layoutResume(content, template), [content, template]);
   return <div className={cn("flex flex-col gap-4", className)}>
-    <div className="rounded-lg border border-border bg-surface p-3 text-xs" style={{ width: PAPER.width * scale }}>
+    {showDetails && <div className="rounded-lg border border-border bg-surface p-3 text-xs" style={{ width: PAPER.width * scale }}>
       <p>{layout.pages.length} {layout.pages.length === 1 ? "page" : "pages"} · A4 · {layout.fontSize} pt · {template.name}</p>
       <p className="mt-1 text-text-secondary">Single-column, selectable text. Review your details after uploading to an application.</p>
       {layout.warnings.length > 0 && <ul className="mt-2 list-disc pl-4 text-amber-700 dark:text-amber-400">
         {layout.warnings.map(w => <li key={w}>{w}</li>)}
       </ul>}
-    </div>
+    </div>}
     {layout.pages.map((lines, pageIndex) => <div key={pageIndex}>
       <div className="relative border border-slate-200 shadow-sm" style={{ width: PAPER.width * scale, height: PAPER.height * scale }}>
         <div className="absolute left-0 top-0 bg-white" style={{ width: PAPER.width, height: PAPER.height,

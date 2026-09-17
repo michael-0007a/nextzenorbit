@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,7 +30,7 @@ export interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { label: "My Clients", href: "/admin/apply-queue", icon: Inbox, badge: "LIVE" },
+  { label: "My Clients", href: "/admin/apply-queue", icon: Inbox },
 ];
 
 const superAdminNavItems: NavItem[] = [
@@ -54,17 +54,36 @@ export interface AdminSidebarProps {
   className?: string;
   role: UserRole;
   email: string;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
+export function AdminSidebar({ className, role, email, onCollapsedChange }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const resetForMobile = () => {
+      if (!desktop.matches) { setCollapsed(false); onCollapsedChange?.(false); }
+      else setMobileOpen(false);
+    };
+    desktop.addEventListener("change", resetForMobile);
+    return () => desktop.removeEventListener("change", resetForMobile);
+  }, [onCollapsedChange]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setMobileOpen(false); };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [mobileOpen]);
+
   const isSuperAdmin = role === "super_admin";
 
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+    pathname === href || pathname.startsWith(`${href}/`) ||
+    (href === "/admin/apply-queue" && pathname.startsWith("/admin/users/"));
 
   const renderNavItem = (item: NavItem) => {
     if (item.requireSuperAdmin && !isSuperAdmin) return null;
@@ -78,13 +97,15 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
         href={item.href}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-transparent",
+          "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent",
           "text-sm font-medium transition-all duration-200",
           active
-            ? "text-foreground bg-white/10 border-primary/40 shadow-[0_0_24px_rgba(255,0,61,0.2)]"
+            ? "text-primary bg-primary/5 border-primary/15"
             : "text-text-secondary hover:text-foreground hover:bg-white/5"
         )}
         aria-current={active ? "page" : undefined}
+        title={collapsed ? item.label : undefined}
+        aria-label={item.label}
       >
         {/* Active glow effect */}
         {active && (
@@ -99,7 +120,7 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
         <div className={cn(
           "relative z-10 flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200",
           active
-            ? "bg-gradient-to-br from-primary to-primary-light text-white shadow-[0_0_24px_rgba(255,0,61,0.35)]"
+            ? "bg-primary/10 text-primary"
             : "bg-white/5 text-text-secondary group-hover:bg-white/10 group-hover:text-foreground"
         )}>
           <Icon className="h-[18px] w-[18px]" />
@@ -132,13 +153,13 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
       {/* Logo Section */}
       <div className="flex h-[78px] items-center justify-center px-5 border-b border-border/60">
         <Link href="/admin" className="flex items-center gap-2 w-full justify-center">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20 shadow-[0_0_24px_rgba(255,0,61,0.25)]">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
             <Shield className="h-5 w-5 text-primary" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-wider uppercase text-foreground leading-none">Admin</span>
-              <span className="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Portal</span>
+              <span className="text-sm font-bold tracking-wider uppercase text-foreground leading-none">Nextzen Orbit</span>
+              <span className="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Recruiter workspace</span>
             </div>
           )}
         </Link>
@@ -216,8 +237,8 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
               {email.charAt(0)}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-medium text-foreground truncate">{email}</span>
-              <span className="text-[10px] text-text-secondary uppercase">{isSuperAdmin ? "Super Admin" : "Admin"}</span>
+              <span className="text-xs font-medium text-foreground truncate" title={email}>{email}</span>
+              <span className="text-[10px] text-text-secondary uppercase">{isSuperAdmin ? "Super admin" : role === "supervisor_admin" ? "Supervisor" : "Recruiter"}</span>
             </div>
           </div>
         )}
@@ -226,7 +247,7 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
       {/* Collapse Toggle */}
       <div className="hidden lg:block px-3 py-3 border-t border-border/60">
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => { setCollapsed(!collapsed); onCollapsedChange?.(!collapsed); }}
           className="flex w-full items-center justify-center gap-2 rounded-full p-2.5 text-text-secondary hover:text-foreground hover:bg-white/5 transition-all duration-200"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -250,6 +271,8 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
         onClick={() => setMobileOpen(true)}
         className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white/10 backdrop-blur-md shadow-lg lg:hidden"
         aria-label="Open navigation menu"
+        aria-expanded={mobileOpen}
+        aria-controls="admin-mobile-navigation"
       >
         <Menu className="h-5 w-5 text-foreground" />
       </button>
@@ -266,6 +289,7 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
+              id="admin-mobile-navigation"
               initial={{ x: "-100%", opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "-100%", opacity: 0 }}
@@ -288,9 +312,9 @@ export function AdminSidebar({ className, role, email }: AdminSidebarProps) {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex lg:flex-col lg:border-r lg:border-border/60 lg:bg-surface/85 lg:backdrop-blur-2xl",
+          "hidden lg:flex lg:flex-col lg:border-r lg:border-border/60 lg:bg-surface",
           "transition-all duration-300 ease-out",
-          collapsed ? "lg:w-[80px]" : "lg:w-72",
+          collapsed ? "lg:w-[80px]" : "lg:w-64",
           className
         )}
       >
