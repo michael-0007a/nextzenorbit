@@ -15,11 +15,11 @@ import {
   FileText,
   Plus,
   Upload,
-  Trash2,
   Clock,
   Sparkles,
   FileBadge,
 } from "lucide-react";
+import { DeleteResumeButton } from "./delete-resume-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -56,13 +56,13 @@ interface ResumeGridProps {
   adminResumes?: AdminResumeListItem[];
 }
 
-export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: ResumeGridProps) {
+export function ResumeGrid({ resumes: initialResumes, adminResumes: initialAdminResumes = [] }: ResumeGridProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [resumes, setResumes] = useState(initialResumes);
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [adminResumes, setAdminResumes] = useState(initialAdminResumes);
 
   // ── Create blank resume ──
   const handleCreateBlank = async () => {
@@ -128,27 +128,6 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: Resum
   };
 
   // ── Delete resume ──
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/resumes/${id}`, { method: "DELETE" });
-      const result = await res.json();
-
-      if (!res.ok || !result.success) {
-        toast.error("Failed to delete resume.");
-        return;
-      }
-
-      setResumes((prev) => prev.filter((r) => r.id !== id));
-      toast.success("Resume deleted.");
-    } catch {
-      toast.error("Something went wrong.");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  // ── Format date ──
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "numeric",
@@ -158,7 +137,7 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: Resum
   };
 
   // ── Empty state ──
-  if (resumes.length === 0) {
+  if (resumes.length === 0 && adminResumes.length === 0) {
     return (
       <motion.div variants={fadeIn} initial="hidden" animate="visible" className="relative overflow-hidden rounded-3xl border border-border bg-surface/80 py-20 px-8">
         <div className="absolute inset-0 bg-space opacity-45" />
@@ -283,7 +262,6 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: Resum
                 className={cn(
                   "group cursor-pointer transition-all duration-200 overflow-hidden",
                   "hover:border-primary hover:shadow-lg hover:shadow-primary/10",
-                  deletingId === resume.id && "opacity-50 pointer-events-none"
                 )}
                 onClick={() => router.push(`/resumes/${resume.id}`)}
               >
@@ -325,16 +303,7 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: Resum
                     <CardTitle className="line-clamp-1 text-base pr-8">
                       {resume.title}
                     </CardTitle>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(resume.id);
-                      }}
-                      className="absolute top-4 right-4 rounded-lg p-1.5 text-granite opacity-0 transition-all hover:text-error hover:bg-error/10 group-hover:opacity-100"
-                      aria-label="Delete resume"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <DeleteResumeButton title={resume.title} endpoint={`/api/resumes/${resume.id}`} onDeleted={() => setResumes(current => current.filter(item => item.id !== resume.id))} />
                   </div>
                 </CardHeader>
                 <CardBody className="pt-0">
@@ -446,6 +415,7 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes = [] }: Resum
                 <CardFooter className="text-xs text-warning flex items-center border-t border-border pt-3">
                   <Clock className="mr-1.5 h-3 w-3" />
                   Expires {new Date(resume.expires_at).toLocaleDateString()}
+                  <DeleteResumeButton title={resume.title} endpoint={`/api/resumes/${resume.id}?kind=generated`} scope="This removes this recruiter-generated resume. Original uploads and other saved resumes remain." onDeleted={() => setAdminResumes(current => current.filter(item => item.id !== resume.id))} />
                 </CardFooter>
               </Card>
             ))}

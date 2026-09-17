@@ -88,7 +88,7 @@ function wrapText(text: string, font: string, size: number, width: number): stri
   return lines.length ? lines : [""];
 }
 
-function makeLines(blocks: ResumeBlock[], template: ResumeTemplate, size: number, leading: number): LayoutLine[] {
+function makeLines(blocks: ResumeBlock[], template: ResumeTemplate, size: number, leading: number, spacing = 1): LayoutLine[] {
   const width = PAPER.width - template.layout.margins.left - template.layout.margins.right - 8;
   return blocks.flatMap(block => {
     const bold = ["name", "section", "entry"].includes(block.kind);
@@ -99,7 +99,7 @@ function makeLines(blocks: ResumeBlock[], template: ResumeTemplate, size: number
     return lines.map((text, i) => ({
       ...block, text: block.kind === "bullet" && i === 0 ? `• ${text}` : text,
       font, size: fontSize, height: fontSize * leading,
-      before: i ? 0 : block.kind === "section" ? template.layout.sectionSpacing : block.kind === "entry" ? 6 : 3,
+      before: i ? 0 : (block.kind === "section" ? template.layout.sectionSpacing : block.kind === "entry" ? 6 : 3) * spacing,
       indent: block.kind === "bullet" && i > 0 ? indent : 0,
       align: (["name", "contact"].includes(block.kind) && template.layout.headerStyle === "centered" ? "center" : "left") as "center" | "left",
       color: block.kind === "section" ? template.colors.accent : template.colors.text,
@@ -175,11 +175,11 @@ export function unsupportedPdfCharacters(content: ResumeContent, template: Resum
 export function layoutResume(content: ResumeContent, template: ResumeTemplate): ResumeLayout {
   const blocks = resumeBlocks(content);
   const capacity = PAPER.height - template.layout.margins.top - template.layout.margins.bottom;
-  const candidates = [10.5, 11, 11.5, 12].flatMap(size => [1.2, 1.3, 1.4].map(leading => {
-    const pages = paginate(makeLines(blocks, template, size, leading), capacity, content.layout?.target_pages ?? undefined);
+  const candidates = [10.5, 11, 11.5, 12].flatMap(size => [1.15, 1.2, 1.3, 1.4].flatMap(leading => [0.6, 1].map(spacing => {
+    const pages = paginate(makeLines(blocks, template, size, leading, spacing), capacity, content.layout?.target_pages ?? undefined);
     const fill = pages.reduce((sum, page) => sum + page.reduce((h, line) => h + line.height + line.before, 0), 0) / (pages.length * capacity);
     return { pages, fontSize: size, lineHeight: leading, fill };
-  }));
+  })));
   const minPages = Math.min(...candidates.map(c => c.pages.length));
   // Aim for well-filled pages without stretching short resumes into filler.
   const requested = content.layout?.target_pages;
@@ -192,5 +192,16 @@ export function layoutResume(content: ResumeContent, template: ResumeTemplate): 
   if (!content.experience.length && !content.projects.length) warnings.push("Add experience or projects to demonstrate your skills.");
   if (unsupportedPdfCharacters(content, template).length) warnings.push("Some characters are outside this PDF font's character set. Use Word export and review the characters before applying.");
   if (chosen.fill < 0.7) warnings.push("Available content leaves some whitespace. Add relevant factual detail if needed; no content has been invented or removed to fill pages.");
-  return { ...chosen, warnings };
+  // Use the available sheet instead of leaving balanced but visibly unfinished
+  // pages. Grow paragraph gaps proportionally, with a strict typographic cap;
+  // never stretch a genuinely short resume or add fabricated content.
+  const pages = chosen.pages.map(page => {
+    const used = page.reduce((sum, line) => sum + line.height + line.before, 0);
+    const room = Math.max(0, capacity * 0.96 - used);
+    const weights = page.map((line, index) => index === 0 || line.before === 0 ? 0 : line.kind === "section" ? 3 : line.kind === "entry" ? 2 : 1);
+    const total = weights.reduce<number>((sum, weight) => sum + weight, 0);
+    const unit = used / capacity >= 0.65 && total ? Math.min(6, room / total) : 0;
+    return page.map((line, index) => ({ ...line, before: line.before + weights[index] * unit }));
+  });
+  return { ...chosen, pages, warnings };
 }

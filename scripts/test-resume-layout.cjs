@@ -149,3 +149,20 @@ test('AI length revision uses actual overflow and preserves contact details', as
   await fitGeneratedResume(groq, source, source, null, 'classic');
   assert.equal(calls, 1, 'Auto must not condense the source');
 });
+
+test('reference resume fills both sheets without losing source details', () => {
+  const reference = require('./resume-layout-fixture.json');
+  for (const template of RESUME_TEMPLATES) {
+    const content = { ...reference, layout: { target_pages: 2 } };
+    const plan = layoutResume(content, template);
+    assert.equal(plan.pages.length, 2);
+    const capacity = PAPER.height - template.layout.margins.top - template.layout.margins.bottom;
+    for (const page of plan.pages) {
+      const used = page.reduce((sum, line) => sum + line.height + line.before, 0);
+      assert.ok(used / capacity >= 0.9, `${template.id}: underfilled at ${used / capacity}`);
+      assert.ok(used <= capacity);
+    }
+    const text = normalize(plan.pages.flat().map(line => line.text).join(' '));
+    for (const block of resumeBlocks(content)) assert.ok(text.includes(normalize(block.text)));
+  }
+});

@@ -1,0 +1,161 @@
+{
+  "contact": {
+    "full_name": "Sample Candidate",
+    "email": "candidate@example.com",
+    "phone": "+1 555 123 4567",
+    "location": "North Carolina, USA",
+    "linkedin_url": "https://linkedin.com/in/sample",
+    "portfolio_url": "",
+    "github_url": ""
+  },
+  "summary": {
+    "text": "IT Management professional with an M.S. in Technology Management, experienced in regulatory compliance, operations coordination, and stakeholder communication. Resolved 100+ escalations, built MIS tracking systems that improved SLA adherence, and seeks an IT Project Manager or Business Analyst role."
+  },
+  "experience": [
+    {
+      "id": "e1",
+      "position": "Project Coordinator - Infrastructure",
+      "company": "Sri Supraja Infracon",
+      "start_date": "Nov 2022",
+      "end_date": "Sep 2024",
+      "bullets": [
+        "Coordinated large-scale infrastructure projects, handling scheduling, resource allocation, labor supervision and milestone delivery",
+        "Tracked timelines with project managers, flagged risks and ensured 100% safety and quality compliance across concurrent workstreams",
+        "Managed stakeholder communication, produced progress reports and maintained logs, quality records and compliance documentation"
+      ]
+    },
+    {
+      "id": "e2",
+      "position": "IT Operations & Compliance Analyst",
+      "company": "Vivifi Finance",
+      "start_date": "Sep 2021",
+      "end_date": "Dec 2022",
+      "bullets": [
+        "Resolved 100+ high-priority regulatory and customer escalations, documenting full audit trails across risk, compliance, legal and tech teams",
+        "Translated operational requirements into IT and compliance workflows, acting as liaison between business and technical groups",
+        "Built MIS tracking systems to monitor metrics, SLA adherence and audit records, enabling data-driven reporting to senior management"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "ed1",
+      "institution": "Lindsey Wilson University",
+      "degree": "M.S.",
+      "field_of_study": "Technology Management",
+      "location": "Columbia, Kentucky",
+      "end_date": "May 2026"
+    },
+    {
+      "id": "ed2",
+      "institution": "Guru Nanak Institute of Technology",
+      "degree": "B.Tech",
+      "field_of_study": "Civil Engineering",
+      "location": "Hyderabad, India",
+      "end_date": "May 2022"
+    }
+  ],
+  "skills": [
+    {
+      "id": "s1",
+      "category": "Project Management",
+      "items": [
+        "Agile/Scrum methodology",
+        "project lifecycle coordination",
+        "milestone tracking",
+        "risk management",
+        "stakeholder reporting"
+      ]
+    },
+    {
+      "id": "s2",
+      "category": "Business Analysis",
+      "items": [
+        "requirements gathering",
+        "process mapping",
+        "gap analysis",
+        "user story documentation",
+        "workflow design"
+      ]
+    },
+    {
+      "id": "s3",
+      "category": "IT Tools",
+      "items": [
+        "Microsoft Office Suite",
+        "MIS systems",
+        "SharePoint",
+        "collaboration platforms"
+      ]
+    },
+    {
+      "id": "s4",
+      "category": "Compliance & Risk",
+      "items": [
+        "regulatory escalation management",
+        "audit documentation",
+        "fraud mitigation",
+        "compliance tracking"
+      ]
+    },
+    {
+      "id": "s5",
+      "category": "Data & Reporting",
+      "items": [
+        "metrics tracking",
+        "resolution reporting",
+        "KPI dashboards",
+        "data documentation"
+      ]
+    },
+    {
+      "id": "s6",
+      "category": "Soft Skills",
+      "items": [
+        "cross-functional communication",
+        "stakeholder management",
+        "problem solving",
+        "process improvement"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "p1",
+      "name": "IT Management Capstone - Technology Strategy & Operations",
+      "description": "Created a technology adoption roadmap for a simulated organization, identifying gaps, risks and phased implementation using structured project management methods"
+    },
+    {
+      "id": "p2",
+      "name": "Structural Analysis Projects",
+      "description": "Modeled and tested engineering systems with STAAD Pro, producing technical documentation and data interpretation that translate to IT environments",
+      "technologies": [
+        "STAAD Pro"
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "c1",
+      "name": "Google IT Support Professional Certificate",
+      "issuer": "Coursera"
+    },
+    {
+      "id": "c2",
+      "name": "Google Project Management Certificate",
+      "issuer": "Coursera"
+    },
+    {
+      "id": "c3",
+      "name": "Microsoft Azure Fundamentals (AZ-900)",
+      "issuer": "Microsoft Learn"
+    },
+    {
+      "id": "c4",
+      "name": "SQL programming",
+      "issuer": "Coddy Tech"
+    }
+  ],
+  "languages": [],
+  "custom_sections": []
+}

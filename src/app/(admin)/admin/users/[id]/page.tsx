@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DeleteResumeButton } from "@/components/resume/delete-resume-button";
 import { AdminOriginalFiles } from "@/components/resume/admin-original-files";
 
 type UserDetails = {
@@ -100,6 +101,7 @@ export default function AdminUserDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
+  const [filesRevision, setFilesRevision] = useState(0);
   const [user, setUser] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -460,7 +462,7 @@ export default function AdminUserDetailsPage({
 
         {/* Right Col: Resumes, Cover Letters & Queue */}
         <div className="md:col-span-2 space-y-6">
-          <AdminOriginalFiles userId={user.id} />
+          <AdminOriginalFiles refreshKey={filesRevision} userId={user.id} />
           {/* Base Resume Section */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -537,7 +539,7 @@ export default function AdminUserDetailsPage({
                 {user.resumes.map((resume) => (
                   <div
                     key={resume.id}
-                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex justify-between items-center group"
+                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex flex-wrap gap-3 justify-between items-center group"
                   >
                     <div>
                       <div className="flex items-center gap-2">
@@ -554,7 +556,7 @@ export default function AdminUserDetailsPage({
                         Updated {formatDistanceToNow(new Date(resume.updated_at))} ago
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => resume.has_export_content ? downloadResume(resume.id, resume.title) : document.getElementById("original-files")?.scrollIntoView({ behavior: "smooth" })}
                         disabled={downloadingResume !== null}
@@ -564,6 +566,7 @@ export default function AdminUserDetailsPage({
                       </button>
                       {resume.has_export_content && <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20" disabled={downloadingResume !== null}
                         onClick={() => downloadResume(resume.id, resume.title, false, "docx")}>Download Word</button>}
+                      <DeleteResumeButton title={resume.title} endpoint={`/api/admin/users/${user.id}/resumes?resume_id=${resume.id}`} onDeleted={() => { setFilesRevision(value => value + 1); void fetchUser(); }} />
                     </div>
                   </div>
                 ))}
@@ -597,7 +600,7 @@ export default function AdminUserDetailsPage({
                 {user.adminResumes.map((resume) => (
                   <div
                     key={resume.id}
-                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex justify-between items-center group"
+                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex flex-wrap gap-3 justify-between items-center group"
                   >
                     <div>
                       <p className="font-medium text-sm text-foreground">
@@ -609,7 +612,7 @@ export default function AdminUserDetailsPage({
                         {formatDistanceToNow(new Date(resume.expires_at))}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
                         onClick={() => downloadResume(resume.id, resume.title, true)}
@@ -619,6 +622,7 @@ export default function AdminUserDetailsPage({
                       </button>
                       <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20" disabled={downloadingResume !== null}
                         onClick={() => downloadResume(resume.id, resume.title, true, "docx")}>Download Word</button>
+                      <DeleteResumeButton title={resume.title} endpoint={`/api/admin/users/${user.id}/resumes?resume_id=${resume.id}&kind=generated`} scope="This removes this generated resume for the client. Original uploads and other saved resumes remain." onDeleted={() => { void fetchUser(); }} />
                     </div>
                   </div>
                 ))}
