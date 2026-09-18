@@ -53,7 +53,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to fetch users.");
     }
 
-    const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
+    const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
 
     // Fetch assigned admin names
     const allAssignedAdminIds = (data || []).map((u: any) => {

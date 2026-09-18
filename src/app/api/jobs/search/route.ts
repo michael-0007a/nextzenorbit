@@ -9,7 +9,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiError, ERROR_CODES } from "@/types/api";
-import { searchAdzunaJobs, adzunaSearchSchema } from "@/lib/jobs/adzuna";
+import { searchJobs } from "@/lib/jobs/search";
+import { adzunaSearchSchema } from "@/lib/jobs/adzuna";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest): Promise<Response> {
     try {
@@ -22,7 +24,9 @@ export async function POST(request: NextRequest): Promise<Response> {
             return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
         }
 
-        const body = await request.json();
+        const limited = await rateLimit("job-search", user.id, 60, 60);
+        if (limited) return limited;
+        const body = await request.json().catch(() => null);
         const parsed = adzunaSearchSchema.safeParse(body);
 
         if (!parsed.success) {
@@ -34,7 +38,7 @@ export async function POST(request: NextRequest): Promise<Response> {
             );
         }
 
-        const result = await searchAdzunaJobs(parsed.data);
+        const result = await searchJobs(parsed.data);
 
         return NextResponse.json({ success: true, data: result });
     } catch (err) {

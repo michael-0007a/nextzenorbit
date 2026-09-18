@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Search,
   Shield,
   Users,
   BarChart3,
@@ -30,6 +31,7 @@ export interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
+  { label: "Job Search", href: "/admin/job-search", icon: Search },
   { label: "My Clients", href: "/admin/apply-queue", icon: Inbox },
 ];
 
@@ -39,6 +41,7 @@ const superAdminNavItems: NavItem[] = [
 ];
 
 const supervisorAdminNavItems: NavItem[] = [
+  { label: "Job Search", href: "/admin/job-search", icon: Search },
   { label: "Signup Applications", href: "/admin/signup-applications", icon: UserPlus },
   { label: "Allocate Clients", href: "/admin/users", icon: Users },
   { label: "Admin Team", href: "/admin/team", icon: Shield },

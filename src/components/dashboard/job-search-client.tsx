@@ -1,520 +1,88 @@
-/**
- * Job Search Client — Client Component
- *
- * Interactive job search form + results + queue management.
- * Uses Adzuna API via /api/jobs/search, adds to queue via /api/jobs/queue.
- */
-
 "use client";
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    Search,
-    MapPin,
-    Building2,
-    ExternalLink,
-    Plus,
-    Check,
-    Loader2,
-    ListFilter,
-    Clock,
-    Rocket,
-    AlertCircle,
-    Camera,
-    Globe2,
-} from "lucide-react";
+import { Search, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import type { JobQueueRow } from "@/types/database";
+import type { AdzunaJob, AdzunaSearchParams } from "@/lib/jobs/adzuna";
+import { explainJobMatch } from "@/lib/jobs/match";
 
-interface AdzunaJob {
-    id: string;
-    title: string;
-    company: string;
-    location: string;
-    salary_text: string;
-    description: string;
-    job_url: string;
-    created: string;
-}
-
-interface JobSearchClientProps {
-    defaultRole: string;
-    defaultLocation: string;
-    resumes: { id: string; title: string; updated_at: string }[];
-    queuedJobs: JobQueueRow[];
-}
-
-export function JobSearchClient({
-    defaultRole,
-    defaultLocation,
-    resumes,
-    queuedJobs: initialQueue,
-}: JobSearchClientProps) {
-    const [query, setQuery] = useState(defaultRole);
-    const [location, setLocation] = useState(defaultLocation);
-    const [country, setCountry] = useState("us");
-    const [searching, setSearching] = useState(false);
-    const [results, setResults] = useState<AdzunaJob[]>([]);
-    const [totalResults, setTotalResults] = useState(0);
-    const [selectedResumeId, setSelectedResumeId] = useState(resumes[0]?.id || "");
-    const [queuedUrls, setQueuedUrls] = useState<Set<string>>(
-        new Set(initialQueue.map((j) => j.job_url))
-    );
-    const [addingJobs, setAddingJobs] = useState<Set<string>>(new Set());
-    const [showQueue, setShowQueue] = useState(false);
-    const [queue, setQueue] = useState<JobQueueRow[]>(initialQueue);
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!query.trim()) {
-            toast.error("Please enter a job title or keyword.");
-            return;
-        }
-
-        setSearching(true);
-        try {
-            const res = await fetch("/api/jobs/search", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    query: query.trim(),
-                    location: location.trim() || undefined,
-                    country,
-                    resultsPerPage: 20,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok || !data.success) {
-                toast.error(data.error?.message || "Search failed. Please try again.");
-                return;
-            }
-
-            setResults(data.data.jobs || []);
-            setTotalResults(data.data.totalResults || 0);
-
-            if ((data.data.jobs || []).length === 0) {
-                toast.info("No jobs found. Try different keywords or location.");
-            }
-        } catch {
-            toast.error("Something went wrong. Please try again.");
-        } finally {
-            setSearching(false);
-        }
-    };
-
-    const addToQueue = async (job: AdzunaJob) => {
-        setAddingJobs((prev) => new Set(prev).add(job.id));
-        try {
-            const res = await fetch("/api/jobs/queue", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jobs: [
-                        {
-                            title: job.title,
-                            company: job.company,
-                            job_url: job.job_url,
-                            location: job.location,
-                            salary_text: job.salary_text,
-                            description: job.description,
-                            source: "adzuna",
-                        },
-                    ],
-                    resume_id: selectedResumeId || null,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok || !data.success) {
-                toast.error(data.error?.message || "Failed to add to queue.");
-                return;
-            }
-
-            if (data.data.added > 0) {
-                setQueuedUrls((prev) => new Set(prev).add(job.job_url));
-                setQueue((prev) => [...(data.data.jobs || []), ...prev]);
-                toast.success(`Added "${job.title}" to auto-apply queue.`);
-            } else {
-                toast.info("Job is already in your queue.");
-            }
-        } catch {
-            toast.error("Something went wrong.");
-        } finally {
-            setAddingJobs((prev) => {
-                const next = new Set(prev);
-                next.delete(job.id);
-                return next;
-            });
-        }
-    };
-
-    const addAllToQueue = async () => {
-        const newJobs = results.filter((j) => !queuedUrls.has(j.job_url));
-        if (newJobs.length === 0) {
-            toast.info("All jobs are already in your queue.");
-            return;
-        }
-
-        setSearching(true);
-        try {
-            const res = await fetch("/api/jobs/queue", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jobs: newJobs.map((job) => ({
-                        title: job.title,
-                        company: job.company,
-                        job_url: job.job_url,
-                        location: job.location,
-                        salary_text: job.salary_text,
-                        description: job.description,
-                        source: "adzuna",
-                    })),
-                    resume_id: selectedResumeId || null,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok || !data.success) {
-                toast.error(data.error?.message || "Failed to add jobs.");
-                return;
-            }
-
-            const addedUrls = new Set(queuedUrls);
-            newJobs.forEach((j) => addedUrls.add(j.job_url));
-            setQueuedUrls(addedUrls);
-            setQueue((prev) => [...(data.data.jobs || []), ...prev]);
-            toast.success(`Added ${data.data.added} job(s) to auto-apply queue.`);
-        } catch {
-            toast.error("Something went wrong.");
-        } finally {
-            setSearching(false);
-        }
-    };
-
-    const statusColor: Record<string, string> = {
-        pending: "bg-warning/10 text-warning border-warning/30",
-        processing: "bg-secondary/10 text-secondary border-secondary/30",
-        applied: "bg-success/10 text-success border-success/30",
-        failed: "bg-error/10 text-error border-error/30",
-        skipped: "bg-white/5 text-text-secondary border-border",
-    };
-
-    return (
-        <div className="space-y-6">
-            {/* Search Form */}
-            <Card>
-                <CardBody>
-                    <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="Job Title / Keywords"
-                                placeholder="React Developer, Full Stack, Data Scientist"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                leftAddon={<Search className="h-4 w-4" />}
-                            />
-                            <Input
-                                label="Location"
-                                placeholder="Bangalore, Mumbai, Remote"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                leftAddon={<MapPin className="h-4 w-4" />}
-                            />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Country Selector */}
-                            <div className="space-y-1.5">
-                                <label className="block text-sm font-medium text-foreground">
-                                    Country
-                                </label>
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
-                                        <Globe2 className="h-4 w-4" />
-                                    </div>
-                                    <select
-                                        value={country}
-                                        onChange={(e) => setCountry(e.target.value)}
-                                        className="w-full h-10 rounded-2xl border border-border bg-white/5 pl-10 pr-3 text-sm text-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/30 outline-none transition-colors"
-                                    >
-                                        <option value="us">United States</option>
-                                        <option value="gb">United Kingdom</option>
-                                        <option value="in">India</option>
-                                        <option value="ca">Canada</option>
-                                        <option value="au">Australia</option>
-                                        <option value="nz">New Zealand</option>
-                                        <option value="za">South Africa</option>
-                                        <option value="sg">Singapore</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Resume selector */}
-                            {resumes.length > 0 && (
-                                <div className="space-y-1.5">
-                                <label className="block text-sm font-medium text-foreground">
-                                    Resume for auto-apply
-                                </label>
-                                <select
-                                    value={selectedResumeId}
-                                    onChange={(e) => setSelectedResumeId(e.target.value)}
-                                    className="w-full h-10 rounded-2xl border border-border bg-white/5 px-3 text-sm text-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/30 outline-none transition-colors"
-                                >
-                                    {resumes.map((r) => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.title}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                isLoading={searching}
-                                disabled={!query.trim()}
-                            >
-                                <Search className="h-4 w-4 mr-2" />
-                                Search Jobs
-                            </Button>
-
-                            <button
-                                type="button"
-                                onClick={() => setShowQueue(!showQueue)}
-                                className="flex items-center gap-2 text-sm text-text-secondary hover:text-foreground transition-colors"
-                            >
-                                <ListFilter className="h-4 w-4" />
-                                Queue ({queue.length})
-                            </button>
-                        </div>
-                    </form>
-                </CardBody>
-            </Card>
-
-            {/* Queue Panel */}
-            <AnimatePresence>
-                {showQueue && queue.length > 0 && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Rocket className="h-5 w-5 text-primary" />
-                                    Auto-Apply Queue
-                                </CardTitle>
-                            </CardHeader>
-                            <CardBody>
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
-                                    {queue.map((job) => (
-                                        <div
-                                            key={job.id}
-                                            className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-white/5 p-3 text-sm"
-                                        >
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-foreground truncate">
-                                                    {job.title}
-                                                </p>
-                                                <p className="text-text-secondary text-xs truncate">
-                                                    {job.company}{job.location ? ` · ${job.location}` : ""}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {job.screenshot_url && (
-                                                    <button
-                                                        onClick={async () => {
-                                                            try {
-                                                                const res = await fetch(`/api/jobs/screenshot?jobId=${job.id}`);
-                                                                const result = await res.json();
-                                                                if (result.success && result.data?.url) {
-                                                                    window.open(result.data.url, "_blank");
-                                                                } else {
-                                                                    alert(result.error?.message || "Could not load screenshot");
-                                                                }
-                                                            } catch {
-                                                                alert("Failed to load screenshot");
-                                                            }
-                                                        }}
-                                                        className="text-primary hover:text-primary-light transition-colors cursor-pointer"
-                                                        title="View proof screenshot"
-                                                    >
-                                                        <Camera className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                <span
-                                                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusColor[job.status] || ""}`}
-                                                >
-                                                    {job.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardBody>
-                        </Card>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Results */}
-            {results.length > 0 && (
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-text-secondary">
-                            Showing {results.length} of {totalResults.toLocaleString()} results
-                        </p>
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={addAllToQueue}
-                            disabled={searching}
-                        >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add All to Queue
-                        </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3">
-                        <AnimatePresence>
-                            {results.map((job, i) => {
-                                const isQueued = queuedUrls.has(job.job_url);
-                                const isAdding = addingJobs.has(job.id);
-
-                                return (
-                                    <motion.div
-                                        key={job.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: i * 0.03 }}
-                                    >
-                                        <Card className="hover:border-primary/40 transition-colors">
-                                            <CardBody className="flex gap-4">
-                                                {/* Job Info */}
-                                                <div className="flex-1 min-w-0 space-y-2">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <h3 className="font-semibold text-foreground leading-tight">
-                                                            {job.title}
-                                                        </h3>
-                                                        <a
-                                                            href={job.job_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="shrink-0 text-text-secondary hover:text-primary transition-colors"
-                                                            title="Open job listing"
-                                                        >
-                                                            <ExternalLink className="h-4 w-4" />
-                                                        </a>
-                                                    </div>
-
-                                                    <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-                                                        <span className="flex items-center gap-1">
-                                                            <Building2 className="h-3.5 w-3.5" />
-                                                            {job.company}
-                                                        </span>
-                                                        {job.location && (
-                                                            <span className="flex items-center gap-1">
-                                                                <MapPin className="h-3.5 w-3.5" />
-                                                                {job.location}
-                                                            </span>
-                                                        )}
-                                                        {job.salary_text !== "Not specified" && (
-                                                            <span className="text-primary font-medium">
-                                                                {job.salary_text}
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    <p className="text-sm text-text-secondary line-clamp-2">
-                                                        {job.description}
-                                                    </p>
-
-                                                    {job.created && (
-                                                        <p className="flex items-center gap-1 text-xs text-text-secondary">
-                                                            <Clock className="h-3 w-3" />
-                                                            {new Date(job.created).toLocaleDateString("en-IN", {
-                                                                day: "numeric",
-                                                                month: "short",
-                                                                year: "numeric",
-                                                            })}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                {/* Action */}
-                                                <div className="flex items-center">
-                                                    {isQueued ? (
-                                                        <div className="flex items-center gap-1.5 text-sm text-success">
-                                                            <Check className="h-4 w-4" />
-                                                            Queued
-                                                        </div>
-                                                    ) : (
-                                                        <Button
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            onClick={() => addToQueue(job)}
-                                                            disabled={isAdding}
-                                                        >
-                                                            {isAdding ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <>
-                                                                    <Plus className="h-4 w-4 mr-1" />
-                                                                    Queue
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </CardBody>
-                                        </Card>
-                                    </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            )}
-
-            {/* Empty state */}
-            {!searching && results.length === 0 && (
-                <Card>
-                    <CardBody className="text-center py-12">
-                        <div className="flex justify-center mb-4">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                                <Search className="h-8 w-8 text-primary" />
-                            </div>
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                            Search for jobs
-                        </h3>
-                        <p className="text-text-secondary max-w-md mx-auto">
-                            Enter a job title and location to find opportunities. Add them to your
-                            auto-apply queue and let the system handle the rest.
-                        </p>
-                        {!query && defaultRole && (
-                            <p className="text-sm text-primary mt-4 flex items-center justify-center gap-1.5">
-                                <AlertCircle className="h-4 w-4" />
-                                Tip: Your preferred role &quot;{defaultRole}&quot; is pre-filled from your profile.
-                            </p>
-                        )}
-                    </CardBody>
-                </Card>
-            )}
-        </div>
-    );
+type Filters = { query:string; location:string; country:string; salaryMin:string; salaryMax:string; exclude:string; age:string; employment:string; sortBy:string; fullTime:boolean };
+type Saved = {id:string;title:string;filters:AdzunaSearchParams};
+interface JobSearchClientProps {clientUserId?:string;defaultRole:string;defaultLocation:string;defaultCountry?:string;workType?:string;skills?:string[];resumes:{id:string;title:string;updated_at:string;kind?:"saved"|"generated"}[];queuedJobs:JobQueueRow[]}
+const countries:Record<string,string>={us:"United States",in:"India",gb:"United Kingdom",ca:"Canada",au:"Australia",nz:"New Zealand",za:"South Africa",sg:"Singapore"};
+const currencies:Record<string,string>={us:"USD",in:"INR",gb:"GBP",ca:"CAD",au:"AUD",nz:"NZD",za:"ZAR",sg:"SGD"};
+const inputClass="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm";
+function fromParams(p:AdzunaSearchParams):Filters{return {query:p.query,location:p.location||"",country:p.country||"us",salaryMin:p.salaryMin?.toString()||"",salaryMax:p.salaryMax?.toString()||"",exclude:p.exclude||"",age:p.maxDaysOld?.toString()||"",employment:p.employment||"any",sortBy:p.sortBy||"relevance",fullTime:p.fullTime===true};}
+export function JobSearchClient({clientUserId,defaultRole,defaultLocation,defaultCountry="us",workType="any",skills=[],resumes,queuedJobs}:JobSearchClientProps){
+  const [filters,setFilters]=useState<Filters>(()=>fromParams({query:defaultRole,location:defaultLocation,country:countries[defaultCountry]?defaultCountry:"us"}));
+  const [results,setResults]=useState<AdzunaJob[]>([]);const [total,setTotal]=useState(0);const [page,setPage]=useState(1);
+  const [searching,setSearching]=useState(false);const [searched,setSearched]=useState(false);const [error,setError]=useState("");const [warning,setWarning]=useState("");const [searchedAt,setSearchedAt]=useState("");
+  const [activeFilters,setActiveFilters]=useState<Filters|null>(null);const [selected,setSelected]=useState<Record<string,AdzunaJob>>({});const [detail,setDetail]=useState<AdzunaJob|null>(null);const [review,setReview]=useState(false);
+  const [queue,setQueue]=useState(queuedJobs);const [queueing,setQueueing]=useState(false);const [showQueue,setShowQueue]=useState(false);
+  const [resume,setResume]=useState(resumes.length ? `${resumes[0].kind||"saved"}:${resumes[0].id}` : "");
+  const [saved,setSaved]=useState<Saved[]>([]);const [saveTitle,setSaveTitle]=useState("");const [saving,setSaving]=useState(false);
+  const [rankMatches,setRankMatches]=useState(false);const [dismissed,setDismissed]=useState<Set<string>>(new Set());
+  const searchAbort=useRef<AbortController|null>(null);const requestId=useRef(0);const queuePending=useRef(false);
+  useEffect(()=>{
+    const controller=new AbortController();
+    fetch('/api/jobs/saved-searches',{signal:controller.signal}).then(r=>r.json()).then(data=>{if(data.success)setSaved(data.data);}).catch(()=>{});
+    const raw=new URLSearchParams(window.location.search).get('search');
+    if(raw){try{const parsed=JSON.parse(raw);if(typeof parsed.query==='string'&&countries[parsed.country])setFilters(fromParams(parsed));}catch{/* Ignore invalid bookmarks. */}}
+    return()=>{controller.abort();searchAbort.current?.abort();};
+  },[]);
+  const set=(key:keyof Filters,value:string|boolean)=>setFilters(prev=>({...prev,[key]:value}));
+  function params(f:Filters,p=1):AdzunaSearchParams{return {query:f.query.trim(),location:/^remote$/i.test(f.location.trim())?"":f.location.trim(),country:f.country,page:p,resultsPerPage:20,sortBy:f.sortBy as AdzunaSearchParams['sortBy'],salaryMin:f.salaryMin?Number(f.salaryMin):undefined,salaryMax:f.salaryMax?Number(f.salaryMax):undefined,maxDaysOld:f.age?Number(f.age):undefined,exclude:f.exclude.trim(),employment:f.employment as AdzunaSearchParams['employment'],fullTime:f.fullTime?true:undefined};}
+  async function search(f=filters,p=1){
+    if(!f.query.trim()){setError("Enter a title or keyword.");return;}
+    if(f.salaryMin&&f.salaryMax&&Number(f.salaryMax)<Number(f.salaryMin)){setError("Maximum salary must be at least the minimum.");return;}
+    searchAbort.current?.abort();const controller=new AbortController();searchAbort.current=controller;const sequence=++requestId.current;
+    setSearching(true);setError("");setWarning("");
+    try{const response=await fetch(clientUserId?'/api/admin/jobs/search':'/api/jobs/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params(f,p)),signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error?.message||'Search failed. Please retry.');if(sequence!==requestId.current)return;
+      setResults(data.data.jobs);setTotal(data.data.totalResults);setPage(p);setSearched(true);setActiveFilters({...f});setSearchedAt(data.data.searchedAt||new Date().toISOString());setWarning(data.data.warning||'');setDetail(null);
+      const url=new URL(window.location.href);url.searchParams.set('search',JSON.stringify(params(f,p)));window.history.replaceState(null,'',url);
+    }catch(e){if(!controller.signal.aborted&&sequence===requestId.current)setError(e instanceof Error?e.message:'Search unavailable.');}
+    finally{if(sequence===requestId.current)setSearching(false);}
+  }
+  async function saveSearch(){setSaving(true);try{const r=await fetch('/api/jobs/saved-searches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:saveTitle,filters:params(filters)})});const data=await r.json();if(!r.ok)throw Error(data.error?.message||'Unable to save');setSaved(prev=>[data.data,...prev]);setSaveTitle('');toast.success('Search saved.');}catch(e){toast.error(e instanceof Error?e.message:'Unable to save');}finally{setSaving(false);}}
+  const queued=new Map(queue.map(job=>[job.job_url,job.status]));
+  const preferences={role:defaultRole||activeFilters?.query||filters.query,location:defaultLocation,skills,workType};
+  const visible=results.filter(job=>!dismissed.has(job.id));
+  if(rankMatches)visible.sort((a,b)=>explainJobMatch(b,preferences).score-explainJobMatch(a,preferences).score);
+  async function enqueue(){
+    if(queuePending.current)return;queuePending.current=true;setQueueing(true);
+    try{const [kind,id]=resume.split(':');const response=await fetch(clientUserId?'/api/admin/jobs/queue':'/api/jobs/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...(clientUserId?{user_id:clientUserId}:{}),jobs:Object.values(selected).map(job=>({catalog_id:job.catalog_id,job_url:job.job_url})),resume_id:kind==='saved'?id:null,admin_resume_id:kind==='generated'?id:null})});const data=await response.json();if(!response.ok)throw Error(data.error?.message||'Unable to queue jobs.');setQueue(prev=>[...new Map([...(data.data.jobs||[]),...prev].map((job:JobQueueRow)=>[job.id,job])).values()]);setSelected({});setReview(false);toast.success(`${data.data.added} jobs added. Existing entries were kept.`);}catch(e){toast.error(e instanceof Error?e.message:'Unable to queue jobs.');}finally{queuePending.current=false;setQueueing(false);}
+  }
+  const text=(key:keyof Filters,label:string,type='text')=><label className="text-sm">{label}<input value={String(filters[key])} onChange={e=>set(key,e.target.value)} type={type} min={type==='number'?0:undefined} className={inputClass}/></label>;
+  return <div className="space-y-5">
+    <form onSubmit={e=>{e.preventDefault();void search();}} className="rounded-xl border border-border bg-surface p-4 sm:p-6 space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">{text('query','Job title / keywords')}{text('location','City or region (leave blank for nationwide)')}
+        <label className="text-sm">Country<select value={filters.country} onChange={e=>setFilters(prev=>({...prev,country:e.target.value,location:'',salaryMin:'',salaryMax:''}))} className={inputClass}>{Object.entries(countries).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>
+        <label className="text-sm">Sort by<select value={filters.sortBy} onChange={e=>set('sortBy',e.target.value)} className={inputClass}><option value="relevance">Provider relevance</option><option value="date">Newest first</option><option value="salary">Salary</option></select></label>
+      </div>
+      <details><summary className="cursor-pointer text-sm font-medium">More filters</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {text('salaryMin',`Minimum annual salary (${currencies[filters.country]})`,'number')}{text('salaryMax',`Maximum annual salary (${currencies[filters.country]})`,'number')}{text('exclude','Exclude keywords')}
+        <label className="text-sm">Posted within<select value={filters.age} onChange={e=>set('age',e.target.value)} className={inputClass}><option value="">Any time</option>{[1,3,7,14,30].map(day=><option key={day} value={day}>{day} days</option>)}</select></label>
+        <label className="text-sm">Employment type<select value={filters.employment} onChange={e=>set('employment',e.target.value)} className={inputClass}><option value="any">Any</option><option value="permanent">Permanent</option><option value="contract">Contract</option></select></label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={filters.fullTime} onChange={e=>set('fullTime',e.target.checked)}/>Full time only</label>
+      </div></details>
+      <p className="text-xs text-text-secondary">For remote roles, include “remote” in keywords. Work arrangement and sponsorship still need verification in the original listing.</p>
+      <div className="flex flex-wrap gap-3 items-center"><Button type="submit" isLoading={searching} leftIcon={<Search className="h-4 w-4"/>}>Search jobs</Button><button type="button" className="text-sm underline" onClick={()=>setShowQueue(!showQueue)}>Queue ({queue.length})</button></div>
+    </form>
+    <details className="rounded-xl border border-border p-4"><summary className="text-sm cursor-pointer">Saved searches ({saved.length})</summary><div className="mt-3 flex flex-wrap items-end gap-2"><label className="text-sm flex-1">Search name<input value={saveTitle} onChange={e=>setSaveTitle(e.target.value)} maxLength={100} className={inputClass}/></label><Button disabled={!saveTitle.trim()||!filters.query.trim()||saving} onClick={saveSearch}>Save current filters</Button></div><ul className="mt-3 space-y-2">{saved.map(item=><li key={item.id} className="flex justify-between gap-3 text-sm"><button className="underline" onClick={()=>{const f=fromParams(item.filters);setFilters(f);void search(f);}}>{item.title}</button><button className="text-error" onClick={async()=>{const r=await fetch(`/api/jobs/saved-searches?id=${item.id}`,{method:'DELETE'});if(r.ok)setSaved(prev=>prev.filter(s=>s.id!==item.id));else toast.error('Unable to remove saved search.');}}>Remove</button></li>)}</ul></details>
+    {showQueue&&<section className="rounded-xl border border-border p-4"><h2 className="font-semibold">Application queue</h2>{!queue.length&&<p className="text-sm mt-2">No queued jobs yet.</p>}<ul className="mt-3 max-h-72 overflow-auto space-y-2">{queue.map(job=><li key={job.id} className="flex justify-between gap-3 text-sm"><span>{job.title} · {job.company}</span><span>{job.status}</span></li>)}</ul></section>}
+    {error&&<p role="alert" className="rounded-lg border border-error/30 p-3 text-sm text-error">{error}{searched?' Previous results remain below.':''}</p>}
+    {warning&&<p role="status" className="text-sm text-warning">{warning}</p>}
+    {searched&&<div className="flex flex-wrap gap-3 items-center justify-between"><div className="text-sm"><p>{total.toLocaleString()} results · Page {page} · {countries[activeFilters?.country||filters.country]}</p><p className="text-xs text-text-secondary">{activeFilters?.query} · {activeFilters?.location||'Nationwide'} · Retrieved {new Date(searchedAt).toLocaleTimeString()}</p></div><label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={rankMatches} onChange={e=>setRankMatches(e.target.checked)}/>Rank this page by profile match</label></div>}
+    {!!Object.keys(selected).length&&<div className="sticky top-2 z-20 flex flex-wrap justify-between items-center gap-3 rounded-xl border border-primary/30 bg-surface p-3"><p className="text-sm">{Object.keys(selected).length} jobs shortlisted</p><Button onClick={()=>setReview(true)}>Review selected jobs</Button></div>}
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.75fr)]"><div className="space-y-3">
+      {visible.map(job=>{const match=explainJobMatch(job,preferences);const status=queued.get(job.job_url);return <article key={job.id} className="rounded-xl border border-border bg-surface p-4 space-y-2"><div className="flex items-start justify-between gap-3"><button onClick={()=>setDetail(job)} className="text-left font-semibold hover:underline">{job.title}</button>{status?<span className="text-xs text-success capitalize">{status}</span>:<label className="flex gap-2 text-xs"><input type="checkbox" aria-label={`Shortlist ${job.title}`} disabled={!job.catalog_id} checked={!!selected[job.id]} onChange={e=>setSelected(prev=>{const next={...prev};if(e.target.checked)next[job.id]=job;else delete next[job.id];return next;})}/>Shortlist</label>}</div><p className="text-sm text-text-secondary">{job.company} · {job.location||'Location not specified'}</p><p className="text-sm">{job.salary_text} {job.salary_predicted?'(estimated)':''}</p><p className="text-xs text-text-secondary">{job.created?`Posted ${new Date(job.created).toLocaleDateString()}`:'Posting date unknown'} · {job.work_arrangement==='unknown'?'Work arrangement unknown':`${job.work_arrangement} mentioned`}</p><p className="text-sm line-clamp-2 text-text-secondary">{job.description}</p>{match.reasons.length>0&&<p className="text-xs text-primary">{match.reasons.join(' · ')}</p>}<div className="flex gap-4 text-xs"><a href={job.job_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline">Original listing<ExternalLink className="h-3 w-3"/></a><button onClick={()=>{setDismissed(prev=>new Set(prev).add(job.id));setSelected(prev=>{const next={...prev};delete next[job.id];return next;});}}>Dismiss for this session</button></div></article>;})}
+      {!searching&&!visible.length&&<p className="rounded-xl border border-dashed border-border p-8 text-sm text-text-secondary">{searched?'No visible jobs match this search. Try broader titles, remove salary/exclusion filters, or change the location.':'Choose a role and location to search for jobs.'}</p>}
+      {!!dismissed.size&&<button className="text-sm underline" onClick={()=>setDismissed(new Set())}>Restore dismissed jobs</button>}
+    </div><aside className="self-start rounded-xl border border-border p-4 xl:sticky xl:top-4">{detail?<><h2 className="font-semibold">{detail.title}</h2><p className="mt-1 text-sm">{detail.company} · {detail.location}</p><p className="my-4 whitespace-pre-wrap text-sm">{detail.description}</p><h3 className="font-medium text-sm">Match evidence</h3><ul className="my-2 space-y-1 text-xs">{explainJobMatch(detail,preferences).reasons.map(reason=><li key={reason}>{reason}</li>)}</ul><h3 className="font-medium text-sm">Review before applying</h3><ul className="my-2 space-y-1 text-xs text-text-secondary">{explainJobMatch(detail,preferences).gaps.map(gap=><li key={gap}>{gap}</li>)}</ul><a href={detail.job_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">Read full listing on source site</a></>:<p className="text-sm text-text-secondary">Select a job title to review the description and match evidence.</p>}</aside></div>
+    {searched&&<div className="flex justify-between items-center gap-3"><Button variant="secondary" disabled={searching||page<=1} onClick={()=>search(activeFilters||filters,page-1)}>Previous</Button><span className="text-xs">Page {page} of {Math.max(1,Math.ceil(total/20))}</span><Button variant="secondary" disabled={searching||page*20>=total} onClick={()=>search(activeFilters||filters,page+1)}>Next</Button></div>}
+    <p className="text-xs text-text-secondary">Jobs by <a href="https://www.adzuna.com" target="_blank" rel="noopener noreferrer" className="underline">Adzuna</a>. Match evidence uses professional preferences only; it is not a hiring probability.</p>
+    <Modal open={review} onClose={()=>{if(!queuePending.current)setReview(false);}} title="Review selected jobs" hideCloseButton={queueing} closeOnOverlayClick={!queueing}><div className="space-y-4"><p className="text-sm">Review these jobs and the resume before adding them to {clientUserId?'the selected client’s':'your'} application queue. This does not submit applications.</p><label className="text-sm">Resume<select value={resume} onChange={e=>setResume(e.target.value)} disabled={queueing} className={inputClass}><option value="">No resume attached</option>{resumes.map(item=><option key={`${item.kind}:${item.id}`} value={`${item.kind||'saved'}:${item.id}`}>{item.title}{item.kind==='generated'?' · Recruiter generated':''}</option>)}</select></label><ul className="space-y-3">{Object.values(selected).map(job=><li key={job.id} className="flex justify-between gap-3 text-sm"><span>{job.title} · {job.company}</span><button disabled={queueing} onClick={()=>setSelected(prev=>{const next={...prev};delete next[job.id];return next;})}>Remove</button></li>)}</ul><Button disabled={queueing||!Object.keys(selected).length} isLoading={queueing} onClick={enqueue}>Add reviewed jobs to queue</Button></div></Modal>
+  </div>;
 }

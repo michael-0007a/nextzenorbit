@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { WorkAuthorizationDetails } from "@/components/forms/work-authorization-details";
 import { Button } from "@/components/ui/button";
 import type { SignupApplicationRow } from "@/types/database";
 
@@ -24,6 +25,7 @@ export function ApplicationReview({ application }: { application: SignupApplicat
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{String(application.profile.full_name || application.email)}</h2><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold capitalize text-primary">{application.status}</span></div>
     <p className="text-sm">{application.email} · Phone: +{application.phone}</p>
     <details className="rounded-xl border border-border p-4" open={application.status === "pending"}><summary className="cursor-pointer text-sm font-semibold mb-3">Candidate profile</summary><dl className="grid gap-3 sm:grid-cols-2 text-sm">{Object.entries(application.profile).filter(([key]) => !["consent", "full_name", "phone"].includes(key)).map(([key, value]) => <div key={key}><dt className="text-text-secondary capitalize">{key.replaceAll("_", " ")}</dt><dd>{String(value || "—")}</dd></div>)}</dl></details>
+    <WorkAuthorizationDetails userId={application.user_id} />
     <p className="text-xs text-text-secondary">Submitted {new Date(application.submitted_at).toLocaleString()} · Consent {application.consent_version}</p>
     <div className="flex flex-wrap gap-3 text-sm font-medium text-primary"><a href={`/api/admin/signup-applications/${application.user_id}/resume`} className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-2" target="_blank" rel="noreferrer">Download original resume</a><Link className="rounded-lg border border-border px-4 py-2" href={`/admin/users/${application.user_id}`}>Client details</Link></div>
     {application.status === "pending" ? <>

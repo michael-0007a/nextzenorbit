@@ -17,7 +17,6 @@ export const dynamic = "force-dynamic";
 const REQUIRED_PROFILE_FIELDS = [
   "full_name",
   "preferred_role",
-  "location",
   "phone",
   "headline",
 ] as const;

@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { JobSearchClient } from "@/components/dashboard/job-search-client";
+import { resumeSkills } from "@/lib/jobs/match";
 import type { ProfileRow, JobQueueRow } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -25,11 +26,11 @@ export default async function JobSearchPage() {
     const admin = createAdminClient();
 
     // Fetch profile, resumes, and queue in parallel
-    const [profileResult, resumesResult, queueResult] = await Promise.all([
+    const [profileResult, resumesResult, queueResult, generatedResult] = await Promise.all([
         admin.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
         admin
             .from("resumes")
-            .select("id, title, updated_at")
+            .select("id, title, updated_at, content")
             .eq("user_id", user.id)
             .is("deleted_at", null)
             .order("updated_at", { ascending: false }),
@@ -39,10 +40,11 @@ export default async function JobSearchPage() {
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(100),
+        admin.from("admin_resumes").select("id,title,created_at").eq("user_id",user.id).gt("expires_at",new Date().toISOString()),
     ]);
 
     const profile = profileResult.data as ProfileRow | null;
-    const resumes = (resumesResult.data || []) as { id: string; title: string; updated_at: string }[];
+    const resumes = (resumesResult.data || []).map(({id, title, updated_at}) => ({id, title, updated_at}));
     const queuedJobs = (queueResult.data || []) as JobQueueRow[];
 
     return (
@@ -54,7 +56,10 @@ export default async function JobSearchPage() {
             <JobSearchClient
                 defaultRole={profile?.preferred_role || ""}
                 defaultLocation={profile?.preferred_location || ""}
-                resumes={resumes}
+                defaultCountry={String(profile?.application_details?.target_country || "us")}
+                workType={profile?.preferred_work_type || "any"}
+                skills={resumeSkills(resumesResult.data?.[0]?.content)}
+                resumes={[...resumes,...(generatedResult.data || []).map(item=>({...item,updated_at:item.created_at,kind:"generated" as const}))]}
                 queuedJobs={queuedJobs}
             />
         </div>

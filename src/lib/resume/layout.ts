@@ -14,11 +14,23 @@ export interface ResumeLayout { pages: LayoutLine[][]; fontSize: number; lineHei
 const join = (values: (string | undefined)[], separator = " | ") => values.filter(v => v?.trim()).join(separator);
 export const dateRange = (start?: string, end?: string, current?: boolean) => join([start, current ? "Present" : end], " - ");
 
+/** Imported Word/PDF typography has equivalent glyphs outside standard PDF fonts.
+ * Normalize only presentation characters; never strip names or other scripts.
+ * All renderers measure and print this same text; saved source stays untouched.
+ */
+export function normalizeResumeTypography(text: string): string {
+  return text.normalize("NFC")
+    .replace(/[\u2010\u2011\u2012\u2212\ufe63\uff0d]/g, "-")
+    .replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g, " ")
+    .replace(/[\u00ad\u200b\u2060\ufeff]/g, "")
+    .replace(/[\ufb00-\ufb04]/g, character => ({ "\ufb00": "ff", "\ufb01": "fi", "\ufb02": "fl", "\ufb03": "ffi", "\ufb04": "ffl" })[character]!);
+}
+
 /** Preserve every supported field, with dates adjacent to the relevant entry. */
 export function resumeBlocks(content: ResumeContent): ResumeBlock[] {
   const blocks: ResumeBlock[] = [];
   const add = (text: string | undefined, kind: BlockKind = "body", keepNext = false) => {
-    if (text?.trim()) blocks.push({ text: text.trim(), kind, keepNext });
+    if (text?.trim()) blocks.push({ text: normalizeResumeTypography(text.trim()), kind, keepNext });
   };
   const section = (title: string) => add(title, "section", true);
   const bullets = (items?: string[]) => items?.forEach(text => add(text, "bullet"));

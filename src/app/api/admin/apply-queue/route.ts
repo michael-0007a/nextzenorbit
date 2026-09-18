@@ -15,7 +15,7 @@ import type { Database } from "@/types/database";
 type JobQueueUpdate = Database["public"]["Tables"]["job_queue"]["Update"];
 
 // Required profile fields — matches the dashboard gate
-const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
+const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
 
 function checkProfileComplete(profile: Record<string, unknown> | null): boolean {
   if (!profile) return false;
@@ -49,7 +49,8 @@ export async function GET(request: NextRequest): Promise<Response> {
         ),
         job_queue:job_queue!job_queue_user_id_fkey(
           id, title, company, job_url, status, source, created_at, applied_at, admin_notes, assigned_to,
-          resume:resumes(id, title, target_role)
+          resume:resumes(id, title, target_role),
+          generated_resume:admin_resumes(id, title)
         )
       `)
       .eq("role", "user");
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         // Fix resume unwrapping from array if it is an array
         jobQueue = jobQueue.map((job: any) => ({
           ...job,
-          resume: Array.isArray(job.resume) ? job.resume[0] : job.resume
+          resume: (Array.isArray(job.resume) ? job.resume[0] : job.resume) || (Array.isArray(job.generated_resume) ? job.generated_resume[0] : job.generated_resume)
         }));
         
         const jobCounts = { pending: 0, processing: 0, applied: 0, failed: 0, skipped: 0 };

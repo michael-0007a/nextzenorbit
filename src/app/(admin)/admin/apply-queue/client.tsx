@@ -393,6 +393,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                                   {job.company} •{" "}
                                   {formatDistanceToNow(new Date(job.created_at))} ago
                                 </p>
+                                {job.resume && <p className="text-xs text-text-secondary truncate">Resume: {job.resume.title}</p>}
                               </div>
 
                               {/* Status Badge */}

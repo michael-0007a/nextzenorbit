@@ -19,6 +19,7 @@ export async function listJobs(filters: JobListFilters): Promise<Result<JobRow[]
   let query = supabase
     .from("jobs")
     .select("*")
+    .is("closed_at", null)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 

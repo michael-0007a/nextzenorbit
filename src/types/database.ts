@@ -34,6 +34,7 @@ export type UserRow = {
 };
 
 export type ProfileRow = {
+  application_details?: Record<string, unknown>;
   id: string;
   user_id: string;
   full_name: string;
@@ -152,6 +153,7 @@ export type CoverLetterRow = {
 };
 
 export type JobQueueRow = {
+  catalog_id?: string | null; admin_resume_id?: string | null; job_key?: string | null;
   id: string;
   user_id: string;
   title: string;
@@ -188,6 +190,7 @@ export type CareerRow = {
 };
 
 export type JobRow = {
+  country?: string | null; details?: Record<string, unknown>; last_checked_at?: string | null; closed_at?: string | null;
   id: string;
   company: string;
   title: string;
@@ -354,6 +357,15 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      saved_job_searches: {
+        Row: { id: string; user_id: string; title: string; filters: Record<string, unknown>; created_at: string };
+        Insert: { user_id: string; title: string; filters: Record<string, unknown> };
+        Update: never; Relationships: [];
+      };
+      candidate_work_authorization: {
+        Row: { user_id: string; country: string; answers: Record<string, unknown>; updated_at: string };
+        Insert: never; Update: never; Relationships: [];
+      };
       signup_applications: {
         Row: SignupApplicationRow;
         Insert: SignupApplicationRow;
@@ -501,6 +513,8 @@ export type Database = {
     };
     Views: {};
     Functions: {
+      store_job_results: { Args: { p_jobs: unknown }; Returns: unknown };
+      enqueue_search_jobs: { Args: { p_user_id: string; p_actor_id: string; p_jobs: unknown; p_resume_id: string | null; p_admin_resume_id: string | null }; Returns: unknown };
       complete_payu_payment: { Args: { p_txnid: string; p_amount_paise: number; p_payment_id: string }; Returns: undefined };
       consume_request_limit: { Args: { p_key: string; p_limit: number; p_seconds: number }; Returns: boolean };
       submit_signup_application: { Args: { p_user_id: string; p_profile: Record<string, unknown>; p_resume_path: string; p_resume_name: string; p_content: ResumeContent; p_consent_version: string }; Returns: undefined };

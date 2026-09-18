@@ -65,10 +65,10 @@ for (const profile of [{ full_name: 'Test Client' }, [{ full_name: 'Test Client'
   });
 }
 
-function exportHandler(adminGenerated, { role = 'user', signedIn = true, owner = false, missing = false, overrides = {} } = {}) {
+function exportHandler(adminGenerated, { role = 'user', signedIn = true, owner = false, missing = false, content, overrides = {} } = {}) {
   const resume = {
     id: 'resume-id', user_id: owner ? 'viewer' : 'client', title: 'Client Resume', template_id: 'classic',
-    content: { contact: { full_name: 'Test Client', email: 'client@example.com' }, summary: { text: 'Experienced developer.' } },
+    content: content || { contact: { full_name: 'Test Client', email: 'client@example.com' }, summary: { text: 'Experienced developer.' } },
   };
   const database = {
     from(table) {
@@ -128,3 +128,16 @@ for (const adminGenerated of [false, true]) {
     assert.equal((await request({ role: 'admin', missing: true })).status, 404);
   });
 }
+
+for (const generated of [true, false]) for (const template of ['classic', 'modern', 'creative']) test(`${generated ? 'Admin' : 'Client'} PDF (${template}) accepts imported non-breaking hyphens and ligatures`, async () => {
+  const { extractText } = require('unpdf');
+  const content = { contact: { full_name: 'Test Client', email: 'client@example.com' }, summary: { text: 'Led cross\u2011functional teams and high\u2010priority projects. Improved of\ufb01ce work\ufb02ows with 100\u202fusers.' } };
+  const original = JSON.stringify(content);
+  const response = await exportHandler(generated, { owner: true, content })(new Request(`http://localhost/api/resumes/export-admin?id=resume-id&format=pdf&template=${template}`), { params: Promise.resolve({ id: 'resume-id' }) });
+  assert.equal(response.status, 200, await response.clone().text());
+  const recovered = await extractText(new Uint8Array(await response.arrayBuffer()), { mergePages: true });
+  assert.match(recovered.text, /cross-functional/);
+  assert.match(recovered.text, /high-priority/);
+  assert.match(recovered.text, /office workflows/);
+  assert.equal(JSON.stringify(content), original, 'Saved source must not be changed');
+});

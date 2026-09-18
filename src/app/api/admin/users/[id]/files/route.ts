@@ -44,6 +44,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
     const { data, error: downloadError } = await admin.storage.from(bucket!).download(`${id}/${name}`);
     if (downloadError || !data) return Response.json({ error: { message: "The original file could not be downloaded." } }, { status: 404 });
+    if (data.size > 4 * 1024 * 1024) {
+      const { data: signed, error } = await admin.storage.from(bucket!).createSignedUrl(`${id}/${name}`, 60, { download: name });
+      if (error || !signed) return Response.json({ error: { message: "Unable to download file." } }, { status: 503 });
+      return new Response(null, { status: 302, headers: { Location: signed.signedUrl, "Cache-Control": "private, no-store" } });
+    }
     return new Response(data, { headers: {
       "Content-Type": data.type || "application/octet-stream",
       "Content-Disposition": `attachment; filename="${name.replace(/[^a-zA-Z0-9._-]/g, "_")}"`,

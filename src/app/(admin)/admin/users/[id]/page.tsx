@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DeleteResumeButton } from "@/components/resume/delete-resume-button";
+import { WorkAuthorizationDetails } from "@/components/forms/work-authorization-details";
 import { AdminOriginalFiles } from "@/components/resume/admin-original-files";
 
 type UserDetails = {
@@ -462,7 +463,9 @@ export default function AdminUserDetailsPage({
 
         {/* Right Col: Resumes, Cover Letters & Queue */}
         <div className="md:col-span-2 space-y-6">
+          <Link href={`/admin/job-search?client=${user.id}`} className="inline-flex rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">Search jobs for this client</Link>
           <AdminOriginalFiles refreshKey={filesRevision} userId={user.id} />
+          <WorkAuthorizationDetails userId={user.id} />
           {/* Base Resume Section */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">

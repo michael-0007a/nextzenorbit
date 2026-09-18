@@ -83,7 +83,7 @@ test('Onboarding requires explicit consent and complete profile', () => {
   assert.equal(onboardingProfileSchema.safeParse({}).success, false);
   assert.equal(phoneSchema.safeParse('9876543210').success, false);
   assert.equal(phoneSchema.safeParse('+919876543210').success, true);
-  const profile = { full_name: 'Test Client', phone: '+919876543210', headline: 'Developer', location: 'India', preferred_role: 'Developer', preferred_location: 'India', preferred_work_type: 'remote', years_of_experience: 2, consent: true };
+  const profile = { full_name: 'Test Client', email: 'client@example.com', phone: '+919876543210', target_country: 'in', experience_range: '3\u20135 years', preferred_role: 'Developer', eeo: { acknowledged: true }, consent: true };
   assert.equal(onboardingProfileSchema.safeParse(profile).success, true);
   assert.equal(onboardingProfileSchema.safeParse({ ...profile, consent: false }).success, false);
 });

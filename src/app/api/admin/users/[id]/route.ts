@@ -12,7 +12,7 @@ import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 import { hasResumeBody } from "@/lib/resume/export-content";
 
-const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "location", "phone", "headline"];
+const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
 
 export const dynamic = "force-dynamic";
 
