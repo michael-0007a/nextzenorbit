@@ -11,16 +11,18 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RESUME_TEMPLATES, getTemplate } from "@/lib/resume/templates";
+import { templatesForType, getTemplate } from "@/lib/resume/templates";
 import type { ResumeTemplate } from "@/lib/resume/templates";
 
 interface TemplateSelectorProps {
+  resumeType?: "corporate" | "c2c";
   selectedId: string;
   onSelect: (template: ResumeTemplate) => void;
   className?: string;
 }
 
 export function TemplateSelector({
+  resumeType,
   selectedId,
   onSelect,
   className,
@@ -161,7 +163,7 @@ export function TemplateSelector({
           Choose a readable single-column layout. Preview, PDF and Word share the same content and page plan.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {RESUME_TEMPLATES.map(renderTemplateCard)}
+          {templatesForType(resumeType || getTemplate(selectedId).resumeType || "corporate").map(renderTemplateCard)}
         </div>
       </div>
     </div>

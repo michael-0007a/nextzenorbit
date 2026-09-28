@@ -351,6 +351,12 @@ export type SignupApplicationRow = {
 export type Database = {
   public: {
     Tables: {
+      admin_documents: {
+        Row: {id:string;owner_id:string;kind:"resume"|"cover_letter";title:string;payload:import("@/lib/admin/documents/schema").AdminDocumentPayload;assigned_client_id:string|null;assigned_document_id:string|null;created_at:string;updated_at:string};
+        Insert: {id:string;owner_id:string;kind:"resume"|"cover_letter";title:string;payload:import("@/lib/admin/documents/schema").AdminDocumentPayload};
+        Update: {title?:string;payload?:import("@/lib/admin/documents/schema").AdminDocumentPayload};
+        Relationships: [];
+      };
       payment_orders: {
         Row: { txnid: string; user_id: string; plan_id: PlanId; amount_paise: number; currency: string; status: string; provider_payment_id: string | null; created_at: string; paid_at: string | null };
         Insert: { txnid: string; user_id: string; plan_id: PlanId; amount_paise: number; currency: string };
@@ -513,6 +519,7 @@ export type Database = {
     };
     Views: {};
     Functions: {
+      save_admin_document: { Args: {p_id:string;p_owner_id:string;p_kind:string;p_title:string;p_payload:import("@/lib/admin/documents/schema").AdminDocumentPayload;p_client_id:string|null}; Returns: {id:string;assigned_document_id:string|null} };
       store_job_results: { Args: { p_jobs: unknown }; Returns: unknown };
       enqueue_search_jobs: { Args: { p_user_id: string; p_actor_id: string; p_jobs: unknown; p_resume_id: string | null; p_admin_resume_id: string | null }; Returns: unknown };
       complete_payu_payment: { Args: { p_txnid: string; p_amount_paise: number; p_payment_id: string }; Returns: undefined };

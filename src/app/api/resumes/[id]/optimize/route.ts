@@ -143,7 +143,7 @@ export async function POST(
       ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
-        { role: "system", content: systemPrompt + "\n\n" + resumeLengthInstruction(requestedPages) },
+        { role: "system", content: systemPrompt + "\n\n" + (typedResume.content.resume_type === "c2c" ? "C2C: Rewrite only the professional summary as newline-separated detailed factual bullets. Preserve all other fields exactly; do not shorten history to fit pages." : resumeLengthInstruction(requestedPages)) },
         { role: "user", content: userPrompt },
       ],
       temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
@@ -203,6 +203,12 @@ export async function POST(
     }
 
     // Validate structure
+    if (typedResume.content.resume_type === "c2c") {
+      const summary = result.resumeContent?.summary || (result as unknown as {summary?: {text?: string}}).summary;
+      if (!summary?.text?.trim()) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned an empty summary. Your source is unchanged.", 502);
+      result.resumeContent = { ...typedResume.content, summary: { text: summary.text } };
+      result.changesApplied = ["Tailored the professional summary; all other sections preserved."];
+    }
     if (!result.resumeContent || !result.resumeContent.contact) {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Invalid response structure.", 500);
     }

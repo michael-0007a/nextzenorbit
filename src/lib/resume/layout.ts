@@ -32,13 +32,22 @@ export function resumeBlocks(content: ResumeContent): ResumeBlock[] {
   const add = (text: string | undefined, kind: BlockKind = "body", keepNext = false) => {
     if (text?.trim()) blocks.push({ text: normalizeResumeTypography(text.trim()), kind, keepNext });
   };
-  const section = (title: string) => add(title, "section", true);
+  const contract = content.resume_type === "c2c";
+  const section = (title: string) => add(contract ? title.toUpperCase() : title, "section", true);
   const bullets = (items?: string[]) => items?.forEach(text => add(text, "bullet"));
   const c = content.contact;
   add(c.full_name, "name", true);
   add(join([c.email, c.phone, c.location]), "contact", true);
   add(join([c.linkedin_url, c.github_url, c.portfolio_url]), "contact");
-  if (content.summary?.text) { section("Professional Summary"); add(content.summary.text); }
+  if (content.summary?.text) {
+    section("Professional Summary");
+    if (contract) content.summary.text.split(/\n+/).filter(text => text.trim()).forEach(text => add(text.replace(/^\s*[\u2022*\-]\s*/, ""), "bullet"));
+    else add(content.summary.text);
+  }
+  const addSkills = () => {
+    if (content.skills?.length) { section("Skills"); content.skills.forEach(s => add(join([s.category, s.items.filter(Boolean).join(", ")], ": "))); }
+  };
+  if (contract) addSkills();
   if (content.experience?.length) {
     section("Professional Experience");
     content.experience.forEach(e => {
@@ -56,10 +65,7 @@ export function resumeBlocks(content: ResumeContent): ResumeBlock[] {
       bullets(e.bullets);
     });
   }
-  if (content.skills?.length) {
-    section("Skills");
-    content.skills.forEach(s => add(join([s.category, s.items.filter(Boolean).join(", ")], ": ")));
-  }
+  if (!contract) addSkills();
   if (content.projects?.length) {
     section("Projects");
     content.projects.forEach(p => {

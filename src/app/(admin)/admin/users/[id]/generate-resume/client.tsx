@@ -26,8 +26,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ResumeTypeSelector } from "@/components/resume/resume-type-selector";
 import { ResumeLengthSelector } from "@/components/resume/resume-length-selector";
-import { RESUME_TEMPLATES, getTemplate } from "@/lib/resume/templates";
+import { templatesForType, getTemplate } from "@/lib/resume/templates";
 import { layoutResume, PAPER } from "@/lib/resume/layout";
 import { cn } from "@/lib/utils";
 import { ResumePreview } from "@/components/resume/resume-preview";
@@ -132,6 +133,7 @@ export function AdminResumeGeneratorClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
+          resumeType: content.resume_type || "corporate",
           resumeId: baseResume.id,
           jobDescription,
           embellishmentLevel: "moderate",
@@ -275,11 +277,12 @@ export function AdminResumeGeneratorClient({
           <section className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
             <StepHeading number="03" title="Length & style" description="Choose the shape of the final resume." />
             <fieldset disabled={busy} className="mt-5 space-y-5 disabled:opacity-60">
+              <ResumeTypeSelector value={content.resume_type || "corporate"} disabled={busy} onChange={type => { setContent(previous => ({...previous, resume_type: type})); setTemplateId(type === "c2c" ? "c2c-consultant" : "classic"); }} />
               <ResumeLengthSelector value={content.layout?.target_pages ?? null} onChange={pages => setContent(previous => ({ ...previous, layout: { target_pages: pages } }))} />
               <div>
                 <p className="mb-2 text-xs font-medium text-text-secondary">Template</p>
                 <div className="grid grid-cols-3 gap-2" role="group" aria-label="Resume template">
-                  {RESUME_TEMPLATES.map(template => <button key={template.id} type="button" aria-pressed={getTemplate(templateId).id === template.id}
+                  {templatesForType(content.resume_type || "corporate").map(template => <button key={template.id} type="button" aria-pressed={getTemplate(templateId).id === template.id}
                     onClick={() => setTemplateId(template.id)} className={cn("relative rounded-xl border px-2 py-3 text-center transition-colors focus-visible:outline-2 focus-visible:outline-primary",
                       getTemplate(templateId).id === template.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted")}>
                     <span aria-hidden="true" className="mx-auto mb-2 flex h-12 w-10 flex-col justify-center gap-1 rounded border border-slate-200 bg-white px-1.5 shadow-sm">

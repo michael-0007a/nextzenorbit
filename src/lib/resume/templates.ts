@@ -6,6 +6,7 @@
  */
 
 export interface ResumeTemplate {
+  resumeType?: "corporate" | "c2c";
   id: string;
   name: string;
   description: string;
@@ -112,6 +113,17 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
     },
   },
 ];
+
+// Contract layouts retain the reference's summary -> skills -> experience order.
+RESUME_TEMPLATES.push(
+  { ...RESUME_TEMPLATES[1], id: "c2c-consultant", resumeType: "c2c", name: "Contract Consultant", description: "Reference-inspired contract resume with a detailed summary and grouped skills.", colors: { ...RESUME_TEMPLATES[1].colors, primary: "#111111", accent: "#111111" }, layout: { ...RESUME_TEMPLATES[1].layout, margins: {top:54,right:54,bottom:54,left:54}, showDividers: true } },
+  { ...RESUME_TEMPLATES[0], id: "c2c-classic", resumeType: "c2c", name: "Contract Classic", description: "Traditional serif headings and complete project history.", layout: { ...RESUME_TEMPLATES[0].layout, headerStyle: "left" } },
+  { ...RESUME_TEMPLATES[2], id: "c2c-modern", resumeType: "c2c", name: "Contract Modern", description: "Centered contact header and blue section dividers.", colors: { ...RESUME_TEMPLATES[2].colors, primary: "#123858", accent: "#215b86" }, layout: { ...RESUME_TEMPLATES[2].layout, headerStyle: "centered", showDividers: true } },
+);
+
+export function templatesForType(type: "corporate" | "c2c") {
+  return RESUME_TEMPLATES.filter(template => (template.resumeType || "corporate") === type);
+}
 
 export function getTemplate(id: string): ResumeTemplate {
   const aliases: Record<string, string> = { "classic-professional": "classic", "modern-tech": "modern", "deedy-resume": "creative", "academic-cv": "classic", "jake-resume": "classic", "software-engineer": "modern" };

@@ -30,6 +30,7 @@ const groq = new Groq({
 });
 
 const adminOptimizeSchema = z.object({
+  resumeType: z.enum(["corporate", "c2c"]).optional(),
   userId: z.string().uuid(),
   resumeId: z.string().uuid(),
   targetPages: targetPagesSchema,
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const typedResume = resume as ResumeRow;
+    typedResume.content = {...typedResume.content, resume_type: parsed.data.resumeType || typedResume.content.resume_type || "corporate"};
     const requestedPages = targetPages === undefined ? typedResume.content.layout?.target_pages : targetPages;
     if (!hasResumeBody(typedResume.content)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose or upload a populated base resume.", 422);
 
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
-        { role: "system", content: systemPrompt + "\n\n" + resumeLengthInstruction(requestedPages) },
+        { role: "system", content: systemPrompt + (typedResume.content.resume_type === "c2c" ? "\nC2C: Tailor ONLY the professional summary as detailed newline-separated bullets using source-supported facts. Preserve all other sections exactly. Do not condense history to meet page limits." : "\n\n" + resumeLengthInstruction(requestedPages)) },
         { role: "user", content: userPrompt },
       ],
       temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
@@ -155,6 +157,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // Validate structure
+    if (typedResume.content.resume_type === "c2c") {
+      const summary = result.resumeContent?.summary || (result as unknown as {summary?: {text?: string}}).summary;
+      if (!summary?.text?.trim()) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned an empty summary. Your source is unchanged.", 502);
+      result.resumeContent = { ...typedResume.content, summary: { text: summary.text } };
+      result.changesApplied = ["Tailored the professional summary; all other sections preserved."];
+    }
     if (!result.resumeContent || !result.resumeContent.contact) {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Invalid response structure.", 500);
     }

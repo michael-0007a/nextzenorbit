@@ -28,14 +28,16 @@ export function SummarySection() {
         </CardTitle>
       </CardHeader>
       <CardBody className="space-y-2">
+        {watch("resume_type") === "c2c" && <p className="text-xs text-text-secondary">Write one detailed, factual summary bullet per line. Experience and skills are preserved during AI tailoring.</p>}
         <Textarea
           placeholder="Experienced software engineer with 5+ years of expertise in building scalable web applications..."
-          rows={6}
+          rows={watch("resume_type") === "c2c" ? 14 : 6}
+          maxLength={10000}
           error={errors.summary?.text?.message}
           {...register("summary.text")}
         />
         <p className="text-xs text-text-secondary text-right">
-          {summaryText.length}/2000 characters
+          {summaryText.length}/10000 characters
         </p>
       </CardBody>
     </Card>

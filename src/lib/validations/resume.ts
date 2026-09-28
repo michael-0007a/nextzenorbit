@@ -106,6 +106,7 @@ export const customSectionSchema = z.object({
 
 // ── Full Resume Content ──
 export const resumeContentSchema = z.object({
+  resume_type: z.enum(["corporate", "c2c"]).optional(),
   layout: z.object({ target_pages: z.number().int().min(1).max(10).nullable().default(null) }).optional(),
   contact: contactInfoSchema.optional().default({
     full_name: "",
@@ -128,6 +129,7 @@ export const resumeContentSchema = z.object({
 
 // Lenient form schema - allows incomplete data during editing
 export const resumeContentFormSchema = z.object({
+  resume_type: z.enum(["corporate", "c2c"]).optional(),
   layout: z.object({ target_pages: z.number().int().min(1).max(10).nullable().default(null) }).optional(),
   contact: contactInfoFormSchema.optional().default({
     full_name: "",

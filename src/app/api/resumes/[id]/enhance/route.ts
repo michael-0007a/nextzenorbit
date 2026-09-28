@@ -80,7 +80,7 @@ export async function POST(
     const admin = createAdminClient();
     const { data: resume } = await admin
       .from("resumes")
-      .select("id, user_id")
+      .select("id, user_id, content")
       .eq("id", id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -98,6 +98,9 @@ export async function POST(
     }
 
     const { action } = parsed.data;
+    if (resume.content?.resume_type === "c2c" && action === "rewrite_bullets") {
+      return apiError(ERROR_CODES.VALIDATION_ERROR, "C-to-C AI tailoring only changes the summary. Edit experience manually if needed.", 400);
+    }
 
     if (action === "rewrite_bullets") {
       const { bullets, context } = parsed.data;

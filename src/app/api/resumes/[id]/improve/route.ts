@@ -99,7 +99,7 @@ export async function POST(
       ...GROQ_TEXT_OPTIONS,
       model: RESUME_IMPROVER_PROMPT_V1.model,
       messages: [
-        { role: "system", content: RESUME_IMPROVER_PROMPT_V1.system + "\n\n" + resumeLengthInstruction(requestedPages) },
+        { role: "system", content: RESUME_IMPROVER_PROMPT_V1.system + "\n\n" + (typedResume.content.resume_type === "c2c" ? "C2C: Rewrite only the professional summary as newline-separated detailed factual bullets. Preserve all other fields exactly; do not shorten history to fit pages." : resumeLengthInstruction(requestedPages)) },
         { role: "user", content: RESUME_IMPROVER_PROMPT_V1.user(resumeString) },
       ],
       temperature: 0.6,
@@ -134,6 +134,10 @@ export async function POST(
     }
 
     // Validate that the structure is correct (has required fields)
+    if (typedResume.content.resume_type === "c2c") {
+      if (!improvedContent.summary?.text?.trim()) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned an empty summary. Your source is unchanged.", 502);
+      improvedContent = { ...typedResume.content, summary: improvedContent.summary };
+    }
     if (!improvedContent.contact) {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Invalid resume structure from AI.", 500);
     }

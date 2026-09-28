@@ -13,6 +13,11 @@ function sameHistory(before: ResumeContent, after: ResumeContent): boolean {
 /** One bounded revision using measured pagination, never silent truncation. */
 export async function fitGeneratedResume(groq: Groq, content: ResumeContent, source: ResumeContent,
   pages: number | null | undefined, templateId: string | null) {
+  // This is a structural boundary, not merely an AI prompt. Never rewrite contract history.
+  if (source.resume_type === "c2c") {
+    return { ...applyResumeLength({ ...source, summary: content.summary }, pages, templateId), tokensUsed: 0 };
+  }
+  content = { ...content, resume_type: source.resume_type || "corporate" };
   let fitted = applyResumeLength(content, pages, templateId);
   let tokensUsed = 0;
   if (pages && fitted.pageCount > pages) {

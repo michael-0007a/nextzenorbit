@@ -112,6 +112,9 @@ Missing/Gap Skills: ${missingSkills?.join(", ") || "None provided"}
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to parse AI response.", 500);
     }
 
+    if (typedResume.content.resume_type === "c2c") {
+      result = { ...result, bulletRewrites: [], skillsToHighlight: [], keywordsToAdd: [], sectionOrder: [] };
+    }
     // Track AI usage
     await trackAIUsage(admin, user.id, completion.usage?.total_tokens || 0);
 

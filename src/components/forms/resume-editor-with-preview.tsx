@@ -56,6 +56,7 @@ import { LanguagesSection } from "@/components/forms/resume-sections/languages-s
 
 // New components
 import { ResumeActions } from "@/components/resume/resume-actions";
+import { ResumeTypeSelector } from "@/components/resume/resume-type-selector";
 import { ResumeLengthSelector } from "@/components/resume/resume-length-selector";
 import { ResumePreview } from "@/components/resume/resume-preview";
 
@@ -174,15 +175,18 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
 
   // ── Template change ──
   const handleTemplateChange = async (template: BaseTemplate) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     setTemplateId(template.id);
     try {
-      await fetch(`/api/resumes/${resume.id}`, {
+      const response = await fetch(`/api/resumes/${resume.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template_id: template.id }),
+        body: JSON.stringify({ template_id: template.id, content: resumeContentFormSchema.parse(methods.getValues()), title }),
       });
+      if (!response.ok) throw new Error("Save failed");
+      setLastSaved(new Date());
     } catch {
-      // Silent fail
+      toast.error("Could not save the category and layout. Your edits are still here; please save again.");
     }
   };
 
@@ -282,7 +286,11 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 space-y-4">
+        <ResumeTypeSelector value={watchedContent.resume_type || "corporate"} onChange={type => {
+          methods.setValue("resume_type", type, { shouldDirty: true });
+          handleTemplateChange({ id: type === "c2c" ? "c2c-consultant" : "classic", name: type });
+        }} />
         <ResumeLengthSelector value={watchedContent.layout?.target_pages ?? null} onChange={pages => {
           methods.setValue("layout", { target_pages: pages }, { shouldDirty: true });
         }} />
