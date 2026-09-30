@@ -1,4 +1,5 @@
 "use client";
+import { ApplicationTargets } from "@/components/admin/application-targets";
 
 import { useState, useEffect } from "react";
 import { BarChart3, Users, Crown, Briefcase, TrendingUp } from "lucide-react";
@@ -57,6 +58,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      <ApplicationTargets/>
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">
           Analytics

@@ -1,4 +1,5 @@
 "use client";
+import { ApplicationTargets } from "@/components/admin/application-targets";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -39,6 +40,7 @@ type QueueJob = {
 };
 
 type UserGroup = {
+  is_assigned: boolean;
   user_id: string;
   full_name: string;
   email: string;
@@ -141,6 +143,12 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
 
 
 
+  const handleClaim=async(jobId:string,action:"claim"|"unclaim")=>{
+    setUpdatingJob(jobId);
+    try {const response=await fetch("/api/admin/apply-queue",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:jobId,action})});const body=await response.json();if(!response.ok)throw Error(body.error?.message||"Unable to update ownership.");await fetchQueue();}
+    catch(e){toast.error(e instanceof Error?e.message:"Unable to update ownership.");}finally{setUpdatingJob(null);}
+  };
+
   const handleJobStatusChange = async (jobId: string, newStatus: string) => {
     setUpdatingJob(jobId);
     try {
@@ -152,6 +160,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
       const json = await res.json();
       if (json.success) {
         toast.success(`Job marked as ${newStatus}.`);
+        window.dispatchEvent(new Event("application-progress-updated"));
         fetchQueue();
       }
     } catch {
@@ -205,6 +214,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
 
   return (
     <div className="space-y-6">
+      <ApplicationTargets/>
       {/* Stats Bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -274,7 +284,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
         <div className="space-y-3">
           {filteredGroups.map((group) => {
             const isExpanded = expandedUsers.has(group.user_id);
-            const isMine = group.claimed_by === adminId;
+            const isMine = group.is_assigned;
 
             return (
               <div
@@ -394,6 +404,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                                   {formatDistanceToNow(new Date(job.created_at))} ago
                                 </p>
                                 {job.resume && <p className="text-xs text-text-secondary truncate">Resume: {job.resume.title}</p>}
+                                {job.status!=="applied"&&<p className="mt-1 text-xs text-text-secondary">{job.assigned_to===adminId?'Owned by you':job.assigned_to?'Owned by another admin':'Unclaimed - claim before applying'}</p>}
                               </div>
 
                               {/* Status Badge */}
@@ -406,8 +417,9 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                               </span>
 
                               {/* Actions */}
-                              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {job.status === "pending" && (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {job.status!=="applied"&&(!job.assigned_to||job.assigned_to===adminId||adminRole!=="admin")&&<button disabled={updatingJob===job.id} onClick={()=>handleClaim(job.id,job.assigned_to===adminId?'unclaim':'claim')} className="rounded-lg border border-border px-2 py-1 text-xs">{job.assigned_to===adminId?'Release':'Claim job'}</button>}
+                                {job.status !== "applied" && (!job.assigned_to||job.assigned_to===adminId||adminRole!=="admin") && (
                                   <button
                                     onClick={() => handleJobStatusChange(job.id, "applied")}
                                     disabled={updatingJob === job.id}

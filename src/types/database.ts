@@ -153,6 +153,7 @@ export type CoverLetterRow = {
 };
 
 export type JobQueueRow = {
+  applied_by?: string | null;
   catalog_id?: string | null; admin_resume_id?: string | null; job_key?: string | null;
   id: string;
   user_id: string;
@@ -438,6 +439,12 @@ export type Database = {
         Update: { title?: string; content?: string; company_name?: string; job_title?: string; job_description?: string | null };
         Relationships: [{ foreignKeyName: "cover_letters_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }, { foreignKeyName: "cover_letters_resume_id_fkey"; columns: ["resume_id"]; isOneToOne: false; referencedRelation: "resumes"; referencedColumns: ["id"] }];
       };
+      client_admin_assignments: {
+        Row: {user_id:string;admin_id:string;assigned_at:string};
+        Insert: {user_id:string;admin_id:string;assigned_at?:string};
+        Update: Record<string,never>;
+        Relationships: [];
+      };
       job_queue: {
         Row: JobQueueRow;
         Insert: { user_id: string; title: string; company: string; job_url: string; location?: string | null; salary_text?: string | null; description?: string | null; source?: JobSource; status?: JobQueueStatus; resume_id?: string | null; assigned_to?: string | null; claimed_by?: string | null };
@@ -519,6 +526,9 @@ export type Database = {
     };
     Views: {};
     Functions: {
+      assign_client_admins: {Args:{p_actor_id:string;p_user_id:string;p_admin_ids:string[]};Returns:undefined};
+      update_team_queue_job: {Args:{p_actor_id:string;p_id:string;p_status?:string|null;p_action?:string|null;p_notes?:string|null};Returns:unknown};
+      client_target_report: {Args:{p_actor_id:string};Returns:unknown};
       save_admin_document: { Args: {p_id:string;p_owner_id:string;p_kind:string;p_title:string;p_payload:import("@/lib/admin/documents/schema").AdminDocumentPayload;p_client_id:string|null}; Returns: {id:string;assigned_document_id:string|null} };
       store_job_results: { Args: { p_jobs: unknown }; Returns: unknown };
       enqueue_search_jobs: { Args: { p_user_id: string; p_actor_id: string; p_jobs: unknown; p_resume_id: string | null; p_admin_resume_id: string | null }; Returns: unknown };

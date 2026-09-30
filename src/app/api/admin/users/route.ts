@@ -1,3 +1,4 @@
+import { assignedClientIds } from "@/lib/admin/assignments";
 /**
  * Admin API: Users List
  *
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest): Promise<Response> {
         job_queue:job_queue!job_queue_user_id_fkey(status, claimed_by)
       `, { count: "exact" })
       .eq("role", "user")
-      .in("subscriptions.status", ["active", "trialing"]);
+      .in("subscription.status", ["active", "trialing"]);
+
+    if (adminAuth.role === "admin") query = query.in("id", (await assignedClientIds(adminAuth.userId)).concat("00000000-0000-0000-0000-000000000000"));
 
     if (search) {
       query = query.ilike("email", `%${search}%`);
@@ -55,36 +58,14 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
 
-    // Fetch assigned admin names
-    const allAssignedAdminIds = (data || []).map((u: any) => {
-      const p = Array.isArray(u.profile) ? u.profile[0] : u.profile;
-      return p?.assigned_admin_id;
-    }).filter(Boolean);
-    
-    const uniqueAdminIds = [...new Set(allAssignedAdminIds)] as string[];
-    
-    let adminNames: Record<string, string> = {};
-    if (uniqueAdminIds.length > 0) {
-      const { data: admins } = await admin
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", uniqueAdminIds);
-        
-      if (admins) {
-        adminNames = Object.fromEntries(admins.map((a: any) => [a.user_id, a.full_name]));
-      }
-    }
-
+    const {data: assignments,error: assignmentError}=await admin.from("client_admin_assignments").select("user_id,admin_id").in("user_id",(data||[]).map(u=>u.id).concat("00000000-0000-0000-0000-000000000000"));
+    if(assignmentError) throw assignmentError;
+    const uniqueAdminIds=[...new Set((assignments||[]).map(a=>a.admin_id))];
+    const {data: names,error: namesError}=await admin.from("users").select("id,email,profile:profiles!profiles_user_id_fkey(full_name)").in("id",uniqueAdminIds.concat("00000000-0000-0000-0000-000000000000"));
+    if(namesError) throw namesError;
+    const adminNames=Object.fromEntries((names||[]).map(a=>[a.id,(Array.isArray(a.profile)?a.profile[0]:a.profile)?.full_name||a.email]));
     // Process data to include profile completeness and job stats
     const processedData = (data || [])
-      .filter((user: any) => {
-        const p = Array.isArray(user.profile) ? user.profile[0] : user.profile;
-        // If the requester is an admin, they should only see users assigned to them
-        if (adminAuth.role === "admin") {
-          return p?.assigned_admin_id === adminAuth.userId;
-        }
-        return true;
-      })
       .map((user: any) => {
       // Safely unwrap nested arrays
       const profile = Array.isArray(user.profile) ? user.profile[0] : user.profile;
@@ -120,6 +101,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         profileComplete,
         claimedBy,
         claimedByName,
+        assignedAdmins: (assignments||[]).filter(a=>a.user_id===user.id).map(a=>({id:a.admin_id,name:adminNames[a.admin_id]||"Admin"})),
         jobCounts,
       };
     });

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { User, Search, ChevronRight, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-import { assignAdminToUser } from "./actions";
+import { assignAdminsToUser } from "./actions";
 
 type UserRow = {
   id: string;
@@ -15,6 +15,7 @@ type UserRow = {
   role: string;
   created_at: string;
   profileComplete: boolean;
+  assignedAdmins: {id:string;name:string}[];
   claimedBy: string | null;
   claimedByName: string | null;
   jobCounts: { pending: number; processing: number; applied: number; failed: number; skipped: number };
@@ -32,9 +33,8 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [total, setTotal] = useState(0);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const url = new URL("/api/admin/users", window.location.origin);
@@ -57,58 +57,35 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
           );
         }
         setUsers(data);
-        setTotal(json.meta?.pagination?.total || 0);
+      } else {
+        toast.error(json.error?.message || "Unable to load client assignments.");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Unable to load client assignments.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchUsers();
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [search]);
+  }, [fetchUsers]);
 
-  const handleAssign = async (userId: string, adminId: string) => {
-    // Optimistic UI update
-    const previousUsers = [...users];
-    
-    // Find the admin's name
-    let adminName = null;
-    if (adminId) {
-      const admin = admins.find(a => a.id === adminId);
-      adminName = admin?.profile?.full_name || admin?.email || null;
-    }
-    
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        return {
-          ...u,
-          claimedBy: adminId || null,
-          claimedByName: adminName
-        };
-      }
-      return u;
-    }));
-
+  const [editing,setEditing]=useState<string|null>(null);
+  const [selected,setSelected]=useState<string[]>([]);
+  const [saving,setSaving]=useState(false);
+  const handleAssign=async(userId:string)=>{
+    setSaving(true);
     try {
-      const res = await assignAdminToUser(userId, adminId || null);
-      if (res.success) {
-        toast.success(adminId ? "Admin assigned successfully!" : "Admin unassigned!");
-        // Refresh silently in background to update any other stats if needed
-        fetchUsers();
-      } else {
-        toast.error(res.error || "Failed to assign admin.");
-        setUsers(previousUsers); // Revert on failure
-      }
-    } catch {
-      toast.error("Something went wrong.");
-      setUsers(previousUsers); // Revert on failure
-    }
+      const result=await assignAdminsToUser(userId,selected);
+      if(result.error) toast.error(result.error);
+      else {toast.success("Team updated. Plan targets are split equally.");setEditing(null);await fetchUsers();}
+    } catch {toast.error("Unable to save assignments.");}
+    finally {setSaving(false);}
   };
 
   return (
@@ -140,7 +117,7 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
             <thead className="bg-white/5 text-text-secondary border-b border-border/60">
               <tr>
                 <th className="px-4 py-3 font-medium">User & Profile</th>
-                <th className="px-4 py-3 font-medium">Assigned Admin</th>
+                <th className="px-4 py-3 font-medium">Assigned Admins</th>
                 <th className="px-4 py-3 font-medium">Queue Stats</th>
                 <th className="px-4 py-3 font-medium">Plan</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
@@ -191,29 +168,10 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {adminRole === "admin" ? (
-                        user.claimedBy ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded bg-white/5 text-text-secondary border border-border/40">
-                            <Shield className="h-3 w-3" />
-                            {user.claimedByName || "Assigned"}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-text-secondary">Unassigned</span>
-                        )
-                      ) : (
-                        <select
-                          className="bg-white/5 border border-border/40 rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:border-primary/50 cursor-pointer"
-                          value={user.claimedBy || ""}
-                          onChange={(e) => handleAssign(user.id, e.target.value)}
-                        >
-                          <option value="" className="bg-background text-text-secondary">Unassigned</option>
-                          {admins.map((admin) => (
-                            <option key={admin.id} value={admin.id} className="bg-background text-foreground">
-                              {admin.profile?.full_name || admin.email}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                      <div className="min-w-56 max-w-80 space-y-2 whitespace-normal">
+                        <div className="flex flex-wrap gap-1">{user.assignedAdmins?.length?user.assignedAdmins.map(a=><span key={a.id} className="inline-flex items-center gap-1 rounded-lg border border-border bg-primary/5 px-2 py-1 text-xs"><Shield className="h-3 w-3"/>{a.name}</span>):<span className="text-xs text-text-secondary">Unassigned</span>}</div>
+                        {adminRole!=="admin"&&(editing===user.id?<div className="space-y-3 rounded-xl border border-border bg-background p-3"><p className="text-xs text-text-secondary">The client&apos;s plan target is split equally between active admins.</p><div className="max-h-48 space-y-2 overflow-auto">{admins.map(a=><label key={a.id} className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={saving} checked={selected.includes(a.id)} onChange={e=>setSelected(e.target.checked?[...selected,a.id]:selected.filter(id=>id!==a.id))}/>{a.profile?.full_name||a.email}</label>)}</div><div className="flex gap-3"><button disabled={saving} onClick={()=>handleAssign(user.id)} className="rounded-lg bg-primary px-3 py-2 text-xs text-white">{saving?'Saving...':'Save team'}</button><button disabled={saving} onClick={()=>setEditing(null)} className="text-xs text-text-secondary">Cancel</button></div></div>:<button disabled={saving} onClick={()=>{setEditing(user.id);setSelected(user.assignedAdmins.map(a=>a.id));}} className="text-xs font-medium text-primary hover:underline">Manage team</button>)}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">

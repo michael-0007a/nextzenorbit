@@ -48,9 +48,9 @@ export async function GET(request: NextRequest): Promise<Response> {
           { count: jobsApplied },
           { count: jobsPending }
         ] = await Promise.all([
-          admin.from("profiles").select("*", { count: "exact", head: true }).eq("assigned_admin_id", adminId),
-          admin.from("job_queue").select("*", { count: "exact", head: true }).eq("claimed_by", adminId).eq("status", "applied"),
-          admin.from("job_queue").select("*", { count: "exact", head: true }).eq("claimed_by", adminId).eq("status", "pending"),
+          admin.from("client_admin_assignments").select("*", { count: "exact", head: true }).eq("admin_id", adminId),
+          admin.from("job_queue").select("*", { count: "exact", head: true }).eq("applied_by", adminId).eq("status", "applied"),
+          admin.from("job_queue").select("*", { count: "exact", head: true }).eq("assigned_to", adminId).eq("status", "pending"),
         ]);
         
         return {

@@ -1,3 +1,4 @@
+import { isAssignedToClient } from "@/lib/admin/assignments";
 /**
  * Admin API: Single User Details
  *
@@ -27,6 +28,7 @@ export async function GET(
     const { id } = await params;
     if (!id) return apiError(ERROR_CODES.VALIDATION_ERROR, "User ID required");
 
+    if (adminAuth.role === "admin" && !await isAssignedToClient(adminAuth.userId,id)) return apiError(ERROR_CODES.FORBIDDEN,"This client is not assigned to you.",403);
     const admin = createAdminClient();
 
     // Fetch user details with full profile

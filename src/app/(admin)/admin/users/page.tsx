@@ -31,7 +31,7 @@ export default async function AdminUsersPage() {
         email,
         profile:profiles!profiles_user_id_fkey(full_name)
       `)
-      .eq("role", "admin");
+      .eq("role", "admin").eq("is_suspended",false);
       
     if (data) {
       admins = data as AdminUser[];

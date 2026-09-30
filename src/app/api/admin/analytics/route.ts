@@ -1,3 +1,4 @@
+import { assignedClientIds } from "@/lib/admin/assignments";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const { searchParams } = new URL(request.url);
     const adminId = searchParams.get("id");
 
-    if (!adminId) {
+    if (!adminId || !/^[0-9a-f-]{36}$/i.test(adminId)) {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "Admin ID is required.");
     }
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         full_name,
         users!profiles_user_id_fkey(email)
       `)
-      .eq("assigned_admin_id", adminId);
+      .in("user_id", (await assignedClientIds(adminId)).concat("00000000-0000-0000-0000-000000000000"));
 
     if (clientsError) throw clientsError;
 
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const { data: jobData, error: jobError } = await admin
       .from("job_queue")
       .select("id, title, company, status, applied_at, created_at, user_id, job_url")
-      .eq("claimed_by", adminId)
+      .or(`applied_by.eq.${adminId},and(status.neq.applied,assigned_to.eq.${adminId})`)
       .order("created_at", { ascending: false });
 
     if (jobError) throw jobError;
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       const dateString = job.applied_at || job.created_at;
       if (dateString) {
         const date = new Date(dateString);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthKey = new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit"}).format(date);
         if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { applied: 0, failed: 0, pending: 0 };
         
         if (job.status === "applied") monthlyStats[monthKey].applied++;

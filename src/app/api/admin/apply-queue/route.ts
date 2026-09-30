@@ -1,3 +1,5 @@
+import { assignedClientIds, isAssignedToClient } from "@/lib/admin/assignments";
+import { z } from "zod";
 /**
  * Admin API: Apply Queue
  *
@@ -10,9 +12,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
-import type { Database } from "@/types/database";
-
-type JobQueueUpdate = Database["public"]["Tables"]["job_queue"]["Update"];
 
 // Required profile fields — matches the dashboard gate
 const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
@@ -39,8 +38,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const admin = createAdminClient();
 
-    // Fetch all users with their profiles and their job queue items
-    const { data: usersData, error } = await admin
+    const clientIds = adminAuth.role === "admin" ? await assignedClientIds(adminAuth.userId) : null;
+    // Fetch only accessible clients before loading their private details.
+    let usersQuery = admin
       .from("users")
       .select(`
         id, email, role,
@@ -53,7 +53,10 @@ export async function GET(request: NextRequest): Promise<Response> {
           generated_resume:admin_resumes(id, title)
         )
       `)
-      .eq("role", "user");
+      .in("role", ["user", "sso_user"])
+      .eq("is_suspended",false);
+    if(clientIds) usersQuery=usersQuery.in("id",clientIds.concat("00000000-0000-0000-0000-000000000000"));
+    const {data:usersData,error}=await usersQuery;
 
     if (error) {
       console.error("Admin Apply Queue GET Error:", error);
@@ -61,18 +64,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     const users = (usersData || [])
-      .map((user: any) => {
+      .map((user) => {
         // Safely unwrap nested arrays
         const rawProfile = user.profile;
         const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
         
-        let jobQueue = user.job_queue || [];
-        if (statusFilter) {
-          jobQueue = jobQueue.filter((j: any) => j.status === statusFilter);
-        }
+        const rawQueue = (user.job_queue || []).filter(job=>!statusFilter||job.status===statusFilter);
         
         // Fix resume unwrapping from array if it is an array
-        jobQueue = jobQueue.map((job: any) => ({
+        const jobQueue = rawQueue.map((job) => ({
           ...job,
           resume: (Array.isArray(job.resume) ? job.resume[0] : job.resume) || (Array.isArray(job.generated_resume) ? job.generated_resume[0] : job.generated_resume)
         }));
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         for (const job of jobQueue) {
           const st = job.status as string;
           if (st in jobCounts) {
-            (jobCounts as any)[st]++;
+            jobCounts[st as keyof typeof jobCounts]++;
           }
         }
         
@@ -92,18 +92,12 @@ export async function GET(request: NextRequest): Promise<Response> {
           avatar_url: profile?.avatar_url || null,
           preferred_role: profile?.preferred_role || null,
           profile_complete: checkProfileComplete(profile),
-          claimed_by: profile?.assigned_admin_id || null, // Authoritative claimed by
+          is_assigned: clientIds ? clientIds.includes(user.id) : false,
+          claimed_by: profile?.assigned_admin_id || null, // Legacy display only
           claimed_at: null, // no longer tracked at user level
-          jobs: jobQueue.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+          jobs: jobQueue.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
           job_counts: jobCounts
         };
-      })
-      .filter(u => {
-        // If the requester is an admin, they should ONLY see users assigned to them
-        if (adminAuth.role === "admin") {
-          return u.claimed_by === adminAuth.userId;
-        }
-        return true; // Super admins and supervisor admins see everyone
       })
       .sort((a, b) => b.job_counts.pending - a.job_counts.pending);
 
@@ -119,53 +113,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
 
-    const body = await request.json();
-    const { action, id, user_id, status, notes } = body;
-
-    const admin = createAdminClient();
-
-
-
-    // ── Per-job updates (existing behavior) ──
-    if (!id) {
-      return apiError(ERROR_CODES.VALIDATION_ERROR, "Job ID is required for per-job updates.");
-    }
-
-    const updates: JobQueueUpdate = {};
-
-    if (action === "claim") {
-      updates.assigned_to = adminAuth.userId;
-      updates.assigned_at = new Date().toISOString();
-    } else if (action === "unclaim") {
-      updates.assigned_to = null;
-      updates.assigned_at = null;
-    }
-
-    if (status) {
-      updates.status = status;
-      if (status === "applied") {
-        updates.applied_at = new Date().toISOString();
-      }
-    }
-
-    if (notes !== undefined) {
-      updates.admin_notes = notes;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return apiError(ERROR_CODES.VALIDATION_ERROR, "No updates provided.");
-    }
-
-    const { data, error } = await admin
-      .from("job_queue")
-      .update(updates)
-      .eq("id", id)
-      .select("*")
-      .single();
+    const parsed=z.object({id:z.string().uuid(),status:z.enum(["pending","processing","applied","failed","skipped"]).optional(),action:z.enum(["claim","unclaim"]).optional(),notes:z.string().max(10000).optional()}).refine(v=>v.status||v.action||v.notes!==undefined).safeParse(await request.json());
+    if(!parsed.success) return apiError(ERROR_CODES.VALIDATION_ERROR,"Choose a valid job and update.",400);
+    const {id,status,action,notes}=parsed.data;
+    const {data,error}=await createAdminClient().rpc("update_team_queue_job",{p_actor_id:adminAuth.userId,p_id:id,p_status:status||null,p_action:action||null,p_notes:notes??null});
 
     if (error) {
       console.error("Admin Apply Queue PATCH Error:", error);
-      return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to update job.");
+      return apiError(ERROR_CODES.FORBIDDEN, "Unable to update this job. Check client assignment and job ownership; completed applications cannot be reopened.",409);
     }
 
     return NextResponse.json(apiSuccess(data));
@@ -187,6 +142,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "user_id, title, company, and job_url are required.");
     }
 
+    if(adminAuth.role==="admin"&&!await isAssignedToClient(adminAuth.userId,user_id)) return apiError(ERROR_CODES.FORBIDDEN,"This client is not assigned to you.",403);
     const admin = createAdminClient();
 
     const { data, error } = await admin
@@ -197,8 +153,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         company,
         job_url,
         description: description || null,
-        source: "manual" as any,
-        status: "pending" as any,
+        source: "manual",
+        status: "pending",
         assigned_to: adminAuth.userId,
         assigned_at: new Date().toISOString(),
         admin_notes: admin_notes || null,

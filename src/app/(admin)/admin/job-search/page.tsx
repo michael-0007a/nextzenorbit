@@ -1,3 +1,4 @@
+import { assignedClientIds } from "@/lib/admin/assignments";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
@@ -12,7 +13,7 @@ export default async function AdminJobSearchPage({ searchParams }: { searchParam
   if (isAuthError(auth)) redirect("/admin/login");
   const admin = createAdminClient();
   let query = admin.from("users").select("id,email,profile:profiles!profiles_user_id_fkey!inner(full_name,preferred_role,preferred_location,assigned_admin_id,preferred_work_type,application_details)").in("role", ["user", "sso_user"]).eq("is_suspended", false).order("email");
-  if (auth.role === "admin") query = query.eq("profile.assigned_admin_id", auth.userId);
+  if (auth.role === "admin") query = query.in("id", (await assignedClientIds(auth.userId)).concat("00000000-0000-0000-0000-000000000000"));
   const { data, error } = await query;
   if (error) return <p role="alert">Unable to load clients. Please refresh to retry.</p>;
   const clients = (data || []).map(client => ({ ...client, profile: Array.isArray(client.profile) ? client.profile[0] : client.profile }));

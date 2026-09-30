@@ -1,4 +1,5 @@
 "use client";
+import { ApplicationTargets } from "@/components/admin/application-targets";
 
 import { useState, useEffect, use } from "react";
 import { ChevronLeft, Calendar } from "lucide-react";
@@ -96,6 +97,7 @@ export default function AdminDetailedAnalyticsPage({ params }: { params: Promise
 
   return (
     <div className="space-y-6 pb-20">
+      <ApplicationTargets adminId={data.admin.id}/>
       <div>
         <Link
           href="/admin/analytics"

@@ -1,3 +1,4 @@
+import { isAssignedToClient } from "@/lib/admin/assignments";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasServiceAccess } from "@/lib/service-access";
@@ -16,8 +17,7 @@ export async function queueSearchJobs(request: Request, actor: { userId: string;
   if (!userId) return Response.json({error:{message:"Choose a client."}},{status:400});
   const admin = createAdminClient();
   if (adminMode && actor.role === "admin") {
-    const {data,error} = await admin.from("profiles").select("assigned_admin_id").eq("user_id",userId).maybeSingle();
-    if (error || data?.assigned_admin_id !== actor.userId) return Response.json({error:{message:"This client is not assigned to you."}},{status:403});
+    if (!await isAssignedToClient(actor.userId,userId)) return Response.json({error:{message:"This client is not assigned to you."}},{status:403});
   }
   const limited = await rateLimit("search-queue",actor.userId,30,60);
   if (limited) return limited;

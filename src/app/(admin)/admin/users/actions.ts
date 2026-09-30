@@ -1,44 +1,18 @@
 "use server";
-
+import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { revalidatePath } from "next/cache";
 
-export async function assignAdminToUser(userId: string, adminId: string | null) {
-  try {
-    const adminAuth = await requireAdmin();
-    if (isAuthError(adminAuth)) return { error: "Unauthorized" };
-
-    if (adminAuth.role === "admin") {
-      return { error: "You do not have permission to allocate users." };
-    }
-
-    const admin = createAdminClient();
-
-    const { error: profileError } = await admin
-      .from("profiles")
-      .update({ assigned_admin_id: adminId || null })
-      .eq("user_id", userId);
-
-    if (profileError) {
-      console.error("Assign admin error:", profileError);
-      return { error: "Failed to assign admin." };
-    }
-
-    await admin
-      .from("job_queue")
-      .update({
-        assigned_to: adminId || null,
-        claimed_by: adminId || null,
-      })
-      .eq("user_id", userId);
-
-    revalidatePath("/admin/users");
-    revalidatePath("/admin/apply-queue");
-    
-    return { success: true };
-  } catch (error) {
-    console.error("Assign Admin Action Error:", error);
-    return { error: "Something went wrong." };
-  }
+export async function assignAdminsToUser(userId: string, adminIds: string[]) {
+  const auth = await requireAdmin();
+  if (isAuthError(auth) || auth.role === "admin") return { error: "Supervisor access required." };
+  const parsed = z.object({userId:z.string().uuid(),adminIds:z.array(z.string().uuid()).max(50)}).safeParse({userId,adminIds});
+  if (!parsed.success) return {error:"Choose valid admins and a client."};
+  const { error } = await createAdminClient().rpc("assign_client_admins", {p_actor_id:auth.userId,p_user_id:userId,p_admin_ids:[...new Set(adminIds)]});
+  if (error) return {error:"Unable to save assignments. Check that all selected admins are active and retry."};
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/apply-queue");
+  revalidatePath("/admin/analytics");
+  return {success:true};
 }
