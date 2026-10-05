@@ -9,23 +9,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+import { pagination } from "@/lib/pagination";
+import { createTimings } from "@/lib/performance";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export async function GET(request: NextRequest): Promise<Response> {
+  const timings = createTimings();
   try {
-    const adminAuth = await requireAdmin();
+    const adminAuth = await timings.measure("auth", () => requireAdmin());
     if (isAuthError(adminAuth)) return adminAuth;
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
-    const offset = (page - 1) * limit;
+    const { page, limit, offset } = pagination(searchParams);
 
     const admin = createAdminClient();
+    const optimized = await timings.measure("database", () => admin.rpc("performance_admin_users", {
+      p_actor_id: adminAuth.userId, p_page: page, p_limit: limit, p_search: search.slice(0, 200),
+    }));
+    if (!optimized.error) {
+      const result = optimized.data as { users: unknown[]; pagination: import("@/types/api").PaginationMeta };
+      return NextResponse.json(apiSuccess(result.users, { pagination: result.pagination }), { headers: { ...timings.headers(), "Cache-Control": "private, no-store" } });
+    }
+    // Rolling deployments remain functional until migration 040 is applied.
+    if (!["PGRST202", "42883"].includes(optimized.error.code)) throw optimized.error;
 
     let query = admin
       .from("users")

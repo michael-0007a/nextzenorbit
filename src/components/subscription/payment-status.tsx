@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { clearClientQueries } from '@/lib/client-query-cache';
 export function PaymentStatus() {
   const router = useRouter();
   const [reference, setReference] = useState("");
@@ -14,6 +15,8 @@ export function PaymentStatus() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error?.message || "Could not confirm payment.");
       setMessage(result.active ? "Payment confirmed. Your services are unlocked." : "No completed payment confirmed yet. If you were charged, check again shortly before paying again.");
+      clearClientQueries();
+      window.dispatchEvent(new Event('orbit:subscription-changed'));
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not confirm payment."); }
     finally { setBusy(false); }

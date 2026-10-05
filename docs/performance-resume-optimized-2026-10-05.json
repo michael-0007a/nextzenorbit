@@ -1,0 +1,31 @@
+{
+  "measuredAt": "2026-10-05T14:03:31.571Z",
+  "environment": "Local Node.js; not a phone typing/paint measurement",
+  "samplesPerFixture": 60,
+  "results": [
+    {
+      "roles": 2,
+      "pages": 1,
+      "contentBytes": 3073,
+      "serializationP95Ms": 0.02,
+      "layoutP50Ms": 1.08,
+      "layoutP95Ms": 2.13
+    },
+    {
+      "roles": 10,
+      "pages": 4,
+      "contentBytes": 14201,
+      "serializationP95Ms": 0.05,
+      "layoutP50Ms": 5.77,
+      "layoutP95Ms": 7.17
+    },
+    {
+      "roles": 25,
+      "pages": 9,
+      "contentBytes": 35081,
+      "serializationP95Ms": 0.09,
+      "layoutP50Ms": 14.08,
+      "layoutP95Ms": 17.86
+    }
+  ]
+}

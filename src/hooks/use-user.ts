@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { setClientQueryAccount,clearClientQueries } from '@/lib/client-query-cache';
 import type { User } from "@supabase/supabase-js";
 
 interface UseUserReturn {
@@ -29,6 +30,7 @@ export function useUser(): UseUserReturn {
     let authChanged = false;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active || authChanged) return;
+      setClientQueryAccount(session?.user.id??null);
       setUser(session?.user ?? null);
       setLoading(false);
     }).catch(() => {
@@ -41,6 +43,7 @@ export function useUser(): UseUserReturn {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
       authChanged = true;
+      setClientQueryAccount(session?.user.id??null);
       setUser(session?.user ?? null);
       setLoading(false);
     });
@@ -52,6 +55,8 @@ export function useUser(): UseUserReturn {
     const supabase = createClient();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    clearClientQueries();
+    setClientQueryAccount(null);
     setUser(null);
   }, []);
 

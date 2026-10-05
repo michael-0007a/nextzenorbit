@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { ResumeContent } from "@/lib/validations/resume";
 import { getTemplate } from "@/lib/resume/templates";
 import { layoutResume, PAPER } from "@/lib/resume/layout";
 
-export function ResumePreview({ content, templateId = "classic", className, scale = 0.55, showDetails = true }: {
+export const ResumePreview = memo(function ResumePreview({ content, templateId = "classic", className, scale = 0.55, showDetails = true }: {
   content: ResumeContent; templateId?: string; className?: string; scale?: number; showDetails?: boolean;
 }) {
   const template = getTemplate(templateId);
@@ -35,4 +35,4 @@ export function ResumePreview({ content, templateId = "classic", className, scal
       <p className="mt-1 text-center text-xs text-text-secondary">Page {pageIndex + 1} of {layout.pages.length}</p>
     </div>)}
   </div>;
-}
+});

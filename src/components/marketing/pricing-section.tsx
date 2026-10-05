@@ -1,9 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { PLANS } from "@/lib/subscription";
-import { formatPrice } from "@/hooks/use-currency";
+import { formatPrice } from "@/lib/currency";
 
 export function PricingSection() {
   const currency = "INR";

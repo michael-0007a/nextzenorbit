@@ -9,8 +9,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+import { createTimings } from "@/lib/performance";
 
 export async function GET(request: NextRequest): Promise<Response> {
+  const timings = createTimings();
   try {
     const auth = await requireAdmin();
     if (isAuthError(auth)) return auth;
@@ -21,6 +23,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     const admin = createAdminClient();
+    const optimized = await timings.measure("database", () => admin.rpc("performance_admin_stats", { p_actor_id: auth.userId }));
+    if (!optimized.error) return NextResponse.json(apiSuccess(optimized.data), { headers: { ...timings.headers(), "Cache-Control": "private, no-store" } });
+    if (!["PGRST202", "42883"].includes(optimized.error.code)) throw optimized.error;
 
     // Run aggregate queries in parallel
     const [

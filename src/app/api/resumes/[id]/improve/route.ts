@@ -1,3 +1,4 @@
+import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
 import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { parseExportContent } from "@/lib/resume/export-content";
@@ -22,13 +23,15 @@ import type { ResumeRow } from "@/types/database";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY,timeout:45000,maxRetries:0,
 });
 
+export const maxDuration=60;
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
+  const timings=createTimings(),signal=AbortSignal.timeout(45000);
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -95,7 +98,7 @@ export async function POST(
     const resumeString = JSON.stringify(typedResume.content, null, 2);
 
     // Call AI for improvement
-    const completion = await groq.chat.completions.create({
+    const completion = await timings.measure('model',()=>groq.chat.completions.create({
       ...GROQ_TEXT_OPTIONS,
       model: RESUME_IMPROVER_PROMPT_V1.model,
       messages: [
@@ -105,7 +108,7 @@ export async function POST(
       temperature: 0.6,
       max_tokens: 24000,
       response_format: { type: "json_object" },
-    });
+    },{signal}));
 
     const responseText = completion.choices[0]?.message?.content;
 
@@ -144,7 +147,7 @@ export async function POST(
 
     const validatedContent = parseExportContent(improvedContent);
     if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
-    const fitted = await fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id);
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal}));
     improvedContent = fitted.content;
 
     // Update resume with improved content
@@ -185,7 +188,7 @@ export async function POST(
         versionCreated: backupVersionNumber + 1,
         tokensUsed: (completion.usage?.total_tokens || 0) + fitted.tokensUsed,
       },
-    });
+    },{headers:{...timings.headers(),"Cache-Control":"private, no-store"}});
   } catch (err) {
     console.error("Resume improve error:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Improvement failed.", 500);

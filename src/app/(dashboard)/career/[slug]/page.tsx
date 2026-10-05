@@ -1,3 +1,5 @@
+import { Suspense,type ReactNode } from 'react';
+import { PageLoading } from '@/components/layout/page-loading';
 import { notFound } from "next/navigation";
 import { CareerHero } from "@/components/career";
 import { RoadmapSection } from "@/components/career";
@@ -7,7 +9,7 @@ import { RelatedJobsSection } from "@/components/career";
 import { AiNotesPanel } from "@/components/career";
 import { ProjectsSection } from "@/components/career";
 import { careerQueryBySlug } from "@/features/career/metadata";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/server";
 import { getCareerBySlug } from "@/services/careers-service";
 import { listRoadmaps, getRoadmapWithSteps } from "@/services/roadmaps-service";
 import { listInterviewQuestions } from "@/services/interview-service";
@@ -15,7 +17,7 @@ import { listYoutubeResources } from "@/services/youtube-service";
 import { listJobs } from "@/services/jobs-service";
 import { listProjects } from "@/services/projects-service";
 
-export const dynamic = "force-dynamic";
+
 
 interface CareerDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -31,56 +33,24 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
 
   const career = careerResult.data;
 
-  const [roadmapList, interviewQuestions, resources, jobs, auth] = await Promise.all([
-    listRoadmaps({ careerId: career.id }),
-    listInterviewQuestions({ careerId: career.id, role: career.title, limit: 80 }),
-    listYoutubeResources({ careerId: career.id, role: career.title, limit: 12 }),
-    listJobs({
-      query: careerQueryBySlug[slug] ?? career.title,
-      limit: 6,
-    }),
-    (async () => {
-      const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user ? { userId: user.id } : null;
-    })(),
-  ]);
-
-  const roadmap = roadmapList.ok && roadmapList.data[0]
-    ? await getRoadmapWithSteps(roadmapList.data[0].id)
-    : null;
-
-  const roadmapData = roadmap && roadmap.ok ? roadmap.data : null;
-
-  const projectData = auth ? await listProjects(auth.userId) : null;
+  const roadmapPromise=listRoadmaps({careerId:career.id}).then(async result=>result.ok&&result.data[0]?getRoadmapWithSteps(result.data[0].id):null).then(result=>result?.ok?result.data:null);
+  const interviewPromise=listInterviewQuestions({careerId:career.id,role:career.title,limit:80});
+  const resourcesPromise=listYoutubeResources({careerId:career.id,role:career.title,limit:12});
+  const jobsPromise=listJobs({query:careerQueryBySlug[slug]??career.title,limit:6});
+  const projectsPromise=getCachedUser().then(async({user})=>({authenticated:!!user,result:user?await listProjects(user.id):null}));
+  const stats=Promise.all([roadmapPromise,interviewPromise,resourcesPromise]).then(([r,i,v])=><>{[[r?.steps.length??0,'roadmap steps'],[i.ok?i.data.length:0,'interview questions'],[v.ok?v.data.length:0,'learning resources']].map(([count,label])=><div key={label} className="rounded-full border border-border/60 bg-white/5 px-4 py-2">{count} {label}</div>)}</>);
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-10 px-6 py-10">
-      <CareerHero
-        career={career}
-        stats={{
-          steps: roadmapData?.steps.length ?? 0,
-          questions: interviewQuestions.ok ? interviewQuestions.data.length : 0,
-          resources: resources.ok ? resources.data.length : 0,
-        }}
-      />
-
-      <RoadmapSection roadmap={roadmapData} />
-
-      <InterviewSection questions={interviewQuestions.ok ? interviewQuestions.data : []} />
-
-      <ResourcesSection resources={resources.ok ? resources.data : []} />
-
-      <AiNotesPanel roleLabel={career.title} />
-
-      <RelatedJobsSection jobs={jobs.ok ? jobs.data : []} />
-
-      <ProjectsSection
-        projects={projectData && projectData.ok ? projectData.data : []}
-        isAuthenticated={!!auth}
-      />
+      <CareerHero career={career} statsContent={<Suspense fallback={<span role="status">Loading track details…</span>}><Resolved content={stats}/></Suspense>}/>
+      <Suspense fallback={<PageLoading/>}><Resolved content={roadmapPromise.then(roadmap=><RoadmapSection roadmap={roadmap}/>)}/></Suspense>
+      <Suspense fallback={<PageLoading/>}><Resolved content={interviewPromise.then(result=><InterviewSection questions={result.ok?result.data:[]}/>)}/></Suspense>
+      <Suspense fallback={<PageLoading/>}><Resolved content={resourcesPromise.then(result=><ResourcesSection resources={result.ok?result.data:[]}/>)}/></Suspense>
+      <AiNotesPanel roleLabel={career.title}/>
+      <Suspense fallback={<PageLoading/>}><Resolved content={jobsPromise.then(result=><RelatedJobsSection jobs={result.ok?result.data:[]}/>)}/></Suspense>
+      <Suspense fallback={<PageLoading/>}><Resolved content={projectsPromise.then(({authenticated,result})=><ProjectsSection projects={result?.ok?result.data:[]} isAuthenticated={authenticated}/>)}/></Suspense>
     </div>
   );
 }
+
+async function Resolved({content}:{content:Promise<ReactNode>}){return await content;}

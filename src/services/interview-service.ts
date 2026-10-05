@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createReferenceClient } from "@/lib/supabase/reference";
 import type { Result } from "@/types/api";
 import type { InterviewQuestionRow } from "@/types/database";
 
@@ -14,7 +14,7 @@ export type InterviewFilters = {
 export async function listInterviewQuestions(
   filters: InterviewFilters
 ): Promise<Result<InterviewQuestionRow[]>> {
-  const supabase = await createClient();
+  const supabase = await createReferenceClient();
   const limit = Math.max(1, Math.min(filters.limit ?? 50, 200));
 
   let query = supabase

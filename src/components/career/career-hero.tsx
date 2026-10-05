@@ -8,6 +8,7 @@ import { getCareerIcon } from "@/features/career/icons";
 
 export interface CareerHeroProps {
   career: Career;
+  statsContent?:React.ReactNode;
   stats?: {
     steps: number;
     questions: number;
@@ -15,7 +16,7 @@ export interface CareerHeroProps {
   };
 }
 
-export function CareerHero({ career, stats }: CareerHeroProps) {
+export function CareerHero({ career, stats,statsContent }: CareerHeroProps) {
   const Icon = getCareerIcon(career.icon ?? undefined);
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -45,6 +46,7 @@ export function CareerHero({ career, stats }: CareerHeroProps) {
         </div>
 
         <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
+          {statsContent??<>
           <div className="rounded-full border border-border/60 bg-white/5 px-4 py-2">
             {stats?.steps ?? 0} roadmap steps
           </div>
@@ -54,6 +56,7 @@ export function CareerHero({ career, stats }: CareerHeroProps) {
           <div className="rounded-full border border-border/60 bg-white/5 px-4 py-2">
             {stats?.resources ?? 0} learning resources
           </div>
+          </>}
         </div>
 
         <div className="flex flex-wrap gap-3">

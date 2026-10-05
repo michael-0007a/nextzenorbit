@@ -88,18 +88,26 @@ export function resumeBlocks(content: ResumeContent): ResumeBlock[] {
 
 function wrapText(text: string, font: string, size: number, width: number): string[] {
   const metrics = fontWidths[font as keyof typeof fontWidths] as Record<string, number>;
-  const measure = (value: string) => Array.from(value).reduce((sum, c) => sum + (metrics[c] ?? 1000), 0) * size / 1000;
+  // Keep integer font units, matching the old measurement exactly. Avoid
+  // rescanning the growing line for every character of every candidate layout.
+  const units = (characters: string[]) => characters.reduce((sum, c) => sum + (metrics[c] ?? 1000), 0);
+  const space = metrics[' '] ?? 1000;
   const lines: string[] = [];
   for (const paragraph of text.split(/\r?\n/)) {
     let line = "";
+    let lineUnits = 0;
     for (const word of paragraph.trim().split(/\s+/).filter(Boolean)) {
-      if (line && measure(`${line} ${word}`) > width) { lines.push(line); line = ""; }
+      const characters = Array.from(word);
+      if (line && (lineUnits + space + units(characters)) * size / 1000 > width) { lines.push(line); line = ""; lineUnits = 0; }
       // Long URLs/identifiers must wrap without clipping or dropping characters.
-      for (const character of Array.from(word)) {
-        if (measure(line + character) > width) { lines.push(line); line = ""; }
+      for (const character of characters) {
+        const characterUnits = metrics[character] ?? 1000;
+        if ((lineUnits + characterUnits) * size / 1000 > width) { lines.push(line); line = ""; lineUnits = 0; }
         line += character;
+        lineUnits += characterUnits;
       }
       line += " ";
+      lineUnits += space;
     }
     if (line.trim()) lines.push(line.trimEnd());
   }
@@ -193,11 +201,14 @@ export function unsupportedPdfCharacters(content: ResumeContent, template: Resum
 export function layoutResume(content: ResumeContent, template: ResumeTemplate): ResumeLayout {
   const blocks = resumeBlocks(content);
   const capacity = PAPER.height - template.layout.margins.top - template.layout.margins.bottom;
-  const candidates = [10.5, 11, 11.5, 12].flatMap(size => [1.15, 1.2, 1.3, 1.4].flatMap(leading => [0.6, 1].map(spacing => {
-    const pages = paginate(makeLines(blocks, template, size, leading, spacing), capacity, content.layout?.target_pages ?? undefined);
+  const candidates = [10.5, 11, 11.5, 12].flatMap(size => {
+   const wrapped = makeLines(blocks, template, size, 1);
+   return [1.15, 1.2, 1.3, 1.4].flatMap(leading => [0.6, 1].map(spacing => {
+    const lines = wrapped.map(line => ({ ...line, height: line.size * leading, before: line.before * spacing }));
+    const pages = paginate(lines, capacity, content.layout?.target_pages ?? undefined);
     const fill = pages.reduce((sum, page) => sum + page.reduce((h, line) => h + line.height + line.before, 0), 0) / (pages.length * capacity);
     return { pages, fontSize: size, lineHeight: leading, fill };
-  })));
+  }));});
   const minPages = Math.min(...candidates.map(c => c.pages.length));
   // Aim for well-filled pages without stretching short resumes into filler.
   const requested = content.layout?.target_pages;

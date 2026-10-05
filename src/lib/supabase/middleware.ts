@@ -10,6 +10,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
+  // Discard inbound authorization summaries. Only our middleware may create one.
+  requestHeaders.delete("x-orbit-access");
   requestHeaders.set("x-next-pathname", request.nextUrl.pathname);
 
   let supabaseResponse = NextResponse.next({

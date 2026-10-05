@@ -2,19 +2,17 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const themes = ["light", "dark"] as const;
-const themeIcons = { light: Sun, dark: Moon };
 const themeLabels = { light: "Light mode", dark: "Dark mode" };
 
 export interface ThemeToggleProps { className?: string; }
 
 /**
- * Theme toggle button cycling through light → dark → system.
- * Animated icon swap with Framer Motion.
+ * Theme toggle button cycling through light and dark.
+ * CSS transitions keep this shared control independent of an animation runtime.
  *
  * @example
  * <ThemeToggle />
@@ -55,7 +53,6 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     : "light";
   const currentIndex = themes.indexOf(currentTheme);
   const nextTheme = themes[(currentIndex + 1) % themes.length];
-  const Icon = themeIcons[currentTheme];
 
   return (
     <button
@@ -64,17 +61,10 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       aria-label={`Current: ${themeLabels[currentTheme]}. Switch to ${themeLabels[nextTheme]}`}
       title={themeLabels[currentTheme]}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={currentTheme}
-          initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
-          animate={{ opacity: 1, rotate: 0, scale: 1 }}
-          exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
-          transition={{ duration: 0.15 }}
-        >
-          <Icon className="h-4 w-4" />
-        </motion.span>
-      </AnimatePresence>
+      <span className="relative block h-4 w-4" aria-hidden="true">
+        <Sun className={cn("absolute inset-0 h-4 w-4 transition-all duration-150 motion-reduce:transition-none", currentTheme === "light" ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-50 opacity-0")} />
+        <Moon className={cn("absolute inset-0 h-4 w-4 transition-all duration-150 motion-reduce:transition-none", currentTheme === "dark" ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-50 opacity-0")} />
+      </span>
     </button>
   );
 }

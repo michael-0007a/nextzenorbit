@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { CareerExplorer } from "@/components/career";
 import { listCareers } from "@/services/careers-service";
 
-export const dynamic = "force-dynamic";
+
 
 interface CareerListingPageProps {
   searchParams?: Promise<{ q?: string }>;

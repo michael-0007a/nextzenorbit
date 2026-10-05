@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createReferenceClient } from "@/lib/supabase/reference";
 import type { Result } from "@/types/api";
 import type { YoutubeResourceRow } from "@/types/database";
 
@@ -13,7 +13,7 @@ export type YoutubeResourceFilters = {
 export async function listYoutubeResources(
   filters: YoutubeResourceFilters
 ): Promise<Result<YoutubeResourceRow[]>> {
-  const supabase = await createClient();
+  const supabase = await createReferenceClient();
   const limit = Math.max(1, Math.min(filters.limit ?? 24, 100));
 
   let query = supabase

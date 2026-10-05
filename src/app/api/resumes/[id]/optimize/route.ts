@@ -1,3 +1,4 @@
+import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
 import { parseExportContent } from "@/lib/resume/export-content";
 import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
@@ -30,7 +31,7 @@ import type { ResumeRow } from "@/types/database";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY,timeout:45000,maxRetries:0,
 });
 
 const optimizeRequestSchema = z.object({
@@ -40,10 +41,12 @@ const optimizeRequestSchema = z.object({
   userAcknowledged: z.boolean().optional(), // Required for aggressive mode
 });
 
+export const maxDuration=60;
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
+  const timings=createTimings(),signal=AbortSignal.timeout(45000);
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -139,7 +142,7 @@ export async function POST(
       embellishmentLevel as EmbellishmentLevel
     );
 
-    const completion = await groq.chat.completions.create({
+    const completion = await timings.measure('model',()=>groq.chat.completions.create({
       ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
@@ -149,7 +152,7 @@ export async function POST(
       temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
       max_tokens: 24000,
       response_format: { type: "json_object" },
-    });
+    },{signal}));
 
     const responseText = completion.choices[0]?.message?.content;
 
@@ -215,7 +218,7 @@ export async function POST(
 
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
-    const fitted = await fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id);
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal}));
     result.resumeContent = fitted.content;
 
     // Update resume with optimized content
@@ -267,7 +270,7 @@ export async function POST(
         embellishmentLevel,
         tokensUsed: (completion.usage?.total_tokens || 0) + fitted.tokensUsed,
       },
-    });
+    },{headers:{...timings.headers(),"Cache-Control":"private, no-store"}});
   } catch (err) {
     console.error("Resume optimize error:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Optimization failed.", 500);

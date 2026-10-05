@@ -32,6 +32,7 @@ import type { ApplicationRow, ApplicationStatus } from "@/types/database";
 
 interface ApplicationsKanbanProps {
   initialApplications: ApplicationRow[];
+  onChange?:()=>void;
 }
 
 interface Column {
@@ -50,7 +51,7 @@ const columns: Column[] = [
   { id: "rejected", title: "Rejected", icon: XCircle, color: "text-error", bgColor: "bg-error/10" },
 ];
 
-export function ApplicationsKanban({ initialApplications }: ApplicationsKanbanProps) {
+export function ApplicationsKanban({ initialApplications,onChange }: ApplicationsKanbanProps) {
   const [applications, setApplications] = useState<ApplicationRow[]>(initialApplications);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -90,6 +91,7 @@ export function ApplicationsKanban({ initialApplications }: ApplicationsKanbanPr
 
       if (!res.ok) throw new Error("Update failed");
       toast.success(`Moved to ${targetStatus}`);
+      onChange?.();
     } catch {
       // Revert on error
       setApplications((prev) =>
@@ -110,6 +112,7 @@ export function ApplicationsKanban({ initialApplications }: ApplicationsKanbanPr
       const res = await fetch(`/api/applications/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       toast.success("Application deleted");
+      onChange?.();
     } catch {
       // Refetch on error
       toast.error("Failed to delete");
@@ -129,6 +132,7 @@ export function ApplicationsKanban({ initialApplications }: ApplicationsKanbanPr
         setApplications((prev) => [result.data, ...prev]);
         setShowAddModal(false);
         toast.success("Application added!");
+      onChange?.();
       }
     } catch {
       toast.error("Failed to add application");
@@ -150,6 +154,7 @@ export function ApplicationsKanban({ initialApplications }: ApplicationsKanbanPr
         );
         setEditingApp(null);
         toast.success("Application updated!");
+      onChange?.();
       }
     } catch {
       toast.error("Failed to update application");

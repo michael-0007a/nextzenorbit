@@ -1,3 +1,5 @@
+import { cachedExport } from '@/lib/resume/export-cache';
+import { createTimings } from '@/lib/performance';
 import { unsupportedPdfCharacters } from "@/lib/resume/layout";
 /**
  * Admin Resume Export API — PDF Generation
@@ -11,9 +13,6 @@ import { unsupportedPdfCharacters } from "@/lib/resume/layout";
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { ResumePDF } from "@/lib/resume/pdf-document";
-import { generateWordDocument } from "@/lib/resume/word-document";
 import { generateLatex } from "@/lib/resume/latex-templates";
 import { getTemplate } from "@/lib/resume/templates";
 import { parseExportContent } from "@/lib/resume/export-content";
@@ -21,6 +20,7 @@ import { apiError, ERROR_CODES } from "@/types/api";
 import type { AdminResumeRow } from "@/types/database";
 
 export async function GET(request: NextRequest): Promise<Response> {
+  const timings=createTimings();
   try {
     const supabase = await createClient();
     const {
@@ -85,26 +85,24 @@ export async function GET(request: NextRequest): Promise<Response> {
     // PDF generation
     const template = getTemplate(searchParams.get("template") || typedResume.template_id || "classic");
     if (format === "docx") {
-      const buffer = await generateWordDocument(content, { template });
-      return new Response(new Uint8Array(buffer), { headers: {
+      const buffer = await timings.measure('render',()=>cachedExport(user.id,'docx',{content,template},async()=>{const {generateWordDocument}=await import('@/lib/resume/word-document');return generateWordDocument(content,{template});}));
+      return new Response(new Uint8Array(buffer), { headers: { ...timings.headers(), 'Cache-Control':'private, no-store',
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${filename}.docx"`,
       } });
     }
-    if (format === "latex") return new Response(generateLatex(content, template.id), { headers: {
+    if (format === "latex") return new Response(generateLatex(content, template.id), { headers: { ...timings.headers(), 'Cache-Control':'private, no-store',
       "Content-Type": "application/x-tex", "Content-Disposition": `attachment; filename="${filename}.tex"`,
     } });
     if (unsupportedPdfCharacters(content, template).length) return apiError(ERROR_CODES.VALIDATION_ERROR,
       "This resume contains characters not supported by the PDF font. Download Word to preserve them.", 422);
-    const buffer = await renderToBuffer(
-      ResumePDF({ content, template })
-    );
+    const buffer = await timings.measure('render',()=>cachedExport(user.id,'pdf',{content,template},async()=>{const [{renderToBuffer},{ResumePDF}]=await Promise.all([import('@react-pdf/renderer'),import('@/lib/resume/pdf-document')]);return Buffer.from(await renderToBuffer(ResumePDF({content,template})));}));
     const pdfBuffer = Buffer.from(buffer);
 
     const uint8ArrayPdf = new Uint8Array(pdfBuffer);
     return new Response(uint8ArrayPdf, {
       status: 200,
-      headers: {
+      headers: { ...timings.headers(), 'Cache-Control':'private, no-store',
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}.pdf"`,
         "Content-Length": pdfBuffer.length.toString(),

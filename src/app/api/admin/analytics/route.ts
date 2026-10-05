@@ -1,3 +1,5 @@
+import { pagination } from '@/lib/pagination';
+import { createTimings } from '@/lib/performance';
 import { assignedClientIds } from "@/lib/admin/assignments";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -5,6 +7,7 @@ import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
 export async function GET(request: NextRequest): Promise<Response> {
+  const timings=createTimings();
   try {
     const auth = await requireAdmin();
     if (isAuthError(auth)) return auth;
@@ -22,6 +25,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     const admin = createAdminClient();
+    const {page,limit}=pagination(searchParams,10);
+    const optimized=await timings.measure('database',()=>admin.rpc('performance_admin_analytics',{p_actor_id:auth.userId,p_admin_id:adminId,p_page:page,p_limit:limit,p_search:(searchParams.get('search')||'').slice(0,200)}));
+    if(!optimized.error){if(!optimized.data)return apiError(ERROR_CODES.NOT_FOUND,'Admin not found.',404);return NextResponse.json(apiSuccess(optimized.data),{headers:{...timings.headers(),'Cache-Control':'private, no-store'}});}
+    if(!['PGRST202','42883'].includes(optimized.error.code))throw optimized.error;
 
     // Get basic admin info
     const { data: adminData } = await admin

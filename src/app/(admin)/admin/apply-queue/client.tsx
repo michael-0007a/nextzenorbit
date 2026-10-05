@@ -1,7 +1,9 @@
 "use client";
 import { ApplicationTargets } from "@/components/admin/application-targets";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Pagination } from "@/components/ui/pagination";
+import type { PaginationMeta } from "@/types/api";
 import Link from "next/link";
 import { formatDistanceToNow, format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,8 @@ type UserGroup = {
   claimed_by_name: string | null;
   claimed_at: string | null;
   jobs: QueueJob[];
+  jobs_loaded?: boolean;
+  jobsPagination?: PaginationMeta;
   job_counts: {
     pending: number;
     processing: number;
@@ -80,9 +84,14 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
 
 // ── Main Component ──
 
-export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; adminRole: string }) {
-  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ApplyQueueClient({ adminId, adminRole, initialUsers, initialPagination }: { adminId: string; adminRole: string; initialUsers?: UserGroup[]; initialPagination?: PaginationMeta }) {
+  const [userGroups, setUserGroups] = useState<UserGroup[]>(initialUsers ?? []);
+  const [loading, setLoading] = useState(!initialUsers);
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState<PaginationMeta>(initialPagination ?? { page: 1, perPage: 20, total: 0, totalPages: 0 });
+  const first = useRef(true);
+  const request = useRef<AbortController | null>(null);
+  const [loadingJobs, setLoadingJobs] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
@@ -100,39 +109,71 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
     resume_id: "",
   });
 
+  const jobRequests=useRef(new Map<string,AbortController>());
+  useEffect(()=>{const requests=jobRequests.current;return()=>{for(const request of requests.values())request.abort();};},[]);
+  const fetchJobs = useCallback(async (userId: string, jobPage = 1) => {
+    jobRequests.current.get(userId)?.abort();
+    const controller=new AbortController();jobRequests.current.set(userId,controller);
+    setLoadingJobs(previous => new Set(previous).add(userId));
+    try {
+      const response = await fetch(`/api/admin/apply-queue?user_id=${encodeURIComponent(userId)}&page=${jobPage}&limit=20`, { cache: "no-store",signal:controller.signal });
+      const body = await response.json();
+      if (!response.ok || !body.success) throw new Error(body.error?.message ?? "Unable to load jobs.");
+      if(controller.signal.aborted)return;
+      setUserGroups(groups => groups.map(group => group.user_id === userId ? { ...group, jobs: body.data.jobs, jobs_loaded: true, jobsPagination: body.meta?.pagination } : group));
+    } catch (error) { if(!controller.signal.aborted)toast.error(error instanceof Error ? error.message : "Unable to load jobs."); }
+    finally { if(!controller.signal.aborted)setLoadingJobs(previous => { const next = new Set(previous); next.delete(userId); return next; }); }
+  }, []);
+
   const fetchQueue = async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     setLoading(true);
     try {
       const url = new URL("/api/admin/apply-queue", window.location.origin);
-      const res = await fetch(url.toString());
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("filter", filter);
+      if (search) url.searchParams.set("search", search);
+      const res = await fetch(url.toString(), { signal: controller.signal, cache: "no-store" });
       const json = await res.json();
 
       if (json.success) {
         let users = json.data.users || [];
 
         // Client-side filter for "completed" — users where all jobs are applied
-        if (filter === "completed") {
+        if (filter === "completed" && !json.meta?.pagination) {
           users = users.filter(
             (u: UserGroup) => u.jobs.length > 0 && u.jobs.every((j) => j.status === "applied")
           );
         }
 
+        if (controller.signal.aborted) return;
         setUserGroups(users);
+        if (json.meta?.pagination) setMeta(json.meta.pagination);
+        for (const group of users as UserGroup[]) if (expandedUsers.has(group.user_id) && group.jobs_loaded === false) void fetchJobs(group.user_id);
       }
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error(err);
       toast.error("Failed to load queue.");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchQueue();
+    const initial = first.current;
+    first.current = false;
+    if (initial && initialUsers) return;
+    request.current?.abort();
+    const timer = setTimeout(() => { void fetchQueue(); }, search ? 250 : 0);
+    return () => { clearTimeout(timer); request.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, search, page]);
 
   const toggleExpand = (userId: string) => {
+    if (!expandedUsers.has(userId) && userGroups.find(group => group.user_id === userId)?.jobs_loaded === false) void fetchJobs(userId);
     setExpandedUsers((prev) => {
       const next = new Set(prev);
       if (next.has(userId)) next.delete(userId);
@@ -209,7 +250,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
 
   // ── Stats ──
   const totalUsers = filteredGroups.length;
-  const totalJobs = filteredGroups.reduce((sum, u) => sum + u.jobs.length, 0);
+  const totalJobs = filteredGroups.reduce((sum, u) => sum + Object.values(u.job_counts).reduce((a,b) => a+b, 0), 0);
   const totalPending = filteredGroups.reduce((sum, u) => sum + u.job_counts.pending, 0);
 
   return (
@@ -218,9 +259,9 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
       {/* Stats Bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Users", value: totalUsers, color: "text-primary" },
-          { label: "Total Jobs", value: totalJobs, color: "text-secondary" },
-          { label: "Pending", value: totalPending, color: "text-warning" },
+          { label: meta.totalPages > 1 ? "Users on page" : "Users", value: totalUsers, color: "text-primary" },
+          { label: meta.totalPages > 1 ? "Jobs on page" : "Total Jobs", value: totalJobs, color: "text-secondary" },
+          { label: meta.totalPages > 1 ? "Pending on page" : "Pending", value: totalPending, color: "text-warning" },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -238,7 +279,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
           {(["all", "completed"] as FilterTab[]).map((tab) => (
             <button
               key={tab}
-              onClick={() => setFilter(tab)}
+              onClick={() => { setFilter(tab); setPage(1); }}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 capitalize ${
                 filter === tab
                   ? "bg-primary/20 text-primary shadow-sm"
@@ -256,7 +297,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
             <Input
               placeholder="Search by name or email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="pl-9"
             />
           </div>
@@ -366,7 +407,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                 {isExpanded && (
                   <div className="border-t border-border/40 bg-white/[0.02]">
                     <div className="p-4 space-y-2">
-                      {group.jobs.length === 0 ? (
+                      {group.jobs_loaded === false ? <button className="py-4 text-sm text-text-secondary" disabled={loadingJobs.has(group.user_id)} onClick={() => void fetchJobs(group.user_id)}>{loadingJobs.has(group.user_id) ? "Loading jobs…" : "Load jobs"}</button> : group.jobs.length === 0 ? (
                         <p className="text-sm text-text-secondary text-center py-4">
                           No jobs in queue yet.
                         </p>
@@ -441,6 +482,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
                           );
                         })
                       )}
+                      {group.jobsPagination && <Pagination meta={group.jobsPagination} loading={loadingJobs.has(group.user_id)} onPage={next => void fetchJobs(group.user_id, next)} />}
                     </div>
                   </div>
                 )}
@@ -450,6 +492,7 @@ export function ApplyQueueClient({ adminId, adminRole }: { adminId: string; admi
         </div>
       )}
 
+      <Pagination meta={meta} onPage={setPage} loading={loading} />
       {/* Add Job Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-overlay backdrop-blur-sm">

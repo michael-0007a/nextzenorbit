@@ -5,74 +5,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { Document, Packer, Paragraph, TextRun } from "docx";
-
-// LaTeX compilation service URL
-const LATEX_API_URL = "https://latex.ytotech.com/builds/sync";
-
-function generateCoverLetterLatex(content: string): string {
-  const paragraphs = content
-    .split("\n\n")
-    .map((p) => p.trim().replace(/\n/g, " "))
-    .filter((p) => p);
-
-  const escapedParagraphs = paragraphs.map((p) =>
-    p
-      .replace(/\\/g, "\\textbackslash{}")
-      .replace(/[&%$#_{}]/g, "\\$&")
-      .replace(/~/g, "\\textasciitilde{}")
-      .replace(/\^/g, "\\textasciicircum{}")
-  );
-
-  return `\\documentclass[11pt,letterpaper]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{times}
-\\usepackage[margin=1in]{geometry}
-\\usepackage{setspace}
-
-\\begin{document}
-\\pagestyle{empty}
-\\onehalfspacing
-
-${escapedParagraphs.join("\n\n\\vspace{12pt}\n\n")}
-
-\\end{document}`;
-}
-
-async function compileLatexToPdf(latexCode: string): Promise<Buffer> {
-  const response = await fetch(LATEX_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      compiler: "pdflatex",
-      resources: [
-        {
-          main: true,
-          content: latexCode,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("LaTeX compilation error:", errorText);
-    throw new Error("LaTeX compilation failed");
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
+import { getCachedUser } from '@/lib/supabase/server';
+import { cachedExport } from '@/lib/resume/export-cache';
+import { renderCoverLetter } from '@/lib/resume/cover-letter-export';
+import { createTimings } from '@/lib/performance';
+import { unsupportedPdfCharacters } from '@/lib/resume/layout';
+import { createEmptyResumeContent } from '@/lib/validations/resume';
+import { getTemplate } from '@/lib/resume/templates';
 
 export async function POST(request: NextRequest) {
+  const timings=createTimings();
   try {
+    const {user}=await getCachedUser();if(!user)return NextResponse.json({success:false,error:'Please sign in.'},{status:401});
     const body = await request.json();
     const { content, format, filename } = body;
 
-    if (!content || !format) {
+    if (typeof content!=='string'||!content.trim()||content.length>30000||!['pdf','docx'].includes(format)) {
       return NextResponse.json(
         { success: false, error: "Missing content or format" },
         { status: 400 }
@@ -80,54 +28,31 @@ export async function POST(request: NextRequest) {
     }
 
     if (format === "docx") {
-      // Generate DOCX
-      const paragraphs = content.split("\n\n").filter((p: string) => p.trim());
-
-      const doc = new Document({
-        sections: [
-          {
-            children: paragraphs.map(
-              (para: string) =>
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: para.trim(),
-                      font: "Times New Roman",
-                      size: 24, // 12pt = 24 half-points
-                    }),
-                  ],
-                  spacing: { after: 240 }, // 12pt spacing after
-                })
-            ),
-          },
-        ],
-      });
-
-      const buffer = await Packer.toBuffer(doc);
+      const buffer=await timings.measure('render',()=>cachedExport(user.id,'cover-letter-docx',content,()=>renderCoverLetter(content,'docx')));
       const uint8Array = new Uint8Array(buffer);
 
       return new NextResponse(uint8Array, {
-        headers: {
+        headers: {...timings.headers(), 'Cache-Control':'private, no-store',
           "Content-Type":
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "Content-Disposition": `attachment; filename="${filename || "cover_letter"}.docx"`,
+          "Content-Disposition": `attachment; filename="${String(filename || "cover_letter").replace(/[^a-zA-Z0-9_-]/g,"_")}.docx"`,
         },
       });
     } else if (format === "pdf") {
-      // Generate PDF via LaTeX
+      // Render locally to avoid an additional network compilation request.
       try {
-        const latexCode = generateCoverLetterLatex(content);
-        const pdfBuffer = await compileLatexToPdf(latexCode);
+        if(unsupportedPdfCharacters({...createEmptyResumeContent(),summary:{text:content}},getTemplate('modern')).length)return NextResponse.json({success:false,error:'Use DOCX to preserve characters unsupported by the PDF font.'},{status:422});
+        const pdfBuffer=await timings.measure('render',()=>cachedExport(user.id,'cover-letter-pdf',content,()=>renderCoverLetter(content,'pdf')));
         const uint8Array = new Uint8Array(pdfBuffer);
 
         return new NextResponse(uint8Array, {
-          headers: {
+          headers: {...timings.headers(), 'Cache-Control':'private, no-store',
             "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${filename || "cover_letter"}.pdf"`,
+            "Content-Disposition": `attachment; filename="${String(filename || "cover_letter").replace(/[^a-zA-Z0-9_-]/g,"_")}.pdf"`,
           },
         });
       } catch (latexError) {
-        console.error("LaTeX PDF generation failed:", latexError);
+        console.error("Cover letter PDF generation failed:", latexError);
         return NextResponse.json(
           { success: false, error: "PDF generation failed. Try DOCX instead." },
           { status: 500 }

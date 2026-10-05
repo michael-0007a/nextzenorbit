@@ -14,6 +14,7 @@ import type { ApplicationRow, ApplicationStatus } from "@/types/database";
 
 interface ApplicationsTableProps {
   applications: ApplicationRow[];
+  clientFiltering?:boolean;
 }
 
 const statusConfig: Record<ApplicationStatus, { label: string; variant: "success" | "warning" | "error" | "info" | "default" | "primary" }> = {
@@ -26,17 +27,17 @@ const statusConfig: Record<ApplicationStatus, { label: string; variant: "success
 
 const allStatuses: ApplicationStatus[] = ["applied", "screening", "interview", "offer", "rejected"];
 
-export function ApplicationsTable({ applications }: ApplicationsTableProps) {
+export function ApplicationsTable({ applications,clientFiltering=true }: ApplicationsTableProps) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "all">("all");
 
-  const filtered = applications.filter((app) => {
+  const filtered = clientFiltering ? applications.filter((app) => {
     const matchesSearch =
       app.company.toLowerCase().includes(search.toLowerCase()) ||
       app.position.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = filterStatus === "all" || app.status === filterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }) : applications;
 
   if (applications.length === 0) {
     return (
@@ -77,7 +78,7 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters Row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-2xl border border-border bg-white/5">
+      {clientFiltering&&<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-2xl border border-border bg-white/5">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <input
@@ -118,7 +119,7 @@ export function ApplicationsTable({ applications }: ApplicationsTableProps) {
             );
           })}
         </div>
-      </div>
+      </div>}
 
       {/* Table */}
       <Card>

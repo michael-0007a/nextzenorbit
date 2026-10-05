@@ -1,0 +1,832 @@
+"use client";
+
+import { useState, useEffect, useRef, use } from "react";
+import Link from "next/link";
+import { formatDistanceToNow, format } from "date-fns";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  User,
+  FileText,
+  Briefcase,
+  Mail,
+  CheckCircle2,
+  AlertTriangle,
+  Bell,
+  Download,
+  FileSignature,
+  Send,
+  Wand2,
+  CreditCard,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DeleteResumeButton } from "@/components/resume/delete-resume-button";
+import { WorkAuthorizationDetails } from "@/components/forms/work-authorization-details";
+import { AdminOriginalFiles } from "@/components/resume/admin-original-files";
+import { Pagination } from "@/components/ui/pagination";
+import type { PaginationMeta } from "@/types/api";
+
+type UserDetails = {
+  queuePagination?: PaginationMeta;
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+  profileComplete: boolean;
+  profile: {
+    full_name: string;
+    avatar_url: string | null;
+    preferred_role: string | null;
+    location: string | null;
+    phone: string | null;
+    headline: string | null;
+    linkedin_url: string | null;
+  } | null;
+  subscription: {
+    plan_id: string;
+    status: string;
+    current_period_end: string | null;
+  } | null;
+  resumes: Array<{
+    has_export_content: boolean;
+    id: string;
+    title: string;
+    is_base: boolean;
+    template_id: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+  baseResume: {
+    has_export_content: boolean;
+    id: string;
+    title: string;
+    template_id: string | null;
+  } | null;
+  queue: Array<{
+    id: string;
+    title: string;
+    company: string;
+    status: string;
+    source: string;
+    created_at: string;
+    applied_at: string | null;
+    admin_notes: string | null;
+  }>;
+  adminResumes: Array<{
+    id: string;
+    title: string;
+    company: string | null;
+    job_title: string | null;
+    expires_at: string;
+    created_at: string;
+  }>;
+  adminCoverLetters: Array<{
+    id: string;
+    title: string;
+    company_name: string | null;
+    job_title: string | null;
+    expires_at: string;
+    created_at: string;
+  }>;
+  notifications: Array<{
+    id: string;
+    type: string;
+    title: string;
+    message: string | null;
+    is_read: boolean;
+    created_at: string;
+  }>;
+};
+
+export default function AdminUserDetailsPage({
+  params, initialUser,
+}: {
+  params: Promise<{ id: string }>;
+  initialUser?: UserDetails | null;
+}) {
+  const resolvedParams = use(params);
+  const [filesRevision, setFilesRevision] = useState(0);
+  const [user, setUser] = useState<UserDetails | null>(initialUser ?? null);
+  const [loading, setLoading] = useState(!initialUser);
+  const [error, setError] = useState<string | null>(null);
+  const [sendingNotification, setSendingNotification] = useState(false);
+  const [downloadingResume, setDownloadingResume] = useState<string | null>(null);
+
+  const downloadResume = async (id: string, title: string, adminGenerated = false, format: "pdf" | "docx" = "pdf") => {
+    setDownloadingResume(id);
+    try {
+      const response = await fetch(adminGenerated
+        ? `/api/resumes/export-admin?id=${id}&format=${format}`
+        : `/api/resumes/${id}/export?format=${format}`);
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error?.message || "Failed to download PDF. Please try again.");
+      }
+      if (!response.headers.get("content-type")?.includes(format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+        throw new Error("The PDF could not be downloaded. Please sign in again and retry.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${title.replace(/[^a-zA-Z0-9]/g, "_") || "resume"}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to download PDF. Please try again.");
+    } finally {
+      setDownloadingResume(null);
+    }
+  };
+
+  const [showManualApp, setShowManualApp] = useState(false);
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualCompany, setManualCompany] = useState("");
+  const [manualUrl, setManualUrl] = useState("");
+  const [addingManualApp, setAddingManualApp] = useState(false);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [activatingSubscription, setActivatingSubscription] = useState(false);
+
+  const detailRequest=useRef<AbortController|null>(null);
+  useEffect(()=>()=>detailRequest.current?.abort(),[]);
+  const fetchUser = async (page = 1) => {
+    detailRequest.current?.abort();const controller=new AbortController();detailRequest.current=controller;
+    try {
+      const res = await fetch(`/api/admin/users/${resolvedParams.id}?page=${page}`,{signal:controller.signal});
+      const json = await res.json();
+
+      if (json.success && !controller.signal.aborted) {
+        setUser(json.data);
+      } else {
+        setError(json.error?.message || "Failed to load user");
+      }
+    } catch {
+      if(!controller.signal.aborted)setError("Error loading user details");
+    } finally {
+      if(!controller.signal.aborted)setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialUser) void fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedParams.id]);
+
+  const sendNotification = async (
+    type: string,
+    title: string,
+    message: string
+  ) => {
+    if (!user) return;
+    setSendingNotification(true);
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          type,
+          title,
+          message,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Notification sent to user!");
+        fetchUser(); // Refresh to show the new notification
+      } else {
+        toast.error("Failed to send notification.");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setSendingNotification(false);
+    }
+  };
+
+  const handleAddManualApp = async () => {
+    if (!manualTitle || !manualCompany || !manualUrl) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setAddingManualApp(true);
+    try {
+      const res = await fetch("/api/admin/apply-queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id,
+          title: manualTitle,
+          company: manualCompany,
+          job_url: manualUrl,
+          admin_notes: "Manual Apply by Admin",
+          resume_id: user?.baseResume?.id || "",
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Manual application added");
+        setShowManualApp(false);
+        setManualTitle("");
+        setManualCompany("");
+        setManualUrl("");
+        fetchUser();
+      } else {
+        toast.error("Failed to add manual application");
+      }
+    } catch {
+      toast.error("An error occurred");
+    } finally {
+      setAddingManualApp(false);
+    }
+  };
+
+  const handleActivateSubscription = async () => {
+    if (!user) return;
+    setActivatingSubscription(true);
+    try {
+      const res = await fetch("/api/admin/subscription/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          txnid: paymentReference.trim() || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(`Subscription activated! Plan: ${json.data.plan_id}, expires: ${new Date(json.data.current_period_end).toLocaleDateString()}`);
+        fetchUser();
+      } else {
+        toast.error(json.error?.message || "Failed to activate subscription.");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    } finally {
+      setActivatingSubscription(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-error mb-4">{error || "User not found"}</p>
+        <Link href="/admin/users" className="text-secondary hover:underline">
+          &larr; Back to users
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-foreground transition-colors mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to users
+        </Link>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            User Details
+          </h1>
+          <div className="flex items-center gap-2">
+            {user.profileComplete ? (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-success/10 text-success border border-success/20">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Profile Complete
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-warning/10 text-warning border border-warning/20">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Incomplete Profile
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Left Col: Profile & Sub & Actions */}
+        <div className="space-y-6">
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-bold text-2xl">
+                {user.profile?.full_name?.charAt(0) || (
+                  <User className="h-8 w-8" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {user.profile?.full_name || "Unknown"}
+                </h2>
+                <p className="text-sm text-text-secondary">{user.email}</p>
+                {user.profile?.headline && (
+                  <p className="text-xs text-primary mt-0.5">
+                    {user.profile.headline}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-text-secondary">Role</span>
+                <span className="font-medium capitalize">{user.role}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-text-secondary">Joined</span>
+                <span className="font-medium">
+                  {format(new Date(user.created_at), "MMM d, yyyy")}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-text-secondary">Location</span>
+                <span className="font-medium">
+                  {user.profile?.location || "Not set"}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-border/60">
+                <span className="text-text-secondary">Preferred Role</span>
+                <span className="font-medium">
+                  {user.profile?.preferred_role || "Not set"}
+                </span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-text-secondary">Phone</span>
+                <span className="font-medium">
+                  {user.profile?.phone || "Not set"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Subscription */}
+          <div className="glass-card rounded-2xl p-6">
+            <h3 className="font-semibold text-foreground mb-4">Subscription</h3>
+            <div className="mb-5 space-y-3 rounded-xl border border-border p-3">
+              <p className="text-xs text-text-secondary">Recover a completed PayU payment. Services unlock only after verification.</p>
+              <label className="block text-xs">Transaction reference (optional)<input value={paymentReference} onChange={event => setPaymentReference(event.target.value)} maxLength={100} disabled={activatingSubscription} className="mt-1 w-full rounded-lg border border-border bg-background p-2 text-sm" placeholder="Check a specific payment" /></label>
+              <Button variant="secondary" disabled={activatingSubscription} onClick={handleActivateSubscription}>{activatingSubscription ? "Verifying…" : "Verify payment & sync plan"}</Button>
+            </div>
+            {user.subscription ? (
+              <div className="space-y-4 text-sm">
+                <div className="flex justify-between py-2 border-b border-border/60">
+                  <span className="text-text-secondary">Plan</span>
+                  <span className="font-medium capitalize">
+                    {user.subscription.plan_id === 'free' ? 'Silver' : 
+                     user.subscription.plan_id === 'pro' ? 'Gold' : 
+                     user.subscription.plan_id === 'elite' ? 'Elite' : 
+                     user.subscription.plan_id}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border/60">
+                  <span className="text-text-secondary">Status</span>
+                  <span
+                    className={`font-medium ${
+                      user.subscription.status === "active"
+                        ? "text-success"
+                        : "text-warning"
+                    }`}
+                  >
+                    {user.subscription.status}
+                  </span>
+                </div>
+                {user.subscription.current_period_end && (
+                  <div className="flex justify-between py-2">
+                    <span className="text-text-secondary">Renews</span>
+                    <span className="font-medium">
+                      {format(
+                        new Date(user.subscription.current_period_end),
+                        "MMM d, yyyy"
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-text-secondary">
+                Free Plan (No active subscription)
+              </p>
+            )}
+          </div>
+
+          {/* Admin Actions */}
+          <div className="glass-card rounded-2xl p-6">
+            <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Bell className="h-4 w-4 text-secondary" />
+              Admin Actions
+            </h3>
+            <div className="space-y-2">
+              {!user.baseResume && (
+                <Button
+                  variant="secondary"
+                  className="w-full text-xs justify-start"
+                  leftIcon={<Send className="h-3.5 w-3.5" />}
+                  isLoading={sendingNotification}
+                  onClick={() =>
+                    sendNotification(
+                      "resume_request",
+                      "Please upload your resume",
+                      "Your admin team needs your base resume to apply for jobs on your behalf. Please upload or update your resume."
+                    )
+                  }
+                >
+                  Request Resume Upload
+                </Button>
+              )}
+              {!user.profileComplete && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-xs justify-start"
+                  leftIcon={<Send className="h-3.5 w-3.5" />}
+                  isLoading={sendingNotification}
+                  onClick={() =>
+                    sendNotification(
+                      "profile_update",
+                      "Please complete your profile",
+                      "Your profile is missing required information. Please update your profile to help us manage your applications better."
+                    )
+                  }
+                >
+                  Request Profile Update
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Col: Resumes, Cover Letters & Queue */}
+        <div className="md:col-span-2 space-y-6">
+          <Link href={`/admin/job-search?client=${user.id}`} className="inline-flex rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">Search jobs for this client</Link>
+          <AdminOriginalFiles refreshKey={filesRevision} userId={user.id} />
+          <WorkAuthorizationDetails userId={user.id} />
+          {/* Base Resume Section */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-accent" />
+                <h3 className="font-semibold text-foreground">
+                  Base Resume
+                </h3>
+              </div>
+            </div>
+
+            {user.baseResume ? (
+              <div className="p-4 rounded-xl bg-white/5 border border-primary/20 flex justify-between items-center">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-foreground">
+                      {user.baseResume.title}
+                    </p>
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-primary/20 text-primary border border-primary/30">
+                      Base
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => user.baseResume!.has_export_content ? downloadResume(user.baseResume!.id, user.baseResume!.title) : document.getElementById("original-files")?.scrollIntoView({ behavior: "smooth" })}
+                  disabled={downloadingResume !== null}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {!user.baseResume.has_export_content ? "View original files" : downloadingResume === user.baseResume.id ? "Downloading..." : "Download PDF"}
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-warning/5 border border-warning/20 text-center">
+                <p className="text-sm text-text-secondary mb-3">
+                  No base resume uploaded yet.
+                </p>
+                <Button
+                  variant="secondary"
+                  className="text-xs"
+                  leftIcon={<Send className="h-3.5 w-3.5" />}
+                  isLoading={sendingNotification}
+                  onClick={() =>
+                    sendNotification(
+                      "resume_request",
+                      "Please upload your resume",
+                      "Your admin team needs your base resume to apply for jobs on your behalf."
+                    )
+                  }
+                >
+                  Request Resume from User
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* All Resumes */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-accent" />
+                <h3 className="font-semibold text-foreground">
+                  All Resumes ({user.resumes.length})
+                </h3>
+              </div>
+            </div>
+
+            {user.resumes.length === 0 ? (
+              <p className="text-sm text-text-secondary">
+                No resumes created yet.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {user.resumes.map((resume) => (
+                  <div
+                    key={resume.id}
+                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex flex-wrap gap-3 justify-between items-center group"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-foreground">
+                          {resume.title}
+                        </p>
+                        {resume.is_base && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-primary/20 text-primary border border-primary/30">
+                            Base
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-text-secondary mt-1">
+                        Updated {formatDistanceToNow(new Date(resume.updated_at))} ago
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => resume.has_export_content ? downloadResume(resume.id, resume.title) : document.getElementById("original-files")?.scrollIntoView({ behavior: "smooth" })}
+                        disabled={downloadingResume !== null}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
+                      >
+                        {!resume.has_export_content ? "View original files" : downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
+                      </button>
+                      {resume.has_export_content && <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20" disabled={downloadingResume !== null}
+                        onClick={() => downloadResume(resume.id, resume.title, false, "docx")}>Download Word</button>}
+                      <DeleteResumeButton title={resume.title} endpoint={`/api/admin/users/${user.id}/resumes?resume_id=${resume.id}`} onDeleted={() => { setFilesRevision(value => value + 1); void fetchUser(); }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Admin-Generated Resumes */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Wand2 className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-foreground">
+                  Admin-Generated Resumes
+                </h3>
+              </div>
+              <Link
+                href={`/admin/users/${user.id}/generate-resume`}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                + Generate Resume
+              </Link>
+            </div>
+
+            {user.adminResumes.length === 0 ? (
+              <p className="text-sm text-text-secondary">
+                No admin-generated resumes yet.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {user.adminResumes.map((resume) => (
+                  <div
+                    key={resume.id}
+                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex flex-wrap gap-3 justify-between items-center group"
+                  >
+                    <div>
+                      <p className="font-medium text-sm text-foreground">
+                        {resume.title}
+                      </p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        {resume.company ? `${resume.company} • ` : ""}
+                        Expires in{" "}
+                        {formatDistanceToNow(new Date(resume.expires_at))}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors"
+                        onClick={() => downloadResume(resume.id, resume.title, true)}
+                        disabled={downloadingResume !== null}
+                      >
+                        {downloadingResume === resume.id ? "Downloading..." : "Download PDF"}
+                      </button>
+                      <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20" disabled={downloadingResume !== null}
+                        onClick={() => downloadResume(resume.id, resume.title, true, "docx")}>Download Word</button>
+                      <DeleteResumeButton title={resume.title} endpoint={`/api/admin/users/${user.id}/resumes?resume_id=${resume.id}&kind=generated`} scope="This removes this generated resume for the client. Original uploads and other saved resumes remain." onDeleted={() => { void fetchUser(); }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Admin-Generated Cover Letters */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileSignature className="h-5 w-5 text-secondary" />
+                <h3 className="font-semibold text-foreground">
+                  Admin-Generated Cover Letters
+                </h3>
+              </div>
+              <Link
+                href={`/admin/users/${user.id}/generate-cover-letter`}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
+              >
+                + Generate Cover Letter
+              </Link>
+            </div>
+
+            {user.adminCoverLetters.length === 0 ? (
+              <p className="text-sm text-text-secondary">
+                No admin-generated cover letters yet.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {user.adminCoverLetters.map((cl) => (
+                  <div
+                    key={cl.id}
+                    className="p-4 rounded-xl bg-white/5 border border-border/60 flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-medium text-sm text-foreground">
+                        {cl.title}
+                      </p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        {cl.company_name ? `${cl.company_name} • ` : ""}
+                        Expires in{" "}
+                        {formatDistanceToNow(new Date(cl.expires_at))}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Apply History */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-secondary" />
+                <h3 className="font-semibold text-foreground">
+                  Apply History ({user.queuePagination?.total ?? user.queue.length})
+                </h3>
+              </div>
+              <Button variant="secondary" className="text-xs h-8" onClick={() => setShowManualApp(true)}>
+                + Add Manual App
+              </Button>
+            </div>
+
+            {user.queuePagination && <Pagination meta={user.queuePagination} onPage={page => void fetchUser(page)} />}
+            {showManualApp && (
+              <div className="p-4 rounded-xl bg-white/5 border border-border/40 mb-4 animate-fade-in">
+                <h4 className="text-sm font-semibold text-foreground mb-3">Add Manual Application</h4>
+                <div className="space-y-3">
+                  <Input 
+                    placeholder="Job Title" 
+                    value={manualTitle} 
+                    onChange={e => setManualTitle(e.target.value)} 
+                  />
+                  <Input 
+                    placeholder="Company Name" 
+                    value={manualCompany} 
+                    onChange={e => setManualCompany(e.target.value)} 
+                  />
+                  <Input 
+                    placeholder="Job URL" 
+                    value={manualUrl} 
+                    onChange={e => setManualUrl(e.target.value)} 
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button variant="ghost" className="h-8 text-xs" onClick={() => setShowManualApp(false)}>Cancel</Button>
+                    <Button variant="primary" className="h-8 text-xs" isLoading={addingManualApp} onClick={handleAddManualApp}>Add</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {user.queue.length === 0 ? (
+              <p className="text-sm text-text-secondary">
+                No job applications yet.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {user.queue.map((job) => (
+                  <div
+                    key={job.id}
+                    className="p-3 rounded-xl bg-white/5 border border-border/60"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm text-foreground">
+                            {job.title}
+                          </p>
+                          {job.source === "manual" && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-secondary/20 text-secondary border border-secondary/30">
+                              Admin Added
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-secondary-light mt-0.5">
+                          {job.company}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${
+                          job.status === "pending"
+                            ? "bg-warning/10 text-warning border-warning/20"
+                            : job.status === "applied"
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-white/5 text-text-secondary border-border/60"
+                        }`}
+                      >
+                        {job.status}
+                      </span>
+                    </div>
+                    <div className="text-xs text-text-secondary flex justify-between mt-2 pt-2 border-t border-border/40">
+                      <span>
+                        Requested:{" "}
+                        {format(new Date(job.created_at), "MMM d, yyyy")}
+                      </span>
+                      {job.applied_at && (
+                        <span>
+                          Applied:{" "}
+                          {format(new Date(job.applied_at), "MMM d, yyyy")}
+                        </span>
+                      )}
+                    </div>
+                    {job.admin_notes && (
+                      <div className="mt-2 pt-2 border-t border-border/40 text-xs text-text-secondary bg-white/5 p-2 rounded">
+                        <span className="font-medium text-foreground">
+                          Admin Note:
+                        </span>{" "}
+                        {job.admin_notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Notifications History */}
+          {user.notifications.length > 0 && (
+            <div className="glass-card rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Bell className="h-5 w-5 text-accent" />
+                <h3 className="font-semibold text-foreground">
+                  Recent Notifications
+                </h3>
+              </div>
+              <div className="grid gap-2">
+                {user.notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className="p-3 rounded-xl bg-white/5 border border-border/40 flex items-center gap-3"
+                  >
+                    <div
+                      className={`h-2 w-2 rounded-full shrink-0 ${
+                        n.is_read ? "bg-border" : "bg-secondary"
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground truncate">
+                        {n.title}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {formatDistanceToNow(new Date(n.created_at))} ago
+                        {n.is_read ? " • Read" : " • Unread"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

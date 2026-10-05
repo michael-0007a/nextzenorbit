@@ -5,8 +5,9 @@
  * Uses the admin client to bypass RLS and check the users table directly.
  */
 
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedUser } from "@/lib/supabase/server";
+import { cache } from "react";
+import { getRequestAccess } from '@/lib/request-access';
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { UserRole } from "@/types/database";
 
@@ -20,33 +21,22 @@ export interface AuthenticatedAdmin {
  * Verify the current user is an admin or super_admin.
  * Returns the user info if authorized, or a Response error.
  */
-export async function requireAdmin(): Promise<AuthenticatedAdmin | Response> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const requireAdmin = cache(async (): Promise<AuthenticatedAdmin | Response> => {
+  const { user } = await getCachedUser();
 
   if (!user) {
     return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
   }
 
-  const admin = createAdminClient();
-  const { data: userRow } = await admin
-    .from("users")
-    .select("role, is_suspended")
-    .eq("id", user.id)
-    .single();
-
-  if (!userRow || userRow.is_suspended || !["admin", "supervisor_admin", "super_admin"].includes(userRow.role)) {
-    return apiError(ERROR_CODES.FORBIDDEN, "Admin access required.", 403);
-  }
+  const access=await getRequestAccess(user.id,user.email||'');
+  if(!access.role||access.application!=='approved'||!access.service||!['admin','supervisor_admin','super_admin'].includes(access.role))return apiError(ERROR_CODES.FORBIDDEN,'Admin access required.',403);
 
   return {
     userId: user.id,
     email: user.email || "",
-    role: userRow.role as UserRole,
+    role: access.role as UserRole,
   };
-}
+});
 
 /**
  * Verify the current user is a super_admin.

@@ -352,6 +352,12 @@ export type SignupApplicationRow = {
 export type Database = {
   public: {
     Tables: {
+      document_jobs: {
+        Row: import('@/lib/admin/documents/jobs').DocumentJob;
+        Insert: {id:string;user_id:string;operation:import('@/lib/admin/documents/jobs').JobOperation;payload:unknown};
+        Update: Partial<import('@/lib/admin/documents/jobs').DocumentJob>;
+        Relationships: [];
+      };
       admin_documents: {
         Row: {id:string;owner_id:string;kind:"resume"|"cover_letter";title:string;payload:import("@/lib/admin/documents/schema").AdminDocumentPayload;assigned_client_id:string|null;assigned_document_id:string|null;created_at:string;updated_at:string};
         Insert: {id:string;owner_id:string;kind:"resume"|"cover_letter";title:string;payload:import("@/lib/admin/documents/schema").AdminDocumentPayload};
@@ -526,6 +532,13 @@ export type Database = {
     };
     Views: {};
     Functions: {
+      performance_resume_metadata: {Args:{p_actor_id:string;p_user_id:string};Returns:unknown};
+      claim_document_job: {Args:{p_id:string};Returns:import('@/lib/admin/documents/jobs').DocumentJob[]};
+      performance_admin_analytics: {Args:{p_actor_id:string;p_admin_id:string;p_page?:number;p_limit?:number;p_search?:string};Returns:unknown};
+      performance_applications: {Args:{p_user_id:string;p_page?:number;p_limit?:number;p_status?:string|null;p_search?:string};Returns:unknown};
+      performance_admin_stats: { Args: { p_actor_id: string }; Returns: unknown };
+      performance_admin_users: { Args: { p_actor_id: string; p_page?: number; p_limit?: number; p_search?: string }; Returns: unknown };
+      performance_queue_page: { Args: { p_actor_id: string; p_page?: number; p_limit?: number; p_search?: string; p_completed?: boolean; p_status?: string | null }; Returns: unknown };
       assign_client_admins: {Args:{p_actor_id:string;p_user_id:string;p_admin_ids:string[]};Returns:undefined};
       update_team_queue_job: {Args:{p_actor_id:string;p_id:string;p_status?:string|null;p_action?:string|null;p_notes?:string|null};Returns:unknown};
       client_target_report: {Args:{p_actor_id:string};Returns:unknown};

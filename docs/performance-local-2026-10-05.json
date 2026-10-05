@@ -1,0 +1,179 @@
+{
+  "measuredAt": "2026-10-05T14:01:02.339Z",
+  "origin": "http://127.0.0.1:3100",
+  "samples": 5,
+  "authenticated": false,
+  "routes": [
+    {
+      "path": "/",
+      "p50TtfbMs": 9,
+      "p95TtfbMs": 63,
+      "requests": [
+        {
+          "sample": 1,
+          "ttfbMs": 63,
+          "totalMs": 70,
+          "bytes": 101401,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 2,
+          "ttfbMs": 10,
+          "totalMs": 12,
+          "bytes": 101401,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 3,
+          "ttfbMs": 8,
+          "totalMs": 10,
+          "bytes": 101401,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 4,
+          "ttfbMs": 8,
+          "totalMs": 10,
+          "bytes": 101401,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 5,
+          "ttfbMs": 9,
+          "totalMs": 10,
+          "bytes": 101401,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        }
+      ]
+    },
+    {
+      "path": "/terms",
+      "p50TtfbMs": 7,
+      "p95TtfbMs": 14,
+      "requests": [
+        {
+          "sample": 1,
+          "ttfbMs": 14,
+          "totalMs": 15,
+          "bytes": 22826,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 2,
+          "ttfbMs": 7,
+          "totalMs": 8,
+          "bytes": 22826,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 3,
+          "ttfbMs": 8,
+          "totalMs": 9,
+          "bytes": 22826,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 4,
+          "ttfbMs": 7,
+          "totalMs": 7,
+          "bytes": 22826,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 5,
+          "ttfbMs": 6,
+          "totalMs": 7,
+          "bytes": 22826,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        }
+      ]
+    },
+    {
+      "path": "/admin/login",
+      "p50TtfbMs": 6,
+      "p95TtfbMs": 13,
+      "requests": [
+        {
+          "sample": 1,
+          "ttfbMs": 13,
+          "totalMs": 13,
+          "bytes": 22526,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 2,
+          "ttfbMs": 7,
+          "totalMs": 8,
+          "bytes": 22526,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 3,
+          "ttfbMs": 6,
+          "totalMs": 6,
+          "bytes": 22526,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 4,
+          "ttfbMs": 6,
+          "totalMs": 7,
+          "bytes": 22526,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        },
+        {
+          "sample": 5,
+          "ttfbMs": 6,
+          "totalMs": 7,
+          "bytes": 22526,
+          "status": 200,
+          "cache": null,
+          "placement": null,
+          "serverTiming": null
+        }
+      ]
+    }
+  ]
+}

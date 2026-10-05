@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useSubscriptionState } from "@/components/providers/subscription-provider";
 import type { SubscriptionRow, PlanId } from "@/types/database";
 import {
   isTrialActive,
@@ -29,6 +30,7 @@ interface UseSubscriptionReturn {
 }
 
 export function useSubscription(): UseSubscriptionReturn {
+  const shared = useSubscriptionState();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [loading, setLoading] = useState(true);
   const hasFetched = useRef(false);
@@ -58,26 +60,27 @@ export function useSubscription(): UseSubscriptionReturn {
 
   useEffect(() => {
     // Only fetch once on mount
-    if (!hasFetched.current) {
+    if (!shared && !hasFetched.current) {
       hasFetched.current = true;
       // This is a legitimate data fetching pattern on mount
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchSubscription();
     }
-  }, [fetchSubscription]);
+  }, [fetchSubscription, shared]);
 
-  const isActive = isSubscriptionActive(subscription);
+  const current = shared?.subscription ?? (shared ? null : subscription);
+  const isActive = isSubscriptionActive(current);
 
   return {
-    subscription,
-    loading,
-    isTrialing: isTrialActive(subscription),
+    subscription: current,
+    loading: shared?.loading ?? loading,
+    isTrialing: isTrialActive(current),
     isActive,
-    daysRemaining: getTrialDaysRemaining(subscription),
-    isPro: isActive && subscription?.plan_id === "pro",
-    isElite: isActive && subscription?.plan_id === "elite",
-    activePlanId: isActive ? (subscription?.plan_id ?? null) : null,
-    refetch: fetchSubscription,
+    daysRemaining: getTrialDaysRemaining(current),
+    isPro: isActive && current?.plan_id === "pro",
+    isElite: isActive && current?.plan_id === "elite",
+    activePlanId: isActive ? (current?.plan_id ?? null) : null,
+    refetch: shared?.refetch ?? fetchSubscription,
   };
 }
 

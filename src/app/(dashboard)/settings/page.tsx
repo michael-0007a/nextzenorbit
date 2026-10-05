@@ -5,15 +5,13 @@
  * Route: /(dashboard)/settings
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/forms/settings-form";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getCachedUser();
 
   if (!user) redirect("/login");
 

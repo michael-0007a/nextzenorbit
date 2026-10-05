@@ -1,6 +1,9 @@
+export const dynamic='force-dynamic';
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { redirect } from "next/navigation";
 import { ApplyQueueClient } from "./client";
+import { NextRequest } from "next/server";
+import { GET } from "@/app/api/admin/apply-queue/route";
 
 export const metadata = {
   title: "Apply Queue | Admin Portal",
@@ -16,6 +19,9 @@ export default async function AdminApplyQueuePage() {
   if (adminAuth.role === "supervisor_admin" || adminAuth.role === "super_admin") {
     redirect("/admin/users");
   }
+  const response = await GET(new NextRequest("http://localhost/api/admin/apply-queue"));
+  const initial = await response.json();
+  if (!response.ok || !initial.success) throw new Error(initial.error?.message ?? "Unable to load queue.");
 
   return (
     <div className="space-y-6">
@@ -30,7 +36,7 @@ export default async function AdminApplyQueuePage() {
         </div>
       </div>
 
-      <ApplyQueueClient adminId={adminAuth.userId} adminRole={adminAuth.role} />
+      <ApplyQueueClient adminId={adminAuth.userId} adminRole={adminAuth.role} initialUsers={initial.data.users} initialPagination={initial.meta?.pagination} />
     </div>
   );
 }

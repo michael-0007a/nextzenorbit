@@ -1,0 +1,102 @@
+{
+  "measuredAt": "2026-10-05T14:21:22.548Z",
+  "environment": "Local production server; image widths requested explicitly, not observed browser transfer",
+  "images": [
+    {
+      "width": 750,
+      "status": 200,
+      "type": "image/webp",
+      "bytes": 84642
+    },
+    {
+      "width": 1080,
+      "status": 200,
+      "type": "image/webp",
+      "bytes": 149088
+    },
+    {
+      "width": 1920,
+      "status": 200,
+      "type": "image/webp",
+      "bytes": 358224
+    }
+  ],
+  "homepageInitialScripts": [
+    {
+      "path": "/_next/static/chunks/cfe29bda4a0e34ef.js",
+      "status": 200,
+      "decodedBytes": 41157
+    },
+    {
+      "path": "/_next/static/chunks/5f6838a6abf34268.js",
+      "status": 200,
+      "decodedBytes": 224413
+    },
+    {
+      "path": "/_next/static/chunks/681e0c4e30b43c2c.js",
+      "status": 200,
+      "decodedBytes": 84443
+    },
+    {
+      "path": "/_next/static/chunks/f091501564eb2ea3.js",
+      "status": 200,
+      "decodedBytes": 32831
+    },
+    {
+      "path": "/_next/static/chunks/turbopack-b5f7cb65384d03f3.js",
+      "status": 200,
+      "decodedBytes": 10268
+    },
+    {
+      "path": "/_next/static/chunks/6bce6c016ed93acb.js",
+      "status": 200,
+      "decodedBytes": 16080
+    },
+    {
+      "path": "/_next/static/chunks/f4a1b14ccc741bc8.js",
+      "status": 200,
+      "decodedBytes": 205710
+    },
+    {
+      "path": "/_next/static/chunks/fa4b61e206deb4a3.js",
+      "status": 200,
+      "decodedBytes": 35830
+    },
+    {
+      "path": "/_next/static/chunks/ff1a16fafef87110.js",
+      "status": 200,
+      "decodedBytes": 282
+    },
+    {
+      "path": "/_next/static/chunks/d2be314c3ece3fbe.js",
+      "status": 200,
+      "decodedBytes": 30681
+    },
+    {
+      "path": "/_next/static/chunks/8748174adff5cbf5.js",
+      "status": 200,
+      "decodedBytes": 26637
+    },
+    {
+      "path": "/_next/static/chunks/9811a1355034818b.js",
+      "status": 200,
+      "decodedBytes": 116783
+    },
+    {
+      "path": "/_next/static/chunks/7cc0971575179c03.js",
+      "status": 200,
+      "decodedBytes": 34337
+    },
+    {
+      "path": "/_next/static/chunks/a6dad97d9634a72d.js",
+      "status": 200,
+      "decodedBytes": 112594
+    },
+    {
+      "path": "/_next/static/chunks/4d53474d9e1fbd75.js",
+      "status": 200,
+      "decodedBytes": 17215
+    }
+  ],
+  "totalDecodedScriptBytes": 989261
+}

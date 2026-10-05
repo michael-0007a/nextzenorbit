@@ -9,5 +9,5 @@ export async function AdminDocumentPage({kind}:{kind:'resume'|'cover_letter'}) {
  if(auth.role==='admin')query=query.in('id',(await assignedClientIds(auth.userId)).concat('00000000-0000-0000-0000-000000000000'));
  const {data,error}=await query;
  const clients=(data||[]).map(user=>{const profile=Array.isArray(user.profile)?user.profile[0]:user.profile;return {id:user.id,label:`${profile?.full_name||user.email} (${user.email})`};});
- return <>{error&&<p role="alert">Client assignment is temporarily unavailable. You can still work on a private draft.</p>}<AdminDocumentWorkspace kind={kind} clients={clients}/></>;
+ return <>{error&&<p role="alert">Client assignment is temporarily unavailable. You can still work on a private draft.</p>}<AdminDocumentWorkspace key={auth.userId+kind} kind={kind} clients={clients} ownerId={auth.userId}/></>;
 }

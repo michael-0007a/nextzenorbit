@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createReferenceClient } from "@/lib/supabase/reference";
 import type { Result } from "@/types/api";
 import type { RoadmapRow, RoadmapStepRow } from "@/types/database";
 
@@ -11,7 +11,7 @@ export async function listRoadmaps(filters: {
   careerId?: string;
   role?: string;
 }): Promise<Result<RoadmapRow[]>> {
-  const supabase = await createClient();
+  const supabase = await createReferenceClient();
   let query = supabase.from("roadmaps").select("*").order("title", { ascending: true });
 
   if (filters.careerId) {
@@ -32,13 +32,13 @@ export async function listRoadmaps(filters: {
 }
 
 export async function getRoadmapWithSteps(id: string): Promise<Result<RoadmapWithSteps>> {
-  const supabase = await createClient();
-  const { data: roadmap, error } = await supabase
+  const supabase = await createReferenceClient();
+  const [roadmapResult,stepsResult]=await Promise.all([supabase
     .from("roadmaps")
     .select("*")
     .eq("id", id)
-    .maybeSingle();
-
+    .maybeSingle(),supabase.from('roadmap_steps').select('*').eq('roadmap_id',id).order('order_index',{ascending:true})]);
+  const {data:roadmap,error}=roadmapResult;
   if (error) {
     return { ok: false, error: new Error(error.message) };
   }
@@ -47,12 +47,7 @@ export async function getRoadmapWithSteps(id: string): Promise<Result<RoadmapWit
     return { ok: false, error: new Error("NOT_FOUND") };
   }
 
-  const { data: steps, error: stepsError } = await supabase
-    .from("roadmap_steps")
-    .select("*")
-    .eq("roadmap_id", id)
-    .order("order_index", { ascending: true });
-
+  const {data:steps,error:stepsError}=stepsResult;
   if (stepsError) {
     return { ok: false, error: new Error(stepsError.message) };
   }

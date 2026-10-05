@@ -1,3 +1,6 @@
+export const dynamic='force-dynamic';
+import { NextRequest } from "next/server";
+import { GET } from "@/app/api/admin/users/route";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { redirect } from "next/navigation";
 import { AdminUsersClient } from "./client";
@@ -20,6 +23,7 @@ export default async function AdminUsersPage() {
     profile: { full_name: string } | null;
   };
 
+  const initialPromise = GET(new NextRequest("http://localhost/api/admin/users"));
   // Fetch admins if this user has permission to allocate
   let admins: AdminUser[] = [];
   if (adminAuth.role === "supervisor_admin" || adminAuth.role === "super_admin") {
@@ -38,5 +42,8 @@ export default async function AdminUsersPage() {
     }
   }
 
-  return <AdminUsersClient adminRole={adminAuth.role} admins={admins} />;
+  const response = await initialPromise;
+  const initial = await response.json();
+  if (!response.ok || !initial.success) throw new Error(initial.error?.message ?? "Unable to load clients.");
+  return <AdminUsersClient adminRole={adminAuth.role} admins={admins} initialUsers={initial.data} initialPagination={initial.meta?.pagination} />;
 }

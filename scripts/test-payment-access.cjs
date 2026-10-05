@@ -1,3 +1,4 @@
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-access-key';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
@@ -110,8 +111,7 @@ test('Unpaid API/page requests are blocked while approved checkout stays availab
   for (const approved of [false,true]) {
     const proxy = loadSource('src/middleware.ts', {
       '@/lib/supabase/middleware': { updateSession: async () => ({ user: {id:'client'}, supabaseResponse: NextResponse.next() }) },
-      '@/lib/onboarding': { getApplicationAccess: async () => approved ? 'approved' : 'pending' },
-      '@/lib/service-access': { hasServiceAccess: async () => false },
+      '@/lib/account-access': { accountAccessFor: async () => ({application:approved?'approved':'pending',service:false,role:'user',subscription:null}) },
     }).default;
     for (const path of ['/api/resumes','/api/cover-letter','/api/profile']) {
       assert.equal((await proxy(new NextRequest('https://example.com'+path))).status,approved?402:403);

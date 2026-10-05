@@ -6,7 +6,7 @@
  * Route: /(dashboard)/resumes
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ResumeGrid } from "@/components/resume/resume-grid";
@@ -15,35 +15,27 @@ export const dynamic = "force-dynamic";
 
 export default async function ResumesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getCachedUser();
 
   if (!user) redirect("/login");
 
   const admin = createAdminClient();
-  const { data: resumes, error } = await admin
+  const [{ data: resumes, error }, { data: adminResumes, error: adminError }] = await Promise.all([
+admin
     .from("resumes")
     .select("id, title, is_base, version, template_id, created_at, updated_at")
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    console.error("Resumes fetch error:", error.message);
-  }
-
-  const { data: adminResumes, error: adminError } = await admin
+    .order("updated_at", { ascending: false }),
+admin
     .from("admin_resumes")
     .select("id, title, company, template_id, created_at, expires_at")
     .eq("user_id", user.id)
     .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }),
+]);
 
-  if (adminError) {
-    console.error("Admin resumes fetch error:", adminError.message);
-  }
-
+if (error || adminError) console.error("Resume list unavailable.");
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Hero Header */}

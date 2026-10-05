@@ -24,7 +24,7 @@ import { RESUME_PARSER_PROMPT_V1 } from "@/lib/ai/prompts/resume-parser";
 let _groq: Groq | null = null;
 function getGroq(): Groq {
   if (!_groq) {
-    _groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+    _groq = new Groq({ apiKey: process.env.GROQ_API_KEY!,timeout:45000,maxRetries:0 });
   }
   return _groq;
 }

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-export type Currency = "USD" | "INR";
+import type { Currency } from "@/lib/currency";
+export type { Currency } from "@/lib/currency";
+export { formatPrice } from "@/lib/currency";
 
 /**
  * useCurrency — Always returns "USD" for display purposes.
@@ -53,14 +55,6 @@ export function usePaymentCurrency(): Currency {
   return currency;
 }
 
-export function formatPrice(amount: number, currency: Currency): string {
-  if (amount === 0) return "Free";
-  const symbols: Record<Currency, string> = {
-    USD: "$",
-    INR: "₹",
-  };
-  return `${symbols[currency]}${amount.toLocaleString()}`;
-}
 
 async function detectCurrency(): Promise<Currency> {
   // 1. Try server-side geo API

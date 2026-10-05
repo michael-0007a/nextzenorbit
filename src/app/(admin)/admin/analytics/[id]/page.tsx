@@ -1,4 +1,7 @@
 "use client";
+import { Pagination } from '@/components/ui/pagination';
+import type { PaginationMeta } from '@/types/api';
+
 import { ApplicationTargets } from "@/components/admin/application-targets";
 
 import { useState, useEffect, use } from "react";
@@ -45,6 +48,7 @@ type AdminAnalytics = {
   monthlyData: MonthlyData[];
   clientsData: ClientData[];
   allJobs: JobData[];
+  pagination?:PaginationMeta;
 };
 
 export default function AdminDetailedAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,23 +61,25 @@ export default function AdminDetailedAnalyticsPage({ params }: { params: Promise
   const itemsPerPage = 10;
 
   useEffect(() => {
+    const controller=new AbortController();
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`/api/admin/analytics?id=${adminId}`);
+        const res = await fetch(`/api/admin/analytics?id=${adminId}&page=${currentPage}&limit=10&search=${encodeURIComponent(searchTerm)}` ,{signal:controller.signal});
         const json = await res.json();
-        if (json.success) {
+        if (json.success && !controller.signal.aborted) {
           setData(json.data);
         } else {
           toast.error("Failed to load admin analytics");
         }
       } catch (err) {
-        toast.error("An error occurred");
+        if(!controller.signal.aborted)toast.error("An error occurred");
       } finally {
-        setLoading(false);
+        if(!controller.signal.aborted)setLoading(false);
       }
     };
-    fetchAnalytics();
-  }, [adminId]);
+    const timer=setTimeout(fetchAnalytics,searchTerm?250:0);
+    return()=>{clearTimeout(timer);controller.abort();};
+  }, [adminId,currentPage,searchTerm]);
 
   if (loading || !data) {
     return (
@@ -83,13 +89,13 @@ export default function AdminDetailedAnalyticsPage({ params }: { params: Promise
     );
   }
 
-  const filteredJobs = data.allJobs.filter(job => 
+  const filteredJobs = data.pagination ? data.allJobs : data.allJobs.filter(job =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     job.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
-  const paginatedJobs = filteredJobs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedJobs = data.pagination ? filteredJobs : filteredJobs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const formatRole = (role: string) => {
     return role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -340,7 +346,8 @@ export default function AdminDetailedAnalyticsPage({ params }: { params: Promise
               </table>
             </div>
 
-            {totalPages > 1 && (
+            {data.pagination && <Pagination meta={data.pagination} onPage={setCurrentPage}/> }
+            {!data.pagination && totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4">
                 <span className="text-sm text-text-secondary">
                   Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredJobs.length)} of {filteredJobs.length} jobs

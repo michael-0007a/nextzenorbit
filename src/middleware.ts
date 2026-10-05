@@ -1,23 +1,44 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
-import { getApplicationAccess } from "@/lib/onboarding";
-import { hasServiceAccess } from "@/lib/service-access";
+import { accountAccessFor, type AccountAccess } from "@/lib/account-access";
+import { ACCESS_HEADER, signAccess } from "@/lib/access-envelope";
 
 export default async function proxy(request: NextRequest) {
+  // Public metrics do not touch account data or need a refreshed auth session.
+  if (["/api/performance", "/api/internal/jobs"].includes(request.nextUrl.pathname)) return NextResponse.next();
   // 1. Refresh session
   const { user, supabaseResponse } = await updateSession(request);
   const path = request.nextUrl.pathname;
+  if (path === "/") {
+    const error = request.nextUrl.searchParams.get("error");
+    if (error) {
+      const errorCode = request.nextUrl.searchParams.get("error_code");
+      const message = errorCode === "flow_state_already_used"
+        ? "Your login link or session has already been used or expired. Please try signing in again."
+        : request.nextUrl.searchParams.get("error_description") || "Authentication failed. Please try signing in again.";
+      const response = NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, request.url));
+      for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie);
+      return response;
+    }
+    if (user) {
+      const response = NextResponse.redirect(new URL("/dashboard", request.url));
+      for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie);
+      return response;
+    }
+  }
+  let access: AccountAccess | undefined;
+  const accountAccess = async () => access ??= await accountAccessFor(user!);
 
   // Protect direct API calls too; hiding dashboard/payment links is insufficient.
   const onboardingApi = path === "/api/onboarding" || path.startsWith("/api/onboarding/");
   if (user && path.startsWith("/api/") && !onboardingApi && !path.startsWith("/api/auth/") && !path.startsWith("/api/webhooks/")) {
     try {
-      if (await getApplicationAccess(user) !== "approved") {
+      if ((await accountAccess()).application !== "approved") {
         return NextResponse.json({ success: false, error: { code: "APPROVAL_REQUIRED", message: "Complete your application and wait for approval before accessing this feature." } }, { status: 403 });
       }
       const checkoutPaths = ["/api/subscription", "/api/subscription/create", "/api/payments/create-order", "/api/payments/reconcile"];
-      if (!checkoutPaths.includes(path) && !await hasServiceAccess(user.id)) {
+      if (!checkoutPaths.includes(path) && !(await accountAccess()).service) {
         return NextResponse.json({ success: false, error: { code: "PAYMENT_REQUIRED", message: "Choose a plan and complete payment to unlock services." } }, { status: 402 });
       }
     } catch {
@@ -37,8 +58,8 @@ export default async function proxy(request: NextRequest) {
 
   if (user && (isProtectedRoute || path === "/subscription") && !path.startsWith("/onboarding")) {
     try {
-      const approved = await getApplicationAccess(user) === "approved";
-      const destination = !approved ? "/onboarding" : path !== "/subscription" && !await hasServiceAccess(user.id) ? "/subscription" : null;
+      const approved = (await accountAccess()).application === "approved";
+      const destination = !approved ? "/onboarding" : path !== "/subscription" && !(await accountAccess()).service ? "/subscription" : null;
       if (destination) return NextResponse.redirect(new URL(destination, request.url));
     } catch {
       return new NextResponse("Account status is temporarily unavailable. Please retry.", { status: 503 });
@@ -83,8 +104,15 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  supabaseResponse.headers.set("x-next-pathname", request.nextUrl.pathname);
-  return supabaseResponse;
+  const forwarded = new Headers(request.headers);
+  forwarded.delete(ACCESS_HEADER);
+  forwarded.set("x-next-pathname", path);
+  if (user && access) forwarded.set(ACCESS_HEADER, await signAccess(user.id, path, access));
+  const response = NextResponse.next({ request: { headers: forwarded } });
+  // Preserve every session-refresh cookie on the forwarded response.
+  for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie);
+  response.headers.set("x-next-pathname", path);
+  return response;
 }
 
 export const config = {

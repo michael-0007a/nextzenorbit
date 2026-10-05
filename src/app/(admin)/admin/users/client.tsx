@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Pagination } from "@/components/ui/pagination";
+import type { PaginationMeta } from "@/types/api";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { User, Search, ChevronRight, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
+import { clientQuery,invalidateClientQueries } from '@/lib/client-query-cache';
 import { assignAdminsToUser } from "./actions";
 
 type UserRow = {
@@ -29,51 +32,53 @@ type AdminUser = {
   profile: { full_name: string } | null;
 };
 
-export function AdminUsersClient({ adminRole, admins }: { adminRole: string; admins: AdminUser[] }) {
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [loading, setLoading] = useState(true);
+export function AdminUsersClient({ adminRole, admins, initialUsers, initialPagination }: { adminRole: string; admins: AdminUser[]; initialUsers?: UserRow[]; initialPagination?: PaginationMeta }) {
+  const [users, setUsers] = useState<UserRow[]>(initialUsers ?? []);
+  const [loading, setLoading] = useState(!initialUsers);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState<PaginationMeta>(initialPagination ?? { page: 1, perPage: 50, total: 0, totalPages: 0 });
+  const first = useRef(true);
+  const controller = useRef<AbortController | null>(null);
 
   const fetchUsers = useCallback(async () => {
+    controller.current?.abort();
+    const requestController = new AbortController();
+    controller.current = requestController;
     setLoading(true);
     try {
       const url = new URL("/api/admin/users", window.location.origin);
       if (search) url.searchParams.set("search", search);
-      url.searchParams.set("t", Date.now().toString());
+      url.searchParams.set("page", String(page));
       
-      const res = await fetch(url.toString(), {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" }
-      });
-      const json = await res.json();
+      const json=await clientQuery<{success:boolean;data:UserRow[];meta?:{pagination:PaginationMeta};error?:{message:string}}>(url.toString(),requestController.signal);
       
       if (json.success) {
-        let data = json.data;
-        if (search) {
-          const s = search.toLowerCase();
-          data = data.filter((u: UserRow) => 
-            u.email.toLowerCase().includes(s) || 
-            (u.profile?.full_name || "").toLowerCase().includes(s)
-          );
-        }
-        setUsers(data);
+        if (requestController.signal.aborted) return;
+        setUsers(json.data);
+        if (json.meta?.pagination) setMeta(json.meta.pagination);
       } else {
         toast.error(json.error?.message || "Unable to load client assignments.");
       }
     } catch (err) {
+      if (requestController.signal.aborted) return;
       console.error(err);
       toast.error("Unable to load client assignments.");
     } finally {
-      setLoading(false);
+      if (!requestController.signal.aborted) setLoading(false);
     }
-  }, [search]);
+  }, [search, page]);
 
   useEffect(() => {
+    const initial = first.current;
+    first.current = false;
+    if (initial && initialUsers) return;
+    controller.current?.abort();
     const timeoutId = setTimeout(() => {
-      fetchUsers();
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [fetchUsers]);
+      void fetchUsers();
+    }, search ? 250 : 0);
+    return () => { clearTimeout(timeoutId); controller.current?.abort(); };
+  }, [fetchUsers, initialUsers, search]);
 
   const [editing,setEditing]=useState<string|null>(null);
   const [selected,setSelected]=useState<string[]>([]);
@@ -83,7 +88,7 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
     try {
       const result=await assignAdminsToUser(userId,selected);
       if(result.error) toast.error(result.error);
-      else {toast.success("Team updated. Plan targets are split equally.");setEditing(null);await fetchUsers();}
+      else {toast.success("Team updated. Plan targets are split equally.");setEditing(null);invalidateClientQueries();await fetchUsers();}
     } catch {toast.error("Unable to save assignments.");}
     finally {setSaving(false);}
   };
@@ -107,7 +112,7 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
           <Input 
             placeholder="Search by name or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9 bg-white/5 border-border"
           />
         </div>
@@ -224,6 +229,7 @@ export function AdminUsersClient({ adminRole, admins }: { adminRole: string; adm
             </tbody>
           </table>
         </div>
+        <Pagination meta={meta} onPage={setPage} loading={loading} />
       </div>
     </div>
   );

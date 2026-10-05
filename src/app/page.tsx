@@ -1,7 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   ArrowRight,
@@ -21,35 +19,7 @@ import {
 } from "lucide-react";
 import { PricingSection } from "@/components/marketing/pricing-section";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedParams = await searchParams;
-  const error = resolvedParams.error;
-  const errorCode = resolvedParams.error_code;
-  const errorDescription = resolvedParams.error_description;
-
-  if (error) {
-    let message = "Authentication failed. Please try signing in again.";
-    if (errorCode === "flow_state_already_used") {
-      message = "Your login link or session has already been used or expired. Please try signing in again.";
-    } else if (errorDescription && typeof errorDescription === "string") {
-      message = errorDescription;
-    }
-    redirect(`/login?error=${encodeURIComponent(message)}`);
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    redirect("/dashboard");
-  }
-
+export default function HomePage() {
   const features = [
     {
       title: "AI Resume Builder",
@@ -232,6 +202,7 @@ export default async function HomePage({
               <div className="relative flex items-center justify-center">
                 <Image
                   src="/hero-clean.png"
+                  sizes="(max-width: 768px) calc(100vw - 48px), 520px"
                   alt="Job search illustration"
                   width={720}
                   height={900}

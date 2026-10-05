@@ -1,3 +1,4 @@
+import { createTimings } from '@/lib/performance';
 /**
  * Resume Upload API
  *
@@ -31,7 +32,9 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+export const maxDuration=60;
 export async function POST(request: Request): Promise<Response> {
+  const timings=createTimings();
   try {
     // 1. Authenticate
     const supabase = await createClient();
@@ -117,35 +120,9 @@ export async function POST(request: Request): Promise<Response> {
     const ext = file.type === "application/pdf" ? "pdf" : "docx";
     const fileName = `${user.id}/${crypto.randomUUID()}.${ext}`;
 
-    const { error: uploadError } = await admin.storage
-      .from("resume-uploads")
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError.message);
-      // Continue even if storage fails — parsing is more important
-    }
-
-    // Save to local /reference/resume as requested
-    try {
-      const refDir = path.join(process.cwd(), "reference", "resume");
-      await fs.mkdir(refDir, { recursive: true });
-      await fs.writeFile(path.join(refDir, `${user.id}-${fileName.split("/")[1]}`), buffer);
-    } catch (fsError) {
-      console.error("Local file save error:", fsError);
-    }
-
-    // 5. Extract text from file
-    let resumeText = "";
-    try {
-      resumeText = await extractText(buffer, file.type);
-    } catch (extractError) {
-      console.error("Text extraction error:", extractError);
-      // Continue with empty text - user can fill in manually
-    }
+    const storagePromise=timings.measure('storage',()=>admin.storage.from('resume-uploads').upload(fileName,buffer,{contentType:file.type,upsert:false})).catch(()=>({error:new Error('Storage unavailable')}));
+    const localPromise=(async()=>{if(process.env.VERCEL)return;try{const refDir=path.join(process.cwd(),'reference','resume');await fs.mkdir(refDir,{recursive:true});await fs.writeFile(path.join(refDir,user.id+'-'+fileName.split('/')[1]),buffer);}catch{console.error('Local resume reference could not be saved.');}})();
+    const resumeText=await timings.measure('extraction',()=>extractText(buffer,file.type)).catch(()=> '');
 
     // 6. Parse with AI if we have text, otherwise create empty resume
     let content: ResumeContent;
@@ -153,7 +130,7 @@ export async function POST(request: Request): Promise<Response> {
     let parsedByAI = false;
 
     if (resumeText && resumeText.length >= 50) {
-      const parseResult = await parseResumeWithAI(resumeText);
+      const parseResult = await timings.measure('model',()=>parseResumeWithAI(resumeText,{signal:AbortSignal.timeout(15000)}));
       content = parseResult.content;
       tokensUsed = parseResult.tokensUsed;
       parsedByAI = parseResult.parsedByAI;
@@ -180,6 +157,8 @@ export async function POST(request: Request): Promise<Response> {
       };
     }
 
+    const [{error:uploadError}]=await Promise.all([storagePromise,localPromise]);
+    if(uploadError)console.error('Resume storage upload failed:',uploadError.name);
     // 7. Track AI token usage
     if (tokensUsed > 0) {
       const now = new Date();
@@ -246,7 +225,7 @@ export async function POST(request: Request): Promise<Response> {
           tokensUsed,
         },
       },
-      { status: 201 }
+      { status: 201,headers:{...timings.headers(),"Cache-Control":"private, no-store"} }
     );
   } catch (error) {
     console.error("Resume upload error:", error);

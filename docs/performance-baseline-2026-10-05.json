@@ -1,0 +1,179 @@
+{
+  "measuredAt": "2026-10-05T13:46:18.636Z",
+  "origin": "https://nextzenorbit.vercel.app",
+  "samples": 5,
+  "authenticated": false,
+  "routes": [
+    {
+      "path": "/",
+      "p50TtfbMs": 302,
+      "p95TtfbMs": 2688,
+      "requests": [
+        {
+          "sample": 1,
+          "ttfbMs": 2688,
+          "totalMs": 2882,
+          "bytes": 96439,
+          "status": 200,
+          "cache": "MISS",
+          "placement": "bom1::iad1::tscr",
+          "serverTiming": null
+        },
+        {
+          "sample": 2,
+          "ttfbMs": 301,
+          "totalMs": 488,
+          "bytes": 96439,
+          "status": 200,
+          "cache": "MISS",
+          "placement": "bom1::iad1::tscr",
+          "serverTiming": null
+        },
+        {
+          "sample": 3,
+          "ttfbMs": 303,
+          "totalMs": 490,
+          "bytes": 96439,
+          "status": 200,
+          "cache": "MISS",
+          "placement": "bom1::iad1::xrpk",
+          "serverTiming": null
+        },
+        {
+          "sample": 4,
+          "ttfbMs": 293,
+          "totalMs": 496,
+          "bytes": 96439,
+          "status": 200,
+          "cache": "MISS",
+          "placement": "bom1::iad1::nj8s",
+          "serverTiming": null
+        },
+        {
+          "sample": 5,
+          "ttfbMs": 302,
+          "totalMs": 493,
+          "bytes": 96439,
+          "status": 200,
+          "cache": "MISS",
+          "placement": "bom1::iad1::r5v7",
+          "serverTiming": null
+        }
+      ]
+    },
+    {
+      "path": "/terms",
+      "p50TtfbMs": 98,
+      "p95TtfbMs": 844,
+      "requests": [
+        {
+          "sample": 1,
+          "ttfbMs": 844,
+          "totalMs": 845,
+          "bytes": 21713,
+          "status": 200,
+          "cache": "PRERENDER",
+          "placement": "bom1::xrpk",
+          "serverTiming": null
+        },
+        {
+          "sample": 2,
+          "ttfbMs": 98,
+          "totalMs": 99,
+          "bytes": 21713,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::xrpk",
+          "serverTiming": null
+        },
+        {
+          "sample": 3,
+          "ttfbMs": 61,
+          "totalMs": 62,
+          "bytes": 21713,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::xrpk",
+          "serverTiming": null
+        },
+        {
+          "sample": 4,
+          "ttfbMs": 291,
+          "totalMs": 292,
+          "bytes": 21713,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::lwl7",
+          "serverTiming": null
+        },
+        {
+          "sample": 5,
+          "ttfbMs": 55,
+          "totalMs": 57,
+          "bytes": 21713,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::lwl7",
+          "serverTiming": null
+        }
+      ]
+    },
+    {
+      "path": "/admin/login",
+      "p50TtfbMs": 66,
+      "p95TtfbMs": 306,
+      "requests": [
+        {
+          "sample": 1,
+          "ttfbMs": 306,
+          "totalMs": 307,
+          "bytes": 21291,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::lwl7",
+          "serverTiming": null
+        },
+        {
+          "sample": 2,
+          "ttfbMs": 290,
+          "totalMs": 291,
+          "bytes": 21291,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::djn9",
+          "serverTiming": null
+        },
+        {
+          "sample": 3,
+          "ttfbMs": 48,
+          "totalMs": 49,
+          "bytes": 21291,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::lwl7",
+          "serverTiming": null
+        },
+        {
+          "sample": 4,
+          "ttfbMs": 66,
+          "totalMs": 66,
+          "bytes": 21291,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::lwl7",
+          "serverTiming": null
+        },
+        {
+          "sample": 5,
+          "ttfbMs": 47,
+          "totalMs": 47,
+          "bytes": 21291,
+          "status": 200,
+          "cache": "HIT",
+          "placement": "bom1::lwl7",
+          "serverTiming": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,6 @@
+import { listApplicationPage } from '@/lib/applications/list';
+import { pagination } from '@/lib/pagination';
+import { getRequestAccess } from '@/lib/request-access';
 /**
  * Applications API — List + Create
  *
@@ -25,7 +28,7 @@ const createApplicationSchema = z.object({
   follow_up_at: z.string().datetime().optional().nullable(),
 });
 
-export async function GET(): Promise<Response> {
+export async function GET(request?:NextRequest): Promise<Response> {
   try {
     const supabase = await createClient();
     const {
@@ -36,6 +39,13 @@ export async function GET(): Promise<Response> {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
     }
 
+    if(request?.nextUrl.searchParams.get('include_queue')==='1'){
+      const access=await getRequestAccess(user.id,user.email||'');
+      if(access.application!=='approved'||!access.service)return apiError(ERROR_CODES.FORBIDDEN,'Service access required.',403);
+      const params=request.nextUrl.searchParams,{page,limit}=pagination(params);
+      const result=await listApplicationPage(user.id,page,limit,params.get('status')||null,params.get('search')||'');
+      return NextResponse.json({success:true,data:result},{headers:{'Cache-Control':'private, no-store'}});
+    }
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("applications")

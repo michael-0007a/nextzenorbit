@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createReferenceClient } from "@/lib/supabase/reference";
 import type { Result } from "@/types/api";
 import type { CareerRow } from "@/types/database";
 
 export async function listCareers(search?: string): Promise<Result<CareerRow[]>> {
-  const supabase = await createClient();
+  const supabase = await createReferenceClient();
   let query = supabase.from("careers").select("*").order("title", { ascending: true });
 
   if (search) {
@@ -21,7 +21,7 @@ export async function listCareers(search?: string): Promise<Result<CareerRow[]>>
 }
 
 export async function getCareerBySlug(slug: string): Promise<Result<CareerRow>> {
-  const supabase = await createClient();
+  const supabase = await createReferenceClient();
   const { data, error } = await supabase
     .from("careers")
     .select("*")

@@ -11,7 +11,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
-import { hasResumeBody } from "@/lib/resume/export-content";
+import { pagination, paginationMeta } from "@/lib/pagination";
+import { resumeMetadata } from '@/lib/admin/resume-metadata';
+import { createTimings } from '@/lib/performance';
 
 const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
 
@@ -21,6 +23,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
+  const timings=createTimings();
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
@@ -30,6 +33,7 @@ export async function GET(
 
     if (adminAuth.role === "admin" && !await isAssignedToClient(adminAuth.userId,id)) return apiError(ERROR_CODES.FORBIDDEN,"This client is not assigned to you.",403);
     const admin = createAdminClient();
+    const { page, limit, offset } = pagination(request.nextUrl.searchParams);
 
     // Fetch user details with full profile
     const { data: user, error: userError } = await admin
@@ -70,48 +74,37 @@ export async function GET(
         })
       : false;
 
-    // Fetch resumes with content (including is_base flag)
-    const { data: resumes } = await admin
-      .from("resumes")
-      .select("id, title, content, template_id, is_base, version, created_at, updated_at")
-      .eq("user_id", id)
-      .is("deleted_at", null)
-      .order("is_base", { ascending: false })
-      .order("updated_at", { ascending: false });
-
-    // Fetch queue history
-    const { data: queue } = await admin
+    const [{ data: resumes, error: resumeError }, { data: queue, error: queueError, count: queueCount }, { data: adminResumes, error: generatedError }, { data: adminCoverLetters, error: letterError }, { data: notifications, error: notificationError }] = await Promise.all([
+timings.measure("resume_metadata",()=>resumeMetadata(adminAuth.userId,id)),
+admin
       .from("job_queue")
-      .select("id, title, company, job_url, status, source, created_at, applied_at, admin_notes, assigned_to")
+      .select("id, title, company, job_url, status, source, created_at, applied_at, admin_notes, assigned_to", { count: "exact" })
       .eq("user_id", id)
-      .order("created_at", { ascending: false });
-
-    // Fetch admin-generated resumes for this user
-    const { data: adminResumes } = await admin
+      .order("created_at", { ascending: false }).order("id").range(offset, offset + limit - 1),
+admin
       .from("admin_resumes")
       .select("id, title, job_title, company, job_description, template_id, expires_at, created_at, admin_id")
       .eq("user_id", id)
       .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false });
-
-    // Fetch admin-generated cover letters for this user
-    const { data: adminCoverLetters } = await admin
+      .order("created_at", { ascending: false }),
+admin
       .from("admin_cover_letters")
       .select("id, title, company_name, job_title, expires_at, created_at, admin_id")
       .eq("user_id", id)
       .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false });
-
-    // Fetch recent notifications sent to this user
-    const { data: notifications } = await admin
+      .order("created_at", { ascending: false }),
+admin
       .from("notifications")
       .select("id, type, title, message, is_read, created_at")
       .eq("user_id", id)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(10),
+]);
+
+for (const error of [resumeError, queueError, generatedError, letterError, notificationError]) if (error) throw error;
 
     // Find the base resume
-    const displayResumes = (resumes || []).map(resume => ({ ...resume, has_export_content: hasResumeBody(resume.content) }));
+    const displayResumes = resumes||[];
     const baseResume = displayResumes.find(resume => resume.is_base) || null;
 
     return NextResponse.json(
@@ -121,10 +114,11 @@ export async function GET(
         resumes: displayResumes,
         baseResume,
         queue: queue || [],
+        queuePagination: paginationMeta(page, limit, queueCount ?? 0),
         adminResumes: adminResumes || [],
         adminCoverLetters: adminCoverLetters || [],
         notifications: notifications || [],
-      })
+      }),{headers:{...timings.headers(),"Cache-Control":"private, no-store"}}
     );
   } catch (err) {
     console.error("Admin User Details GET exception:", err);

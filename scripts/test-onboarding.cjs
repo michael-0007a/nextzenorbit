@@ -5,10 +5,10 @@ const { loadSource } = require('./test-admin-resume-exports.cjs');
 
 const viewer = { id: '11111111-1111-4111-8111-111111111111', email: 'Client@Example.com' };
 function accessMocks({ status = null, role = 'user', suspended = false, blocked = false, failure = false } = {}) {
-  return { '@/lib/supabase/admin': { createAdminClient: () => ({
+  return { 'next/headers':{headers:async()=>new Headers()}, '@/lib/supabase/admin': { createAdminClient: () => ({
     auth: { admin: { getUserById: async () => ({ data: { user: viewer } }) } },
     from(table) {
-      const result = { data: table === 'users' ? { role, is_suspended: suspended } : table === 'registration_blocks' ? (blocked ? [{ kind: 'phone' }] : []) : (status ? { status } : null), error: failure ? new Error('Database unavailable') : null };
+      const result = { data: table === 'users' ? { role,email:viewer.email,is_suspended:suspended,application:status?{status,phone:null}:null,subscription:null } : table === 'registration_blocks' ? (blocked ? [{ kind: 'phone' }] : []) : (status ? { status } : null), error: failure ? new Error('Database unavailable') : null };
       const query = { select() { return query; }, eq() { return query; }, in() { return query; }, limit() { return Promise.resolve(result); }, maybeSingle() { return Promise.resolve(result); } };
       return query;
     },

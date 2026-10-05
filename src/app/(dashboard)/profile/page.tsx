@@ -6,7 +6,7 @@
  * Route: /(dashboard)/profile
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/forms/profile-form";
@@ -19,9 +19,7 @@ interface Props {
 
 export default async function ProfilePage({ searchParams }: Props) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getCachedUser();
 
   if (!user) redirect("/login");
 

@@ -5,7 +5,7 @@
  * Route: /(dashboard)/cover-letter
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
@@ -15,9 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CoverLetterPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getCachedUser();
 
   if (!user) redirect("/login");
 

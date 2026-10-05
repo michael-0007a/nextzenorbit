@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useDeferredValue } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -102,6 +102,7 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
   });
 
   const watchedContent = methods.watch();
+  const previewContent = useDeferredValue(watchedContent);
 
   // ── Auto-save (debounced 2s) ──
   const saveResume = useCallback(
@@ -376,7 +377,7 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
                 <div className="overflow-auto max-h-[calc(100vh-14rem)] rounded-lg border border-border">
                   <ResumePreview
                     key={`preview-${templateId}`}
-                    content={watchedContent as ResumeContent}
+                    content={previewContent as ResumeContent}
                     templateId={templateId}
                     scale={0.55}
                   />

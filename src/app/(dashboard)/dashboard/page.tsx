@@ -6,6 +6,7 @@
  */
 
 import { getCachedUser, getCachedProfile } from "@/lib/supabase/server";
+import { getRequestAccess } from "@/lib/request-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { getTrialDaysRemaining, isTrialActive, isSubscriptionActive } from "@/lib/subscription";
@@ -35,11 +36,7 @@ export default async function DashboardPage() {
   // Fetch profile + subscription + counts in parallel
   const [profile, subRes, resumeCountRes, appCountRes] = await Promise.all([
     getCachedProfile(user.id),
-    admin
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle(),
+    getRequestAccess(user.id, user.email ?? ""),
     admin
       .from("resumes")
       .select("id", { count: "exact", head: true })
@@ -56,7 +53,7 @@ export default async function DashboardPage() {
     || user.user_metadata?.name
     || "";
   const firstName = fullName?.split(" ")[0] || user.email?.split("@")[0] || "there";
-  const subscription = subRes.data as SubscriptionRow | null;
+  const subscription = subRes.subscription;
   const resumeCount = resumeCountRes.count ?? 0;
   const applicationCount = appCountRes.count ?? 0;
 

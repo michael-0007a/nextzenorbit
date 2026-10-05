@@ -1,3 +1,4 @@
+import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
 import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
@@ -26,7 +27,7 @@ import { parseExportContent, hasResumeBody } from "@/lib/resume/export-content";
 import type { ResumeRow } from "@/types/database";
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY,timeout:45000,maxRetries:0,
 });
 
 const adminOptimizeSchema = z.object({
@@ -39,7 +40,9 @@ const adminOptimizeSchema = z.object({
   embellishmentLevel: z.enum(["conservative", "moderate", "aggressive"]).default("moderate"),
 });
 
+export const maxDuration=60;
 export async function POST(request: NextRequest): Promise<Response> {
+  const timings=createTimings(),signal=AbortSignal.timeout(45000);
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       embellishmentLevel as EmbellishmentLevel
     );
 
-    const completion = await groq.chat.completions.create({
+    const completion = await timings.measure('model',()=>groq.chat.completions.create({
       ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
@@ -103,7 +106,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
       max_tokens: 24000,
       response_format: { type: "json_object" },
-    });
+    },{signal}));
 
     const responseText = completion.choices[0]?.message?.content;
 
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success || !hasResumeBody(validatedContent.data)) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
 
-    const fitted = await fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id);
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id,{signal}));
 
     // Return optimized content WITHOUT mutating the original resume
     return NextResponse.json({
@@ -186,7 +189,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         embellishmentLevel,
         tokensUsed: (completion.usage?.total_tokens || 0) + fitted.tokensUsed,
       },
-    });
+    },{headers:{...timings.headers(),"Cache-Control":"private, no-store"}});
   } catch (err) {
     console.error("Admin resume optimize error:", err);
     return apiError(ERROR_CODES.INTERNAL_ERROR, "Optimization failed.", 500);

@@ -3,6 +3,7 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { SessionLogout } from "@/components/layout/session-logout";
+import { WebVitals } from "@/components/providers/web-vitals";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export function Providers({ children }: ProvidersProps) {
       disableTransitionOnChange
     >
       {children}
+      <WebVitals />
       <SessionLogout />
       <Toaster
         position="bottom-right"

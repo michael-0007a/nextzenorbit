@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
+import { pagination, paginationMeta } from "@/lib/pagination";
 
 // Required profile fields — matches the dashboard gate
 const REQUIRED_PROFILE_FIELDS = ["full_name", "preferred_role", "phone", "headline"];
@@ -37,6 +38,26 @@ export async function GET(request: NextRequest): Promise<Response> {
     const statusFilter = searchParams.get("status"); // optional
 
     const admin = createAdminClient();
+    const { page, limit, offset } = pagination(searchParams, 20);
+    const clientId = searchParams.get("user_id");
+    if (clientId) {
+      if (!z.string().uuid().safeParse(clientId).success) return apiError(ERROR_CODES.VALIDATION_ERROR, "Invalid client.", 400);
+      if (adminAuth.role === "admin" && !await isAssignedToClient(adminAuth.userId, clientId)) return apiError(ERROR_CODES.FORBIDDEN, "This client is not assigned to you.", 403);
+      let query = admin.from("job_queue").select(`id,title,company,job_url,status,source,created_at,applied_at,admin_notes,assigned_to,
+        resume:resumes(id,title,target_role),generated_resume:admin_resumes(id,title)`, { count: "exact" }).eq("user_id", clientId);
+      if (statusFilter) query = query.eq("status", statusFilter as import("@/types/database").JobQueueRow["status"]);
+      const { data, error, count } = await query.order("created_at", { ascending: false }).order("id").range(offset, offset + limit - 1);
+      if (error) throw error;
+      const jobs = (data ?? []).map(job => ({ ...job, resume: (Array.isArray(job.resume) ? job.resume[0] : job.resume) ?? (Array.isArray(job.generated_resume) ? job.generated_resume[0] : job.generated_resume) }));
+      return NextResponse.json(apiSuccess({ jobs }, { pagination: paginationMeta(page, limit, count ?? 0) }), { headers: { "Cache-Control": "private, no-store" } });
+    }
+    const optimized = await admin.rpc("performance_queue_page", { p_actor_id: adminAuth.userId, p_page: page, p_limit: limit,
+      p_search: (searchParams.get("search") ?? "").slice(0, 200), p_completed: searchParams.get("filter") === "completed", p_status: statusFilter });
+    if (!optimized.error) {
+      const result = optimized.data as { users: unknown[]; pagination: import("@/types/api").PaginationMeta };
+      return NextResponse.json(apiSuccess({ users: result.users }, { pagination: result.pagination }), { headers: { "Cache-Control": "private, no-store" } });
+    }
+    if (!["PGRST202", "42883"].includes(optimized.error.code)) throw optimized.error;
 
     const clientIds = adminAuth.role === "admin" ? await assignedClientIds(adminAuth.userId) : null;
     // Fetch only accessible clients before loading their private details.

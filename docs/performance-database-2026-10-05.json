@@ -1,0 +1,265 @@
+{
+  "measuredAt": "2026-10-05T13:46:23.098Z",
+  "indexes": [
+    {
+      "tablename": "applications",
+      "indexname": "applications_pkey",
+      "indexdef": "CREATE UNIQUE INDEX applications_pkey ON public.applications USING btree (id)"
+    },
+    {
+      "tablename": "applications",
+      "indexname": "idx_applications_applied_at",
+      "indexdef": "CREATE INDEX idx_applications_applied_at ON public.applications USING btree (applied_at)"
+    },
+    {
+      "tablename": "applications",
+      "indexname": "idx_applications_status",
+      "indexdef": "CREATE INDEX idx_applications_status ON public.applications USING btree (status)"
+    },
+    {
+      "tablename": "applications",
+      "indexname": "idx_applications_user",
+      "indexdef": "CREATE INDEX idx_applications_user ON public.applications USING btree (user_id)"
+    },
+    {
+      "tablename": "client_admin_assignments",
+      "indexname": "client_admin_assignments_admin",
+      "indexdef": "CREATE INDEX client_admin_assignments_admin ON public.client_admin_assignments USING btree (admin_id, user_id)"
+    },
+    {
+      "tablename": "client_admin_assignments",
+      "indexname": "client_admin_assignments_pkey",
+      "indexdef": "CREATE UNIQUE INDEX client_admin_assignments_pkey ON public.client_admin_assignments USING btree (user_id, admin_id)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "idx_job_queue_assigned",
+      "indexdef": "CREATE INDEX idx_job_queue_assigned ON public.job_queue USING btree (assigned_to, status)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "idx_job_queue_pending",
+      "indexdef": "CREATE INDEX idx_job_queue_pending ON public.job_queue USING btree (user_id, status) WHERE (status = 'pending'::text)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "idx_job_queue_pending_unclaimed",
+      "indexdef": "CREATE INDEX idx_job_queue_pending_unclaimed ON public.job_queue USING btree (status) WHERE ((status = 'pending'::text) AND (assigned_to IS NULL))"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "idx_job_queue_screenshot_expiry",
+      "indexdef": "CREATE INDEX idx_job_queue_screenshot_expiry ON public.job_queue USING btree (screenshot_expires_at) WHERE (screenshot_url IS NOT NULL)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "idx_job_queue_status",
+      "indexdef": "CREATE INDEX idx_job_queue_status ON public.job_queue USING btree (status)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "idx_job_queue_user",
+      "indexdef": "CREATE INDEX idx_job_queue_user ON public.job_queue USING btree (user_id)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "job_queue_application_credit",
+      "indexdef": "CREATE INDEX job_queue_application_credit ON public.job_queue USING btree (applied_by, applied_at) WHERE (status = 'applied'::text)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "job_queue_client_key",
+      "indexdef": "CREATE UNIQUE INDEX job_queue_client_key ON public.job_queue USING btree (user_id, job_key) WHERE (job_key IS NOT NULL)"
+    },
+    {
+      "tablename": "job_queue",
+      "indexname": "job_queue_pkey",
+      "indexdef": "CREATE UNIQUE INDEX job_queue_pkey ON public.job_queue USING btree (id)"
+    },
+    {
+      "tablename": "profiles",
+      "indexname": "idx_profiles_preferred_role",
+      "indexdef": "CREATE INDEX idx_profiles_preferred_role ON public.profiles USING btree (preferred_role) WHERE (preferred_role IS NOT NULL)"
+    },
+    {
+      "tablename": "profiles",
+      "indexname": "idx_profiles_user_id",
+      "indexdef": "CREATE UNIQUE INDEX idx_profiles_user_id ON public.profiles USING btree (user_id)"
+    },
+    {
+      "tablename": "profiles",
+      "indexname": "profiles_assigned_admin_id_idx",
+      "indexdef": "CREATE INDEX profiles_assigned_admin_id_idx ON public.profiles USING btree (assigned_admin_id)"
+    },
+    {
+      "tablename": "profiles",
+      "indexname": "profiles_pkey",
+      "indexdef": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+    },
+    {
+      "tablename": "resumes",
+      "indexname": "idx_resumes_deleted_at",
+      "indexdef": "CREATE INDEX idx_resumes_deleted_at ON public.resumes USING btree (deleted_at)"
+    },
+    {
+      "tablename": "resumes",
+      "indexname": "idx_resumes_status",
+      "indexdef": "CREATE INDEX idx_resumes_status ON public.resumes USING btree (status)"
+    },
+    {
+      "tablename": "resumes",
+      "indexname": "idx_resumes_user_id",
+      "indexdef": "CREATE INDEX idx_resumes_user_id ON public.resumes USING btree (user_id)"
+    },
+    {
+      "tablename": "resumes",
+      "indexname": "idx_resumes_user_status",
+      "indexdef": "CREATE INDEX idx_resumes_user_status ON public.resumes USING btree (user_id, status)"
+    },
+    {
+      "tablename": "resumes",
+      "indexname": "resumes_pkey",
+      "indexdef": "CREATE UNIQUE INDEX resumes_pkey ON public.resumes USING btree (id)"
+    },
+    {
+      "tablename": "subscriptions",
+      "indexname": "idx_subscriptions_plan_id",
+      "indexdef": "CREATE INDEX idx_subscriptions_plan_id ON public.subscriptions USING btree (plan_id)"
+    },
+    {
+      "tablename": "subscriptions",
+      "indexname": "idx_subscriptions_status",
+      "indexdef": "CREATE INDEX idx_subscriptions_status ON public.subscriptions USING btree (status)"
+    },
+    {
+      "tablename": "subscriptions",
+      "indexname": "idx_subscriptions_user_id",
+      "indexdef": "CREATE INDEX idx_subscriptions_user_id ON public.subscriptions USING btree (user_id)"
+    },
+    {
+      "tablename": "subscriptions",
+      "indexname": "subscriptions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX subscriptions_pkey ON public.subscriptions USING btree (id)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "idx_users_email",
+      "indexdef": "CREATE INDEX idx_users_email ON public.users USING btree (email)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "idx_users_role",
+      "indexdef": "CREATE INDEX idx_users_role ON public.users USING btree (role)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "users_is_suspended_idx",
+      "indexdef": "CREATE INDEX users_is_suspended_idx ON public.users USING btree (is_suspended)"
+    },
+    {
+      "tablename": "users",
+      "indexname": "users_pkey",
+      "indexdef": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)"
+    }
+  ],
+  "counts": [
+    {
+      "relname": "interview_questions",
+      "estimated_rows": 563
+    },
+    {
+      "relname": "roadmap_steps",
+      "estimated_rows": 201
+    },
+    {
+      "relname": "admin_resumes",
+      "estimated_rows": 138
+    },
+    {
+      "relname": "job_queue",
+      "estimated_rows": 108
+    },
+    {
+      "relname": "youtube_resources",
+      "estimated_rows": 78
+    },
+    {
+      "relname": "jobs",
+      "estimated_rows": 75
+    },
+    {
+      "relname": "roadmaps",
+      "estimated_rows": 36
+    },
+    {
+      "relname": "careers",
+      "estimated_rows": 34
+    },
+    {
+      "relname": "ai_usage",
+      "estimated_rows": 22
+    },
+    {
+      "relname": "profiles",
+      "estimated_rows": 22
+    },
+    {
+      "relname": "users",
+      "estimated_rows": 22
+    },
+    {
+      "relname": "subscriptions",
+      "estimated_rows": 22
+    }
+  ],
+  "plans": [
+    {
+      "QUERY PLAN": [
+        {
+          "Plan": {
+            "Node Type": "Limit",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 1.72,
+            "Total Cost": 1.73,
+            "Plan Rows": 1,
+            "Plan Width": 31,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 1.72,
+                "Total Cost": 1.73,
+                "Plan Rows": 1,
+                "Plan Width": 31,
+                "Sort Key": [
+                  "created_at DESC",
+                  "id"
+                ],
+                "Plans": [
+                  {
+                    "Node Type": "Index Scan",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Scan Direction": "Forward",
+                    "Index Name": "idx_job_queue_user",
+                    "Relation Name": "job_queue",
+                    "Alias": "job_queue",
+                    "Startup Cost": 0.14,
+                    "Total Cost": 1.71,
+                    "Plan Rows": 1,
+                    "Plan Width": 31,
+                    "Index Cond": "(user_id = '00000000-0000-0000-0000-000000000000'::uuid)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
