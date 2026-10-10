@@ -1,6 +1,7 @@
 const { Client } = require('pg');
 
-const connectionString = "postgresql://postgres.bxdfqqxfhmycjxzaqrzc:BcjZVyCxVOwtrvRt@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) { console.error("Set DATABASE_URL."); process.exit(1); }
 
 async function fixPolicies() {
   const client = new Client({ connectionString });

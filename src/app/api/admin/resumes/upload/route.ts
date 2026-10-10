@@ -1,4 +1,5 @@
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractText, parseResumeWithAI } from "@/lib/ai/parsers/resume-parser";
 import { hasResumeBody, parseExportContent } from "@/lib/resume/export-content";
@@ -17,6 +18,8 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const userId = String(form.get("userId") || "");
     if (!/^[0-9a-f-]{36}$/i.test(userId)) return Response.json({ error: { message: "Invalid client." } }, { status: 400 });
+    const denied = await denyUnassignedClient(auth, userId);
+    if (denied) return denied;
     const file = form.get("file");
     if (!(file instanceof File) || !file.size || file.size > 5 * 1024 * 1024 || !/\.(pdf|docx)$/i.test(file.name)) return Response.json({ error: { message: "Choose a PDF or DOCX under 5 MB." } }, { status: 400 });
     const admin = createAdminClient();

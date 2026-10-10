@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { portal, url, fieldsDetected, fieldNames, status, error } = body;
 
-    if (!portal) {
+    if (!portal || typeof portal !== 'string') {
       return NextResponse.json({ error: 'Portal is required' }, { status: 400 });
     }
 
@@ -21,14 +22,16 @@ export async function POST(request: NextRequest) {
     // Let's assume we log to a table or just return success for the MVP
     // To avoid crashes if the table doesn't exist, we can use RPC or just attempt insert and swallow error
     
-    const { error: dbError } = await supabase.from('autofill_telemetry').insert({
+    // anon INSERT is revoked on the table (migration 042); write with the service role and cap sizes here.
+    const clip = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : null);
+    const { error: dbError } = await createAdminClient().from('autofill_telemetry').insert({
       user_id: user?.id || null,
-      portal,
-      url,
-      fields_detected: fieldsDetected || 0,
-      field_names: fieldNames || [],
-      status: status || 'unknown',
-      error_message: error || null,
+      portal: portal.slice(0, 100),
+      url: clip(url, 500) || '',
+      fields_detected: Math.min(Math.max(Number(fieldsDetected) || 0, 0), 1000),
+      field_names: Array.isArray(fieldNames) ? fieldNames.slice(0, 100).map(n => String(n).slice(0, 100)) : [],
+      status: clip(status, 50) || 'unknown',
+      error_message: clip(error, 500),
     });
 
     if (dbError) {
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Telemetry error:', error);
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { success: false, error: 'Telemetry failed.' },
       { status: 500 }
     );
   }

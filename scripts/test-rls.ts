@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 async function main() {
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const email = `test-rls-${Date.now()}@example.com`;
-  const password = 'Password123!';
+  const password = `Tmp-${crypto.randomUUID()}`;
 
   console.log('1. Creating test user...', email);
   const { data: authData, error: authErr } = await adminClient.auth.admin.createUser({

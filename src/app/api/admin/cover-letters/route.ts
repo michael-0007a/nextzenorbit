@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 import { z } from "zod";
 
@@ -29,6 +30,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "user_id is required");
     }
 
+    const denied = await denyUnassignedClient(adminAuth, userId);
+    if (denied) return denied;
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("admin_cover_letters")
@@ -58,6 +61,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (!parsed.success) return apiError(ERROR_CODES.VALIDATION_ERROR, "Provide a valid client, title and cover letter content.", 400);
     const { user_id, title, content, job_title, company_name, job_description } = parsed.data;
 
+    const denied = await denyUnassignedClient(adminAuth, user_id);
+    if (denied) return denied;
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("admin_cover_letters")

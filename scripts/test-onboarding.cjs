@@ -100,7 +100,7 @@ test('Cover letter creation loads the client instead of redirecting on an ambigu
   };
   const page = loadSource('src/app/(admin)/admin/users/[id]/generate-cover-letter/page.tsx', {
     '@/lib/supabase/admin': { createAdminClient: () => ({ from: () => query }) },
-    '@/lib/admin/guards': { requireAdmin: async () => ({ role: 'admin' }), isAuthError: () => false },
+    '@/lib/admin/guards': { requireAdmin: async () => ({ role: 'super_admin' }), isAuthError: () => false },
     'next/navigation': { redirect: () => { throw new Error('Unexpected redirect'); } },
     './client': { AdminCoverLetterGeneratorClient: () => null },
   }).default;

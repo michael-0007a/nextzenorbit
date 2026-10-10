@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 import { hasResumeBody, parseExportContent } from "@/lib/resume/export-content";
 
@@ -23,6 +24,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.VALIDATION_ERROR, "user_id is required");
     }
 
+    const denied = await denyUnassignedClient(adminAuth, userId);
+    if (denied) return denied;
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("admin_resumes")
@@ -58,6 +61,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     const parsedContent = parseExportContent(content);
     if (!parsedContent.success || !hasResumeBody(parsedContent.data)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose or upload a populated base resume before saving.", 422);
 
+    const denied = await denyUnassignedClient(adminAuth, user_id);
+    if (denied) return denied;
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("admin_resumes")

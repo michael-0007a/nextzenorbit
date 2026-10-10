@@ -11,6 +11,7 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import Groq from "groq-sdk";
 import { z } from "zod";
 import { COVER_LETTER_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const { userId, resumeId, jobDescription, companyName, jobTitle, hiringManager } = parsed.data;
 
+    const denied = await denyUnassignedClient(adminAuth, userId);
+    if (denied) return denied;
     const admin = createAdminClient();
 
     // Fetch resume (must belong to the user)

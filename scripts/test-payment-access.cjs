@@ -182,7 +182,7 @@ test('Reconciliation uses the owning account, exact reference and captured amoun
 });
 test('Admin recovery cannot manually activate a plan without a verified payment',async()=>{
   const route=loadSource('src/app/api/admin/subscription/activate/route.ts',{
-    '@/lib/admin/guards':{requireAdmin:async()=>({userId:'admin'}),isAuthError:()=>false},
+    '@/lib/admin/guards':{requireAdmin:async()=>({userId:'admin',role:'super_admin'}),isAuthError:()=>false},
     '@/lib/rate-limit':{rateLimit:async()=>null},
     '@/lib/onboarding':{requireApprovedAccount:async()=>null},
     '@/lib/payments/reconcile':{reconcileUserPayments:async()=>0},

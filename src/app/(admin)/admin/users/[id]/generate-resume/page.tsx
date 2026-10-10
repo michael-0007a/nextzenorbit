@@ -8,6 +8,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { hasResumeBody, parseExportContent } from "@/lib/resume/export-content";
 import { redirect } from "next/navigation";
 import { AdminResumeGeneratorClient } from "./client";
@@ -23,6 +24,7 @@ export default async function AdminResumeGeneratorPage({ params }: Props) {
   if (isAuthError(adminAuth)) redirect("/admin");
 
   const { id } = await params;
+  if (await denyUnassignedClient(adminAuth, id)) redirect("/admin/users");
   const admin = createAdminClient();
 
   // Fetch user info

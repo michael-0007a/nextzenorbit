@@ -13,6 +13,7 @@ import { unsupportedPdfCharacters } from "@/lib/resume/layout";
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { getTemplate } from "@/lib/resume/templates";
 import { generateLatex } from "@/lib/resume/latex-templates";
 import { parseExportContent, hasResumeBody } from "@/lib/resume/export-content";
@@ -76,6 +77,8 @@ export async function GET(
       if (!isAdmin) {
         return apiError(ERROR_CODES.NOT_FOUND, "Resume not found.", 404);
       }
+      const denied = await denyUnassignedClient({ userId: user.id, role: requestingUser?.role || "" }, resume.user_id);
+      if (denied) return denied;
     }
 
     const typedResume = resume as ResumeRow;
