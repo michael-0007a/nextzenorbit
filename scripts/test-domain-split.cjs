@@ -40,18 +40,20 @@ test('Hosts are classified and pages are routed to their domain', () => withEnv(
     ['site', '/privacy', null],
     ['site', '/login', { redirect: 'https://app.nextzenorbit.com/login?x=1' }],
     ['site', '/dashboard', { redirect: 'https://app.nextzenorbit.com/dashboard?x=1' }],
-    ['site', '/admin/users', { redirect: 'https://admin.nextzenorbit.com/admin/users?x=1' }],
+    ['site', '/admin/users', { redirect: 'https://admin.nextzenorbit.com/users?x=1' }],
     ['app', '/dashboard', null],
-    ['app', '/admin', { redirect: 'https://admin.nextzenorbit.com/admin?x=1' }],
+    ['app', '/admin', { redirect: 'https://admin.nextzenorbit.com/?x=1' }],
     ['app', '/administrator', null],
     ['admin', '/', { rewrite: '/admin' }],
     ['admin', '/users', { rewrite: '/admin/users' }],
     ['admin', '/login', { rewrite: '/admin/login' }],
-    ['admin', '/admin/users/42', null],
+    ['admin', '/admin/users/42', { redirect: 'https://admin.nextzenorbit.com/users/42?x=1' }],
+    ['admin', '/admin', { redirect: 'https://admin.nextzenorbit.com/?x=1' }],
+    ['admin', '/administrator', { rewrite: '/admin/administrator' }],
     ['legacy', '/', { redirect: 'https://nextzenorbit.com/?x=1' }],
     ['legacy', '/terms', { redirect: 'https://nextzenorbit.com/terms?x=1' }],
     ['legacy', '/resumes/1', { redirect: 'https://app.nextzenorbit.com/resumes/1?x=1' }],
-    ['legacy', '/admin/team', { redirect: 'https://admin.nextzenorbit.com/admin/team?x=1' }],
+    ['legacy', '/admin/team', { redirect: 'https://admin.nextzenorbit.com/team?x=1' }],
     ['any', '/admin', null],
   ];
   for (const [kind, path, expected] of cases) assert.deepEqual(routeForHost(kind, path, '?x=1'), expected, `${kind} ${path}`);
@@ -109,7 +111,11 @@ test('Middleware applies host routing before auth and never redirects webhooks',
   assert.equal(new URL(clean.headers.get('x-middleware-rewrite')).search, '?page=2');
   assert.equal(clean.headers.get('x-robots-tag'), 'noindex, nofollow');
   const unauthenticated = await anon(req('https://admin.nextzenorbit.com/users'));
-  assert.equal(new URL(unauthenticated.headers.get('location')).pathname, '/admin/login');
+  assert.equal(unauthenticated.headers.get('location'), 'https://admin.nextzenorbit.com/login');
+  const prefixed = await anon(req('https://admin.nextzenorbit.com/admin/login'));
+  assert.equal(prefixed.headers.get('location'), 'https://admin.nextzenorbit.com/login');
+  const loginPage = await anon(req('https://admin.nextzenorbit.com/login'));
+  assert.equal(new URL(loginPage.headers.get('x-middleware-rewrite')).pathname, '/admin/login');
 }));
 
 test('Unconfigured deployments keep the old single-host behaviour', () => withEnv({ NEXT_PUBLIC_APP_URL: 'https://nextzenorbit.vercel.app' }, async () => {

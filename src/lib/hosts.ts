@@ -45,6 +45,7 @@ export function appHref(path: string) {
 
 const SITE_PAGES = new Set(["/", "/privacy", "/terms", "/refund", "/compliance"]);
 const isAdminPath = (path: string) => path === "/admin" || path.startsWith("/admin/");
+const cleanAdminPath = (path: string) => path.replace(/^\/admin/, "") || "/";
 // APIs (webhooks, OAuth callback, extension) and framework/static files are never moved between hosts.
 const passthrough = (path: string) => path.startsWith("/api/") || path === "/api" || path.startsWith("/_next/") || /\/[^/]+\.[a-z0-9]+$/i.test(path);
 
@@ -54,20 +55,22 @@ export type HostRoute = { redirect: string } | { rewrite: string } | null;
 export function routeForHost(kind: HostKind, path: string, search = ""): HostRoute {
   const hosts = configuredHosts();
   if (!hosts || kind === "any" || passthrough(path)) return null;
-  const to = (host: string) => ({ redirect: `${origin(host)}${path}${search}` });
+  const to = (host: string, target = path) => ({ redirect: `${origin(host)}${target}${search}` });
+  // shortcut: in-app links still say /admin/..., so on the staff host they cost one 308 hop to the clean URL; make links host-aware if that hop matters.
+  const toAdmin = () => to(hosts.admin, cleanAdminPath(path));
 
   if (kind === "site") {
-    if (isAdminPath(path)) return to(hosts.admin);
+    if (isAdminPath(path)) return toAdmin();
     return SITE_PAGES.has(path) ? null : to(hosts.app);
   }
-  if (kind === "app") return isAdminPath(path) ? to(hosts.admin) : null;
+  if (kind === "app") return isAdminPath(path) ? toAdmin() : null;
   if (kind === "admin") {
-    if (isAdminPath(path)) return null;
+    if (isAdminPath(path)) return toAdmin();
     // Clean staff URLs: /users -> /admin/users, / -> /admin. Client pages 404 here.
     return { rewrite: path === "/" ? "/admin" : `/admin${path}` };
   }
   // legacy (*.vercel.app): pages move to their new host.
-  if (isAdminPath(path)) return to(hosts.admin);
+  if (isAdminPath(path)) return toAdmin();
   return to(SITE_PAGES.has(path) ? hosts.site : hosts.app);
 }
 

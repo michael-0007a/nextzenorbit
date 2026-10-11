@@ -109,7 +109,7 @@ export default async function proxy(request: NextRequest) {
   if (path.startsWith("/admin") && path !== "/admin/login") {
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/admin/login";
+      redirectUrl.pathname = kind === "admin" ? "/login" : "/admin/login";
       return NextResponse.redirect(redirectUrl);
     }
   }
