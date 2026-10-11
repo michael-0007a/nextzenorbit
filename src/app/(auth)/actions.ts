@@ -52,6 +52,19 @@ export async function signInWithGoogle() {
   }
 }
 
+// ── Sign In with email + password (accounts created by staff or for testing) ──
+export async function signInWithEmail(email: string, password: string) {
+  if (typeof email !== "string" || typeof password !== "string" || email.length > 254 || password.length > 1024) return { error: "Invalid credentials." };
+  const headersList = await headers();
+  const ip = headersList.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() || headersList.get("x-real-ip") || "unknown";
+  const limited = await rateLimit("login-ip", ip, 30, 900)
+    || await rateLimit("login-email", email.trim().toLowerCase(), 10, 900);
+  if (limited) return { error: "Too many sign-in attempts. Please try again later." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+  return error ? { error: "Invalid email or password." } : {};
+}
+
 // ── Sign Out ──
 export async function signOut() {
   const supabase = await createClient();
