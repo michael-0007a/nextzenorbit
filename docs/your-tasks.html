@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Beta Checklist</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1c1c1a; --muted: #5f5f5a; --line: #e4e4df;
+    --accent: #4f46e5; --accent-soft: #eef0ff; --warn: #b45309; --warn-soft: #fff7e6;
+    --bad: #b91c1c; --bad-soft: #fdecec; --ok: #0f766e; --ok-soft: #e7f6f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --surface: #1c1c1e; --text: #ececea; --muted: #a1a19c; --line: #2e2e30;
+      --accent: #a5b4fc; --accent-soft: #23243a; --warn: #fbbf24; --warn-soft: #2b2416;
+      --bad: #fca5a5; --bad-soft: #2d1a1a; --ok: #5eead4; --ok-soft: #14282a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 44px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+  h2 small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+  h3 { font-size: 16px; margin: 22px 0 4px; }
+  p, li { max-width: 78ch; }
+  .lede { color: var(--muted); }
+  code { font: 13px ui-monospace, Consolas, monospace; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font: 13px/1.5 ui-monospace, Consolas, monospace; margin: 8px 0; }
+  pre code { background: none; padding: 0; }
+  .box { border-radius: 8px; padding: 10px 14px; margin: 14px 0; border-left: 3px solid; }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .bad { background: var(--bad-soft); border-color: var(--bad); }
+  .ok { background: var(--ok-soft); border-color: var(--ok); }
+  .tasks { list-style: none; padding: 0; margin: 10px 0; }
+  .tasks > li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 8px 0; display: flex; gap: 12px; align-items: flex-start; }
+  .tasks input { margin-top: 5px; flex: none; width: 17px; height: 17px; accent-color: var(--accent); }
+  .tasks > li > div { min-width: 0; flex: 1; }
+  .tasks li.done > div { opacity: .55; }
+  .tasks b.t { display: block; }
+  .where { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+  .progress { position: sticky; top: 0; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted); z-index: 1; }
+  .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .bar div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+  th, td { text-align: left; padding: 7px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  ul.plain { padding-left: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Beta, then launch</h1>
+  <p class="lede">The code is on the <code>beta</code> branch on GitHub: your security commit <code>aacec9d</code>, then the domain split and the five features on top of it. <code>main</code> and production are untouched. Below is everything only you can do, in order. Ticks are saved in this browser.</p>
+
+  <div class="progress"><span id="count">0 / 0 done</span><div class="bar"><div id="fill"></div></div></div>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <h2>How this works <small>read once</small></h2>
+  <ul class="plain">
+    <li><b>One Vercel project, one deployment, many domains.</b> You do not need three deployments. All domains point at the same app, and the code looks at which domain a visitor used to decide what to show: the homepage, the client app or the admin console.</li>
+    <li><b>Production vs preview.</b> Vercel builds <b>production</b> only from <code>main</code>. Every other branch, like <code>beta</code>, gets its own separate <b>preview</b> build at its own address. Pushing to <code>beta</code> can never change the live site.</li>
+    <li><b>Safety switch.</b> The domain split is <b>off</b> unless all three of <code>NEXT_PUBLIC_SITE_URL</code>, <code>NEXT_PUBLIC_APP_URL</code> and <code>NEXT_PUBLIC_ADMIN_URL</code> are set. Without them, the app works exactly as it does today, plus the new features. A test covers this.</li>
+    <li><b>Same database.</b> Beta uses your real Supabase database. That's fine because the new migrations only <i>add</i> tables, but it means everything you do on beta is real: use test accounts, never message real clients, and don't test payments on beta.</li>
+    <li><b>Beta domains mirror production exactly</b>, so testing beta tests the real setup:
+      <div class="tbl"><table>
+        <tr><th>Part</th><th>Beta</th><th>Production (later)</th></tr>
+        <tr><td>Homepage</td><td><code>beta.nextzenorbit.com</code></td><td><code>nextzenorbit.com</code></td></tr>
+        <tr><td>Client app</td><td><code>app.beta.nextzenorbit.com</code></td><td><code>app.nextzenorbit.com</code></td></tr>
+        <tr><td>Admin</td><td><code>admin.beta.nextzenorbit.com</code></td><td><code>admin.nextzenorbit.com</code></td></tr>
+      </table></div>
+      The app domain must sit <i>under</i> the homepage domain (<code>app.X</code> under <code>X</code>) for the homepage and app to share one login. That's why it's <code>app.beta…</code> and not <code>beta-app…</code>.</li>
+  </ul>
+
+  <!-- ============ STEP 0 ============ -->
+  <h2>0 · Fix the homepage DNS <small>today, separate from everything else</small></h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b0-1"><div><span class="where">GoDaddy → My Products → nextzenorbit.com → DNS</span>
+      <b class="t">Delete the A records <code>3.33.130.190</code> and <code>15.197.148.33</code></b>
+      Keep <code>A @ 216.198.79.1</code> (Vercel). The other two are GoDaddy parking addresses, so some visitors land on GoDaddy instead of your site. If GoDaddy <b>Forwarding</b> is on for the domain, turn it off; that's usually what creates them. <b>Don't touch</b> the MX records (<code>mx1/mx2.improvmx.com</code>) or the TXT/SPF records: that's your email.</div></li>
+    <li><input type="checkbox" id="b0-2"><div><span class="where">Vercel → nextzenorbit project → Settings → Domains</span>
+      <b class="t">Make <code>www.nextzenorbit.com</code> redirect to <code>nextzenorbit.com</code></b>
+      Edit <code>www.nextzenorbit.com</code> → <b>Redirect to</b> <code>nextzenorbit.com</code>, status <b>308</b>. Check:
+      <pre><code>curl -I https://www.nextzenorbit.com     # expect 308 to https://nextzenorbit.com/
+nslookup nextzenorbit.com 8.8.8.8        # expect only 216.198.79.1</code></pre></div></li>
+  </ul>
+
+  <!-- ============ STEP 1 ============ -->
+  <h2>1 · Database migrations <small>Supabase, safe for the live app</small></h2>
+  <div class="box ok"><b>042 is already applied</b> on the live project (checked). The three new migrations only <b>add</b> two tables, two read-only functions and three indexes. The current live app never uses them, so applying them now changes nothing for your users. Beta needs them, or its new pages will show errors.</div>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b1-1"><div><span class="where">Supabase → nextzenorbit → SQL editor</span>
+      <b class="t">Run <code>supabase/migrations/043_client_activity_feed.sql</code></b>
+      Paste the whole file and run it. Adds the progress-feed functions and three indexes.</div></li>
+    <li><input type="checkbox" id="b1-2"><div><b class="t">Run <code>044_client_messages.sql</code></b> (the messages table).</div></li>
+    <li><input type="checkbox" id="b1-3"><div><b class="t">Run <code>045_mock_interviews.sql</code></b> (the mock interview table).</div></li>
+    <li><input type="checkbox" id="b1-4"><div><span class="where">Supabase → Advisors → Security</span>
+      <b class="t">Check the advisor</b>
+      The new tables will show "RLS enabled, no policies". That's intended: only the server touches them. Or ask me and I'll apply and check all of this through the Supabase tool.</div></li>
+  </ul>
+
+  <!-- ============ STEP 2 ============ -->
+  <h2>2 · Find the beta preview <small>Vercel</small></h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b2-1"><div><span class="where">Vercel → nextzenorbit → Deployments</span>
+      <b class="t">Filter by branch <code>beta</code> and wait for <b>Ready</b></b>
+      The push already started this build. If it shows <b>Error</b>, open it, copy the build log and send it to me. If there's no <code>beta</code> deployment at all, the project isn't connected to GitHub: Settings → Git → connect <code>michael-0007a/nextzenorbit</code>.</div></li>
+    <li><input type="checkbox" id="b2-2"><div><span class="where">Vercel → Settings → Environment Variables</span>
+      <b class="t">Make sure the existing secrets are enabled for <b>Preview</b></b>
+      Open each of these and check that the <b>Preview</b> box is ticked: the Supabase URL and keys (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>), <code>GROQ_API_KEY</code> and the payment keys. If they're Production-only, beta will crash or show errors. Redeploy beta after changing any of them.</div></li>
+    <li><input type="checkbox" id="b2-3"><div><b class="t">Open the preview and click around</b>
+      Click <b>Visit</b> on the beta deployment. You get an address like <code>nextzenorbit-git-beta-….vercel.app</code>. It behaves like today's app plus the new menu items (Messages, LinkedIn, Offer Compare, Mock Interview). If you see a Vercel login page first, that's Vercel's preview protection; you're logged in, so just continue. Logging in on this address may not work until step 5, which is fine.</div></li>
+  </ul>
+
+  <!-- ============ STEP 3 ============ -->
+  <h2>3 · Add the beta domains <small>Vercel + GoDaddy</small></h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b3-1"><div><span class="where">Vercel → nextzenorbit → Settings → Domains → Add Domain</span>
+      <b class="t">Add the three beta domains and attach them to the <code>beta</code> branch</b>
+      Add <code>beta.nextzenorbit.com</code>. When Vercel asks where to connect it, choose <b>Preview</b> and enter the Git branch <code>beta</code> (on some screens: Edit the domain → <b>Git Branch</b> → <code>beta</code>). Repeat for <code>app.beta.nextzenorbit.com</code> and <code>admin.beta.nextzenorbit.com</code>. Don't redirect any of them. Vercel then shows a DNS record for each one; keep that tab open.</div></li>
+    <li><input type="checkbox" id="b3-2"><div><span class="where">GoDaddy → nextzenorbit.com → DNS → Add New Record</span>
+      <b class="t">Add three CNAME records</b>
+      <div class="tbl"><table>
+        <tr><th>Type</th><th>Name</th><th>Value</th><th>TTL</th></tr>
+        <tr><td>CNAME</td><td><code>beta</code></td><td>the value Vercel shows for <code>beta.nextzenorbit.com</code></td><td>1 hour</td></tr>
+        <tr><td>CNAME</td><td><code>app.beta</code></td><td>the value Vercel shows for <code>app.beta…</code></td><td>1 hour</td></tr>
+        <tr><td>CNAME</td><td><code>admin.beta</code></td><td>the value Vercel shows for <code>admin.beta…</code></td><td>1 hour</td></tr>
+      </table></div>
+      Copy each value exactly from Vercel. It usually looks like <code>xxxxxxxx.vercel-dns-017.com</code> (your <code>www</code> uses <code>ee6dc672ef6ee08a.vercel-dns-017.com</code>); older projects use <code>cname.vercel-dns.com</code>. In GoDaddy's Name field type only <code>beta</code>, <code>app.beta</code> or <code>admin.beta</code>, without <code>.nextzenorbit.com</code>.</div></li>
+    <li><input type="checkbox" id="b3-3"><div><b class="t">Wait until all three show <b>Valid Configuration</b> in Vercel</b>
+      Usually 5–30 minutes. Vercel issues the SSL certificates on its own. Check from your machine:
+      <pre><code>nslookup app.beta.nextzenorbit.com 8.8.8.8   # should answer with a vercel-dns name</code></pre></div></li>
+  </ul>
+
+  <!-- ============ STEP 4 ============ -->
+  <h2>4 · Switch the split on for beta only <small>Vercel</small></h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b4-1"><div><span class="where">Vercel → Settings → Environment Variables → Add</span>
+      <b class="t">Add three variables for <b>Preview</b>, branch <code>beta</code> only</b>
+      For each one: untick Production and Development, tick <b>Preview</b>, then pick <b>Select a custom Preview branch</b> → <code>beta</code>. That way only beta sees them.
+      <div class="tbl"><table>
+        <tr><th>Name</th><th>Value</th></tr>
+        <tr><td><code>NEXT_PUBLIC_SITE_URL</code></td><td><code>https://beta.nextzenorbit.com</code></td></tr>
+        <tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td><code>https://app.beta.nextzenorbit.com</code></td></tr>
+        <tr><td><code>NEXT_PUBLIC_ADMIN_URL</code></td><td><code>https://admin.beta.nextzenorbit.com</code></td></tr>
+      </table></div>
+      If <code>NEXT_PUBLIC_APP_URL</code> already exists for Preview, the branch-specific one wins for <code>beta</code>, so you can leave the old one alone. Don't add <code>ORBIT_LEGACY_HOSTS</code> for beta.</div></li>
+    <li><input type="checkbox" id="b4-2"><div><span class="where">Vercel → Deployments → latest beta → ⋯ → Redeploy</span>
+      <b class="t">Redeploy beta</b>
+      <code>NEXT_PUBLIC_*</code> values are baked in when the app is built, so saving them does nothing until a new build. Untick "use existing build cache" if it's offered.</div></li>
+  </ul>
+
+  <!-- ============ STEP 5 ============ -->
+  <h2>5 · Let logins work on beta <small>Supabase, Google</small></h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b5-1"><div><span class="where">Supabase → Authentication → URL Configuration → Redirect URLs → Add URL</span>
+      <b class="t">Add these, keeping everything already there</b>
+      <pre><code>https://beta.nextzenorbit.com/**
+https://app.beta.nextzenorbit.com/**
+https://admin.beta.nextzenorbit.com/**</code></pre>
+      This only adds addresses to the allowed list. Leave the <b>Site URL</b> exactly as it is (<code>https://nextzenorbit.vercel.app</code>).</div></li>
+    <li><input type="checkbox" id="b5-2"><div><span class="where">Google Cloud Console → APIs &amp; Services → Credentials → your OAuth client</span>
+      <b class="t">Only if Google sign-in fails on beta</b>
+      If the client lists <b>Authorized JavaScript origins</b>, add <code>https://app.beta.nextzenorbit.com</code> and <code>https://admin.beta.nextzenorbit.com</code>. Don't change the redirect URI (it's Supabase's own <code>…supabase.co/auth/v1/callback</code>).</div></li>
+    <li><input type="checkbox" id="b5-3"><div><span class="where">Your app's admin console</span>
+      <b class="t">Have two test accounts ready</b>
+      One <b>test client</b>: approved and with an active plan (activate it from the admin console, not by paying). One <b>test admin</b> assigned to that client. Use only these on beta.</div></li>
+  </ul>
+
+  <!-- ============ STEP 6 ============ -->
+  <h2>6 · Test beta <small>use an incognito window</small></h2>
+  <div class="tbl"><table>
+    <tr><th>Do this</th><th>Expected</th></tr>
+    <tr><td>Open <code>https://beta.nextzenorbit.com</code> signed out</td><td>The marketing homepage</td></tr>
+    <tr><td>Open <code>beta.nextzenorbit.com/login</code></td><td>Redirects to <code>app.beta.nextzenorbit.com/login</code></td></tr>
+    <tr><td>Log in as the test client on app.beta, then open <code>beta.nextzenorbit.com</code></td><td>Sends you to <code>app.beta…/dashboard</code> (shared login works)</td></tr>
+    <tr><td>Open <code>app.beta.nextzenorbit.com/admin</code></td><td>Redirects to <code>admin.beta.nextzenorbit.com/admin</code></td></tr>
+    <tr><td>Open <code>admin.beta.nextzenorbit.com</code> while logged in as the client</td><td>Asks for a staff login (admin has its own login)</td></tr>
+    <tr><td>Log in there as the test admin</td><td>Admin console; both <code>/users</code> and <code>/admin/users</code> work</td></tr>
+    <tr><td>Client dashboard</td><td>"Your Team's Work" shows this week's numbers and recent applications/resumes</td></tr>
+    <tr><td>Client sends a message on <b>Messages</b></td><td>Shows up in the admin's <b>Messages</b> inbox. The admin replies from the client's page; the client sees the reply and gets a notification</td></tr>
+    <tr><td><b>LinkedIn</b>: pick a resume, enter a target role</td><td>Headline, About, skills and bullets appear, with copy buttons</td></tr>
+    <tr><td><b>Offer Compare</b>: enter two offers</td><td>Monthly in-hand and first-year cash; the better one gets a trophy</td></tr>
+    <tr><td><b>Mock Interview</b>: answer all 5 questions</td><td>A score and feedback for each answer, then an overall score</td></tr>
+    <tr><td>Log out on app.beta</td><td>You're signed out and land on the login page</td></tr>
+    <tr><td>The plain <code>…vercel.app</code> beta address</td><td>Still works as one single site (no redirects)</td></tr>
+    <tr><td>The live site <code>nextzenorbit.com</code></td><td>Completely unchanged</td></tr>
+  </table></div>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b6-1"><div><b class="t">Every row above checks out</b>
+      Something wrong? Send me the address, what you expected and what happened. I fix it on <code>beta</code>, push, and Vercel rebuilds beta on its own; then test again.</div></li>
+  </ul>
+
+  <!-- ============ STEP 7 ============ -->
+  <h2>7 · Go live <small>this is the production change</small></h2>
+  <div class="box bad">Do this at a quiet time, and keep step 8 (rollback) open in another tab.</div>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b7-1"><div><span class="where">Vercel → Settings → Domains → Add Domain</span>
+      <b class="t">Add <code>app.nextzenorbit.com</code> and <code>admin.nextzenorbit.com</code> for <b>Production</b></b>
+      Then in GoDaddy add two CNAMEs, Name <code>app</code> and Name <code>admin</code>, each with the value Vercel shows. Wait for <b>Valid Configuration</b>. Until step 7.4 they just show the current app.</div></li>
+    <li><input type="checkbox" id="b7-2"><div><span class="where">Supabase → Authentication → URL Configuration → Redirect URLs</span>
+      <b class="t">Add the production addresses</b>
+      <pre><code>https://nextzenorbit.com/**
+https://app.nextzenorbit.com/**
+https://admin.nextzenorbit.com/**</code></pre>
+      If Google lists origins (step 5.2), add <code>https://app.nextzenorbit.com</code> and <code>https://admin.nextzenorbit.com</code> there too.</div></li>
+    <li><input type="checkbox" id="b7-3"><div><span class="where">GitHub → michael-0007a/nextzenorbit → Pull requests → New</span>
+      <b class="t">Merge <code>beta</code> into <code>main</code></b>
+      Base <code>main</code>, compare <code>beta</code>, create and merge. Vercel builds production. The split is still <b>off</b> in production (no variables yet), so the live site only gains the new features at this point. Check them on <code>nextzenorbit.com</code>.</div></li>
+    <li><input type="checkbox" id="b7-4"><div><span class="where">Vercel → Settings → Environment Variables → Production</span>
+      <b class="t">Set these four variables</b>
+      <div class="tbl"><table>
+        <tr><th>Name</th><th>Value</th><th>Note</th></tr>
+        <tr><td><code>NEXT_PUBLIC_SITE_URL</code></td><td><code>https://nextzenorbit.com</code></td><td>new</td></tr>
+        <tr><td><code>NEXT_PUBLIC_APP_URL</code></td><td><code>https://app.nextzenorbit.com</code></td><td>exists already: <b>write down the old value first</b></td></tr>
+        <tr><td><code>NEXT_PUBLIC_ADMIN_URL</code></td><td><code>https://admin.nextzenorbit.com</code></td><td>new</td></tr>
+        <tr><td><code>ORBIT_LEGACY_HOSTS</code></td><td><code>nextzenorbit.vercel.app</code></td><td>new: old links redirect to the new domains</td></tr>
+      </table></div></div></li>
+    <li><input type="checkbox" id="b7-5"><div><b class="t">Redeploy production</b> (Deployments → latest production → ⋯ → Redeploy, without build cache).</div></li>
+    <li><input type="checkbox" id="b7-6"><div><span class="where">Supabase → Authentication → URL Configuration</span>
+      <b class="t">Change the Site URL to <code>https://app.nextzenorbit.com</code></b>
+      Then open <b>Email Templates</b> and check that links use <code>{{ .SiteURL }}</code> or <code>{{ .ConfirmationURL }}</code>, not a typed-in vercel.app address.</div></li>
+    <li><input type="checkbox" id="b7-7"><div><span class="where">PayU merchant dashboard</span>
+      <b class="t">Check for a fixed webhook URL</b>
+      Payment return pages follow <code>NEXT_PUBLIC_APP_URL</code> automatically. If PayU's dashboard also has a typed-in webhook address, change it to <code>https://app.nextzenorbit.com/api/webhooks/payu</code>. The old one keeps working anyway, because <code>/api</code> calls are never redirected.</div></li>
+    <li><input type="checkbox" id="b7-8"><div><b class="t">Repeat the step 6 table on the real domains</b>, plus one real or test-mode payment, a password-reset email, and <code>https://nextzenorbit.vercel.app/resumes</code> (should redirect to <code>app.nextzenorbit.com/resumes</code>).
+      People who used <code>nextzenorbit.com</code> before may have to sign in once more; their old login belonged to that one domain.</div></li>
+    <li><input type="checkbox" id="b7-9"><div><b class="t">Watch the logs for a week</b>
+      Vercel → Logs (404s, redirect loops, <code>/api/webhooks</code> errors) and Supabase → Logs → Auth. I can read both for you if you ask.</div></li>
+  </ul>
+
+  <!-- ============ STEP 8 ============ -->
+  <h2>8 · If something breaks after going live: rollback</h2>
+  <ul class="plain">
+    <li><b>Fastest:</b> Vercel → Deployments → the last production deployment before the merge → ⋯ → <b>Promote to Production</b> (instant rollback).</li>
+    <li><b>Or keep the features but switch the split off:</b> delete <code>NEXT_PUBLIC_SITE_URL</code> and <code>NEXT_PUBLIC_ADMIN_URL</code>, set <code>NEXT_PUBLIC_APP_URL</code> back to its old value, and redeploy.</li>
+    <li>Supabase: set the Site URL back to <code>https://nextzenorbit.vercel.app</code>.</li>
+    <li>Nothing in the database needs undoing; the new tables can stay.</li>
+  </ul>
+
+  <!-- ============ STEP 9 ============ -->
+  <h2>9 · After launch</h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="b9-1"><div><span class="where">Chrome Web Store developer console</span>
+      <b class="t">Publish autofill extension v0.2.0, only after step 7</b>
+      It now talks to <code>https://app.nextzenorbit.com</code> by default. Zip <code>extensions/nextzen-orbit-autofill/manifest.json</code> and its <code>build/</code> folder, then upload.</div></li>
+    <li><input type="checkbox" id="b9-2"><div><b class="t">Have a CA check the Offer Compare tax rules</b>
+      <code>src/lib/salary/ctc.ts</code> uses FY 2026-27 slabs (new regime 0–30% in ₹4L steps, ₹75k standard deduction, no tax up to ₹12L; old regime slabs). Confirm before you advertise the feature.</div></li>
+    <li><input type="checkbox" id="b9-3"><div><b class="t">Tidy up after 30 days</b>
+      Remove <code>https://nextzenorbit.vercel.app/**</code> from Supabase Redirect URLs. Keep the beta domains if you want to reuse them for the next round of testing: push to <code>beta</code>, test, merge.</div></li>
+  </ul>
+
+  <h2>What's on the beta branch</h2>
+  <div class="tbl"><table>
+    <tr><th>Commit</th><th>What</th></tr>
+    <tr><td><code>aacec9d</code></td><td>Your security fixes (unchanged)</td></tr>
+    <tr><td><code>aa0191e</code></td><td>Domain split + the five features + migrations 043–045 + tests</td></tr>
+    <tr><td>next commits</td><td>CLAUDE.md, the plan pages and this checklist</td></tr>
+  </table></div>
+  <div class="tbl" style="margin-top:12px"><table>
+    <tr><th>Feature</th><th>Main files</th><th>Tests</th></tr>
+    <tr><td>Domain split, shared and admin-only logins</td><td><code>src/lib/hosts.ts</code>, <code>src/middleware.ts</code>, <code>src/lib/supabase/*</code></td><td><code>scripts/test-domain-split.cjs</code></td></tr>
+    <tr><td>Client progress feed</td><td><code>043_…sql</code>, <code>src/lib/activity.ts</code>, dashboard</td><td rowspan="2"><code>scripts/test-client-feed-messages.cjs</code></td></tr>
+    <tr><td>Client ↔ team messaging</td><td><code>044_…sql</code>, <code>src/lib/messages.ts</code>, <code>/messages</code>, <code>/admin/messages</code></td></tr>
+    <tr><td>LinkedIn optimizer</td><td><code>/api/linkedin/optimize</code>, <code>/linkedin</code></td><td rowspan="2"><code>scripts/test-ai-features.cjs</code></td></tr>
+    <tr><td>AI mock interviews</td><td><code>045_…sql</code>, <code>/api/mock-interviews/*</code>, <code>/interviews/mock</code></td></tr>
+    <tr><td>CTC and offer comparison</td><td><code>src/lib/salary/ctc.ts</code>, <code>/offers</code></td><td><code>scripts/test-salary.cjs</code></td></tr>
+  </table></div>
+</main>
+<script>
+  const boxes = [...document.querySelectorAll('.tasks input')];
+  const KEY = 'orbit-beta-ticks';
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+  function render() {
+    const done = boxes.filter(b => b.checked).length;
+    document.getElementById('count').textContent = `${done} / ${boxes.length} steps done`;
+    document.getElementById('fill').style.width = `${(done / boxes.length) * 100}%`;
+    boxes.forEach(b => b.closest('li').classList.toggle('done', b.checked));
+  }
+  boxes.forEach(b => {
+    b.checked = !!saved[b.id];
+    b.addEventListener('change', () => {
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {}
+      render();
+    });
+  });
+  render();
+</script>
+</body>
+</html>
