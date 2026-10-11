@@ -18,6 +18,7 @@ import {
   Send,
   Wand2,
   CreditCard,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -475,7 +476,10 @@ export default function AdminUserDetailsPage({
           <AdminOriginalFiles refreshKey={filesRevision} userId={user.id} />
           <WorkAuthorizationDetails userId={user.id} />
           <div id="messages" className="space-y-3 scroll-mt-6">
-            <h3 className="text-sm font-semibold text-foreground">Messages</h3>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-accent" />
+              <h3 className="font-semibold text-foreground">Messages</h3>
+            </div>
             <MessageThread endpoint={`/api/admin/users/${user.id}/messages`} viewer="team" />
           </div>
           {/* Base Resume Section */}

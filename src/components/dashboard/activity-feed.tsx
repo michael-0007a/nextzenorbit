@@ -48,9 +48,9 @@ export function ActivityFeed({ items, week, className }: ActivityFeedProps) {
   }
 
   const stats = [
-    { label: "Applications sent", value: week.applied },
-    { label: "Resumes tailored", value: week.resumes },
-    { label: "Cover letters", value: week.cover_letters },
+    { label: "Applications sent", value: week.applied, ...KIND.applied },
+    { label: "Resumes tailored", value: week.resumes, ...KIND.resume },
+    { label: "Cover letters", value: week.cover_letters, ...KIND.cover_letter },
   ];
 
   return (
@@ -60,18 +60,19 @@ export function ActivityFeed({ items, week, className }: ActivityFeedProps) {
         <div className="grid grid-cols-3 gap-3">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-2xl border border-border bg-white/5 p-4">
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <div className={cn("mb-3 flex h-8 w-8 items-center justify-center rounded-lg", stat.tone)}><stat.icon className="h-4 w-4" /></div>
+              <p className="text-2xl font-bold tabular-nums text-foreground">{stat.value}</p>
               <p className="text-xs text-text-secondary">{stat.label}</p>
             </div>
           ))}
         </div>
       </div>
-      <ol className="space-y-3">
+      <ol className="relative space-y-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-px before:bg-border">
         {items.map((item, index) => {
           const { icon: Icon, verb, tone } = KIND[item.kind];
           return (
             <li key={`${item.kind}-${item.happened_at}-${index}`} className="flex items-start gap-3">
-              <div className={cn("flex h-9 w-9 flex-none items-center justify-center rounded-xl", tone)}>
+              <div className={cn("relative flex h-9 w-9 flex-none items-center justify-center rounded-xl ring-4 ring-surface", tone)}>
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">

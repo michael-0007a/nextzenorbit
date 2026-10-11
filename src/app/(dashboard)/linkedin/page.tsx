@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCachedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PageHeader } from "@/components/layout/page-header";
+import { Linkedin } from "lucide-react";
+import { FeatureHero } from "@/components/layout/feature-hero";
 import { LinkedinOptimizer } from "@/components/linkedin/linkedin-optimizer";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export default async function LinkedinPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader title="LinkedIn Optimizer" description="Turn your resume into a recruiter-ready LinkedIn headline, About section and skills." />
+      <FeatureHero icon={Linkedin} title="LinkedIn Optimizer" description="Turn your resume into a recruiter-ready LinkedIn headline, About section, skills and experience bullets." ai />
       <LinkedinOptimizer resumes={resumes ?? []} />
     </div>
   );
