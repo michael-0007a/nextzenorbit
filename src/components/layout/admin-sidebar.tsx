@@ -18,7 +18,8 @@ import {
   X,
   ArrowRight,
   Inbox,
-  UserPlus
+  UserPlus,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -38,6 +39,7 @@ const mainNavItems: NavItem[] = [
 
   { label: "Job Search", href: "/admin/job-search", icon: Search },
   { label: "My Clients", href: "/admin/apply-queue", icon: Inbox },
+  { label: "Messages", href: "/admin/messages", icon: MessageSquare },
 ];
 
 const superAdminNavItems: NavItem[] = [
@@ -52,6 +54,7 @@ const supervisorAdminNavItems: NavItem[] = [
   { label: "Job Search", href: "/admin/job-search", icon: Search },
   { label: "Signup Applications", href: "/admin/signup-applications", icon: UserPlus },
   { label: "Allocate Clients", href: "/admin/users", icon: Users },
+  { label: "Messages", href: "/admin/messages", icon: MessageSquare },
   { label: "Admin Team", href: "/admin/team", icon: Shield },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
 ];

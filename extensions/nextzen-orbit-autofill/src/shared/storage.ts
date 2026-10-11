@@ -5,7 +5,7 @@ export type ExtensionSettings = {
 
 export const defaultSettings: ExtensionSettings = {
   enabled: true,
-  apiBaseUrl: "http://localhost:3000",
+  apiBaseUrl: "https://app.nextzenorbit.com",
 };
 
 export async function getSettings(): Promise<ExtensionSettings> {

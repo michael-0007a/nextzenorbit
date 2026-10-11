@@ -7,6 +7,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { sessionCookieOptions } from "@/lib/hosts";
 
 export async function updateSession(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
@@ -24,6 +25,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: sessionCookieOptions(request.nextUrl.host),
       cookies: {
         getAll() {
           return request.cookies.getAll();

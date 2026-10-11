@@ -11,6 +11,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { getTrialDaysRemaining, isTrialActive, isSubscriptionActive } from "@/lib/subscription";
 import { TrialBanner } from "@/components/dashboard/trial-banner";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { getClientActivity } from "@/lib/activity";
 import { FileText, Briefcase, Sparkles, Target, ArrowRight, TrendingUp, Zap, Clock, ChevronRight, Crown } from "lucide-react";
 import Link from "next/link";
 import type { ProfileRow, SubscriptionRow } from "@/types/database";
@@ -34,7 +36,7 @@ export default async function DashboardPage() {
   const admin = createAdminClient();
 
   // Fetch profile + subscription + counts in parallel
-  const [profile, subRes, resumeCountRes, appCountRes] = await Promise.all([
+  const [profile, subRes, resumeCountRes, appCountRes, activity] = await Promise.all([
     getCachedProfile(user.id),
     getRequestAccess(user.id, user.email ?? ""),
     admin
@@ -45,6 +47,7 @@ export default async function DashboardPage() {
       .from("applications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
+    getClientActivity(user.id),
   ]);
 
   // Always prefer profile name (user-edited) over Google metadata
@@ -259,29 +262,17 @@ export default async function DashboardPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/10">
               <Clock className="h-4 w-4 text-secondary" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
+            <h2 className="text-lg font-semibold text-foreground">Your Team&apos;s Work</h2>
           </div>
         </div>
 
-        {/* Empty state */}
-        <div className="relative overflow-hidden rounded-3xl glass-card p-10 text-center">
-          <div className="absolute inset-0 bg-gradient-to-br from-muted/50 via-transparent to-muted/30" />
-          <div className="relative">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4">
-              <Clock className="h-7 w-7 text-stone" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground mb-2">No activity yet</h3>
-            <p className="text-sm text-text-secondary mb-6 max-w-md mx-auto">
-              Your recent actions will appear here. Start by creating a resume or analyzing a job posting.
-            </p>
-            <Link
-              href="/resumes"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-light text-white text-sm font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all"
-            >
-              Get Started <ArrowRight className="h-4 w-4" />
-            </Link>
+        {activity ? (
+          <ActivityFeed items={activity.items} week={activity.week} />
+        ) : (
+          <div className="rounded-3xl glass-card p-10 text-center text-sm text-text-secondary">
+            Team activity is temporarily unavailable. Please refresh in a moment.
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

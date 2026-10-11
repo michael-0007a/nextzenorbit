@@ -24,6 +24,10 @@ import {
   Crown,
   Mail,
   Rocket,
+  MessageSquare,
+  Linkedin,
+  Calculator,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +48,10 @@ const mainNavItems: NavItem[] = [
   { label: "Job Analyzer", href: "/analyzer", icon: Search, badge: "AI" },
   { label: "Job Search", href: "/job-search", icon: Rocket, badge: "NEW", isNew: true },
   { label: "Applications", href: "/applications", icon: Briefcase },
+  { label: "Messages", href: "/messages", icon: MessageSquare },
+  { label: "LinkedIn", href: "/linkedin", icon: Linkedin, badge: "AI", isNew: true },
+  { label: "Offer Compare", href: "/offers", icon: Calculator, isNew: true },
+  { label: "Mock Interview", href: "/interviews/mock", icon: Mic, badge: "AI", isNew: true },
   { label: "Careers", href: "/career", icon: Sparkles, badge: "NEW", isNew: true },
 ];
 

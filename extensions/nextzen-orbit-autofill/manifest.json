@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Nextzen Orbit Autofill",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Assisted autofill for job applications. No auto-submit.",
   "action": {
     "default_popup": "build/popup.html"

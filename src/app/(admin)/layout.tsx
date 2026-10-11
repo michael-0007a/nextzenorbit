@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/layout/admin-shell";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { appHref } from "@/lib/hosts";
 
 export default async function AdminLayout({
   children,
@@ -12,7 +13,7 @@ export default async function AdminLayout({
   if (isAuthError(result)) {
     // If forbidden, they are authenticated but not admin -> dashboard
     if (result.status === 403) {
-      redirect("/dashboard");
+      redirect(appHref("/dashboard"));
     }
     // If unauthorized, they are not signed in -> admin login
     redirect("/admin/login");

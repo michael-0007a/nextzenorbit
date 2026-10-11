@@ -1,7 +1,7 @@
 // src/shared/storage.ts
 var defaultSettings = {
   enabled: true,
-  apiBaseUrl: "http://localhost:3000"
+  apiBaseUrl: "https://app.nextzenorbit.com"
 };
 async function getSettings() {
   const stored = await chrome.storage.sync.get(defaultSettings);

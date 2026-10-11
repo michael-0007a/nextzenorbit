@@ -523,6 +523,18 @@ export type Database = {
         Update: { is_read?: boolean; read_at?: string | null };
         Relationships: [{ foreignKeyName: "notifications_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }];
       };
+      client_messages: {
+        Row: ClientMessageRow;
+        Insert: { client_id: string; sender_id: string; from_team: boolean; body: string };
+        Update: { read_at?: string | null };
+        Relationships: [];
+      };
+      mock_interviews: {
+        Row: MockInterviewRow;
+        Insert: { user_id: string; role: string; job_description?: string | null; questions: MockInterviewRow["questions"] };
+        Update: { answers?: MockInterviewRow["answers"]; overall?: number | null; completed_at?: string | null };
+        Relationships: [];
+      };
       admin_cover_letters: {
         Row: AdminCoverLetterRow;
         Insert: { user_id: string; admin_id: string; title: string; content: string; company_name?: string | null; job_title?: string | null; job_description?: string | null; expires_at?: string };
@@ -549,8 +561,40 @@ export type Database = {
       consume_request_limit: { Args: { p_key: string; p_limit: number; p_seconds: number }; Returns: boolean };
       submit_signup_application: { Args: { p_user_id: string; p_profile: Record<string, unknown>; p_resume_path: string; p_resume_name: string; p_content: ResumeContent; p_consent_version: string }; Returns: undefined };
       review_signup_application: { Args: { p_user_id: string; p_reviewer_id: string; p_decision: string; p_reason: string }; Returns: undefined };
+      client_activity: { Args: { p_user_id: string; p_before?: string | null; p_limit?: number }; Returns: import("@/lib/activity").ActivityItem[] };
+      client_activity_summary: { Args: { p_user_id: string; p_since: string }; Returns: import("@/lib/activity").ActivityWeek };
     };
     Enums: {};
     CompositeTypes: {};
   };
 };
+
+export type ClientMessageRow = {
+  id: string;
+  client_id: string;
+  sender_id: string | null;
+  from_team: boolean;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export type MockInterviewAnswer = {
+  answer: string;
+  score: number;
+  strengths: string[];
+  gaps: string[];
+  improved_answer: string;
+}
+
+export type MockInterviewRow = {
+  id: string;
+  user_id: string;
+  role: string;
+  job_description: string | null;
+  questions: string[];
+  answers: (MockInterviewAnswer | null)[];
+  overall: number | null;
+  created_at: string;
+  completed_at: string | null;
+}

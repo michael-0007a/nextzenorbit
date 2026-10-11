@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { DeleteResumeButton } from "@/components/resume/delete-resume-button";
 import { WorkAuthorizationDetails } from "@/components/forms/work-authorization-details";
 import { AdminOriginalFiles } from "@/components/resume/admin-original-files";
+import { MessageThread } from "@/components/messages/message-thread";
 import { Pagination } from "@/components/ui/pagination";
 import type { PaginationMeta } from "@/types/api";
 
@@ -473,6 +474,10 @@ export default function AdminUserDetailsPage({
           <Link href={`/admin/job-search?client=${user.id}`} className="inline-flex rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">Search jobs for this client</Link>
           <AdminOriginalFiles refreshKey={filesRevision} userId={user.id} />
           <WorkAuthorizationDetails userId={user.id} />
+          <div id="messages" className="space-y-3 scroll-mt-6">
+            <h3 className="text-sm font-semibold text-foreground">Messages</h3>
+            <MessageThread endpoint={`/api/admin/users/${user.id}/messages`} viewer="team" />
+          </div>
           {/* Base Resume Section */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
