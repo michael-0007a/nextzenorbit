@@ -89,6 +89,20 @@
     <li><b>Moving the database to Mumbai.</b> The other way to remove the distance, but it means a new Supabase project, a data copy and some downtime. Only worth it if beta still feels slow from India after this change.</li>
   </ul>
 
+
+  <h2>Round 2 · Clicks feel instant <small>also on beta</small></h2>
+  <ul class="plain">
+    <li><b>Pages start loading when you hover a link.</b> Moving the mouse to a sidebar item takes ~200&nbsp;ms, which is about the time one trip to the server takes, so the page is usually ready when you click. (<code>next.config.ts</code>, <code>dynamicOnHover</code>)</li>
+    <li>A hover-loaded page is kept for at most 30 seconds (Next's default is 5 minutes), so you never see old data after saving something. Pages you've already visited always reload fresh when you go back.</li>
+  </ul>
+
+  <h2>The next big step, if you want it <small>your decision</small></h2>
+  <p>What's left is distance: every click still travels India → Tokyo and back (~120&nbsp;ms), plus an occasional "cold start" (1–2&nbsp;s) when a server instance has been idle; previews like beta get few visitors, so they hit cold starts more often than production will.</p>
+  <ul class="tasks">
+    <li><input type="checkbox" id="p4-1"><div><b class="t">Optional: move the database to Mumbai</b>
+      Supabase can't change a project's region, so this means: create a new project in <b>ap-south-1 (Mumbai)</b>, copy the database, users and stored files, switch the keys in Vercel, set <code>vercel.json</code> back to <code>bom1</code>, and accept roughly 30–60 minutes of downtime. It saves about 100&nbsp;ms on every click for users in India. Only worth it once real users notice; tell me if you want a step-by-step migration plan.</div></li>
+  </ul>
+
   <h2>1 · Check beta <small>after the build is Ready</small></h2>
   <ul class="tasks">
     <li><input type="checkbox" id="p1-1"><div><span class="where">Vercel → nextzenorbit → Deployments → branch beta</span>
