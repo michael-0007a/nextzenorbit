@@ -5,9 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev            # next dev
-npm run build          # next build
-npm run lint           # eslint (flat config, eslint.config.mjs)
 npx tsc --noEmit       # typecheck (no script; strict mode)
 
 # Tests are node:test scripts in scripts/, not a framework. Run one file:
@@ -22,13 +19,13 @@ npm run wipe:client-data
 ```
 
 - Tests do **not** hit a live server. They load source files with `loadSource(path, mocks)` (exported from `scripts/test-admin-resume-exports.cjs`), which compiles a `src/` file with its imports (`@/lib/supabase/admin`, `next/headers`, ...) replaced by mocks. Some (`test-performance.cjs`) run migrations 040/041 against in-memory PGlite. When a source file adds a new import, the mocks in these tests usually need updating.
-- `scripts/test-rls.ts`, `seed-admins.js`, `create-super-admin.ts` etc. talk to a real Supabase project and need `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Other env: `GROQ_API_KEY`, Razorpay keys, `NEXT_PUBLIC_APP_URL`.
+- `scripts/test-rls.ts`, `seed-admins.js`, `create-super-admin.ts` etc. talk to a real Supabase project and need `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Other env: `GROQ_API_KEY`, PayU keys, `NEXT_PUBLIC_APP_URL`.
 - The Chrome autofill extension is a separate package: `cd extensions/nextzen-orbit-autofill && npm run build` (esbuild, `scripts/build.mjs`; `dev` watches). See `docs/AUTOFILL_EXTENSION_TESTING.md`.
-- Database schema lives in numbered SQL files in `supabase/migrations/` (latest 042); there is no migration runner in npm scripts — apply via Supabase CLI/MCP/SQL editor. Add new changes as the next number.
+- Database schema lives in numbered SQL files in `supabase/migrations/` (latest 045); there is no migration runner in npm scripts — apply via Supabase CLI/MCP/SQL editor. Add new changes as the next number.
 
 ## Architecture
 
-Next.js 16 App Router + React 19 (React Compiler enabled), TypeScript strict, Tailwind v4, Supabase (Postgres/Auth/Storage), Groq for LLM calls (`src/lib/ai`), Razorpay/Cashfree payments (`src/lib/payments`), deployed on Vercel (region `bom1`). Path alias `@/` → `src/`. `README.md` is partly stale (phase table, Google-OAuth-only framing); `docs/APP_DOCUMENTATION.md` and `docs/ARCHITECTURE.md` are more current.
+Next.js 16 App Router + React 19 (React Compiler enabled), TypeScript strict, Tailwind v4, Supabase (Postgres/Auth/Storage), Groq for LLM calls (`src/lib/ai`), PayU and USD-gateway payments (`src/lib/payments`), deployed on Vercel (region `hnd1` (Tokyo), same as the Supabase project; was `bom1`). Path alias `@/` → `src/`. `README.md` is partly stale (phase table, Google-OAuth-only framing); `docs/APP_DOCUMENTATION.md` and `docs/ARCHITECTURE.md` are more current.
 
 ### Access control is the core cross-cutting concern
 
