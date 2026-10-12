@@ -71,7 +71,7 @@ export default async function DashboardPage() {
       <div className="relative overflow-hidden rounded-[36px] border border-border bg-surface/80 p-8 md:p-10">
         <div className="absolute inset-0 bg-space opacity-60" />
         {/* Animated gradient orbs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-primary/25 via-primary/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 animate-pulse" style={{ animationDuration: "4s" }} />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-primary/25 via-primary/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-secondary/20 via-secondary/5 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
         <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-gradient-to-r from-primary-light/15 to-transparent rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
 

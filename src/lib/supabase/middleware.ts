@@ -47,10 +47,13 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh the session — IMPORTANT: do not remove
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refresh the session — IMPORTANT: do not remove.
+  // getClaims verifies the JWT locally once Supabase asymmetric JWT signing keys are on (no network trip);
+  // until then it falls back to the same Auth server check as getUser. Pages still call getUser, so a
+  // revoked session is caught there.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  const user = claims?.sub ? { id: claims.sub, email: typeof claims.email === "string" ? claims.email : undefined } : null;
 
   return { user, supabaseResponse };
 }

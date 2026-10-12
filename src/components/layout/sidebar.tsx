@@ -194,7 +194,7 @@ export function Sidebar({ className, isProfileComplete = true }: SidebarProps) {
             {isSubActive ? (
               <>
                 <div className={cn(
-                  "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl animate-pulse",
+                  "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl",
                   isElite ? "bg-amber-500/10" : "bg-primary/10"
                 )} style={{ animationDuration: "6s" }} />
                 <div className="relative">
