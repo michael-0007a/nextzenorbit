@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Speed Fixes</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1c1c1a; --muted: #5f5f5a; --line: #e4e4df;
+    --accent: #4f46e5; --accent-soft: #eef0ff; --warn: #b45309; --warn-soft: #fff7e6;
+    --bad: #b91c1c; --bad-soft: #fdecec; --ok: #0f766e; --ok-soft: #e7f6f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --surface: #1c1c1e; --text: #ececea; --muted: #a1a19c; --line: #2e2e30;
+      --accent: #a5b4fc; --accent-soft: #23243a; --warn: #fbbf24; --warn-soft: #2b2416;
+      --bad: #fca5a5; --bad-soft: #2d1a1a; --ok: #5eead4; --ok-soft: #14282a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 44px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+  h2 small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+  h3 { font-size: 16px; margin: 22px 0 4px; }
+  p, li { max-width: 78ch; }
+  .lede { color: var(--muted); }
+  code { font: 13px ui-monospace, Consolas, monospace; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font: 13px/1.5 ui-monospace, Consolas, monospace; margin: 8px 0; }
+  pre code { background: none; padding: 0; }
+  .box { border-radius: 8px; padding: 10px 14px; margin: 14px 0; border-left: 3px solid; }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .bad { background: var(--bad-soft); border-color: var(--bad); }
+  .ok { background: var(--ok-soft); border-color: var(--ok); }
+  .tasks { list-style: none; padding: 0; margin: 10px 0; }
+  .tasks > li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 8px 0; display: flex; gap: 12px; align-items: flex-start; }
+  .tasks input { margin-top: 5px; flex: none; width: 17px; height: 17px; accent-color: var(--accent); }
+  .tasks > li > div { min-width: 0; flex: 1; }
+  .tasks li.done > div { opacity: .55; }
+  .tasks b.t { display: block; }
+  .where { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+  .progress { position: sticky; top: 0; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted); z-index: 1; }
+  .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .bar div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+  th, td { text-align: left; padding: 7px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  ul.plain { padding-left: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Why the app was slow, and what changed</h1>
+  <p class="lede">These fixes are on the <code>beta</code> branch only. Production is unchanged until you merge. Ticks are saved in this browser.</p>
+
+  <div class="progress"><span id="count">0 / 0 done</span><div class="bar"><div id="fill"></div></div></div>
+
+  <h2>What I measured <small>production, signed in as the test client</small></h2>
+  <div class="tbl"><table>
+    <tr><th>Page</th><th>Time to load</th></tr>
+    <tr><td><code>/login</code> (no database work)</td><td>about 0.25 s</td></tr>
+    <tr><td><code>/dashboard</code></td><td><b>3.4 – 5.5 s</b></td></tr>
+    <tr><td><code>/resumes</code></td><td><b>3.7 – 6.4 s</b></td></tr>
+  </table></div>
+  <p>The database itself is fast. The time went into <b>travel</b>:</p>
+  <ul class="plain">
+    <li>The app's server ran in <b>Mumbai</b> (Vercel region <code>bom1</code>), but the database is in <b>Tokyo</b> (Supabase <code>ap-northeast-1</code>). Every database call was a Mumbai → Tokyo → Mumbai trip.</li>
+    <li>One page makes about <b>6 of those trips one after another</b>. The security check that runs before every request makes 3 (check the login, read the account, check the blocked list), then the layout and the page make the rest. Every API call (notifications, messages, …) repeats the 3 security trips.</li>
+    <li>Separately, every card blurred whatever was behind it (<code>backdrop-filter</code>), and big blurred shapes pulsed non-stop. The browser redraws those on every scroll, which is the "laggy" feeling.</li>
+  </ul>
+
+  <h2>What changed on beta</h2>
+  <div class="tbl"><table>
+    <tr><th>Change</th><th>Effect</th><th>File</th></tr>
+    <tr><td><b>Server moved to Tokyo</b>, next to the database</td><td>Each database trip goes from roughly 150 ms to a few ms. Visitors in India now pay one ~120 ms hop per request instead of ~6 slow trips. Images, scripts and styles still come from Vercel's worldwide cache, so they're unaffected.</td><td><code>vercel.json</code> (<code>bom1</code> → <code>hnd1</code>)</td></tr>
+    <tr><td><b>Login checked locally</b> in the per-request security check</td><td>Removes one trip to Supabase on every page and API call. Your project already uses the newer signing keys (ES256), so this needs no setting changes. I tested it: 1 ms after the first check. Pages still double-check the login with Supabase, so a signed-out or banned user is still caught.</td><td><code>src/lib/supabase/middleware.ts</code></td></tr>
+    <tr><td><b>Cards no longer blur</b> what's behind them</td><td>Same shade on your dark theme (the old glass ended up the same colour as the new solid surface), with much less redrawing while scrolling.</td><td><code>src/app/globals.css</code></td></tr>
+    <tr><td><b>Big background shapes stopped pulsing</b></td><td>No constant animation of large blurred layers on the dashboard and sidebar.</td><td><code>dashboard/page.tsx</code>, <code>sidebar.tsx</code></td></tr>
+    <tr><td><b>Timing script</b></td><td>Repeatable before/after numbers.</td><td><code>scripts/measure-latency.cjs</code></td></tr>
+  </table></div>
+  <p class="lede">Tests: 166/166 and 3/3 security tests pass, typecheck clean, production build succeeds.</p>
+
+  <h3>Left out on purpose</h3>
+  <ul class="plain">
+    <li><b>Merging the account read and the blocked-list check into one call.</b> It needs a new database migration. With the server next to the database that trip costs a few ms, so it isn't worth it now.</li>
+    <li><b>Loading notifications on the server.</b> They load after the page is already on screen, so they don't slow the page itself.</li>
+    <li><b>Moving the database to Mumbai.</b> The other way to remove the distance, but it means a new Supabase project, a data copy and some downtime. Only worth it if beta still feels slow from India after this change.</li>
+  </ul>
+
+  <h2>1 · Check beta <small>after the build is Ready</small></h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="p1-1"><div><span class="where">Vercel → nextzenorbit → Deployments → branch beta</span>
+      <b class="t">Wait for the newest beta build ("Speed up page loads…") to show <b>Ready</b></b>
+      I already checked: Vercel reports this build runs in <b>hnd1 (Tokyo)</b>. If the build shows <b>Error</b> instead, send me the log.</div></li>
+    <li><input type="checkbox" id="p1-2"><div><b class="t">Click around beta and production side by side</b>
+      Sign in as the test client on <code>https://app.beta.nextzenorbit.com</code> and on <code>https://nextzenorbit.vercel.app</code>. Open Dashboard, Resumes, Applications and Messages a few times each (the first load after a deploy is always slower). Beta should feel clearly faster.</div></li>
+    <li><input type="checkbox" id="p1-3"><div><b class="t">Look at the cards</b>
+      They no longer blur what's behind them. On the dark theme they should look the same. Check light mode too (theme toggle in the top bar). If anything looks flat or wrong, send me a screenshot.</div></li>
+  </ul>
+
+  <h2>2 · Let me measure beta <small>optional, 2 minutes</small></h2>
+  <p>Beta sits behind Vercel's login, so my timing script can't reach it. A bypass secret lets automated tools through; it doesn't open beta to the public.</p>
+  <ul class="tasks">
+    <li><input type="checkbox" id="p2-1"><div><span class="where">Vercel → nextzenorbit → Settings → Deployment Protection</span>
+      <b class="t">Create a "Protection Bypass for Automation" secret</b>
+      Click <b>Add Secret</b>, copy the value and paste it to me in the chat. I'll time beta against production and send you both sets of numbers. You can delete the secret afterwards on the same page.</div></li>
+    <li><input type="checkbox" id="p2-2"><div><b class="t">Or run it yourself</b> (Git Bash, from the project folder; read the <b>median</b> column)
+      <pre><code>LATENCY_EMAIL=beta.client@nextzenorbit.com LATENCY_PASSWORD=&lt;test password&gt; VERCEL_BYPASS=&lt;secret&gt; \
+  node --env-file=.env.local scripts/measure-latency.cjs https://app.beta.nextzenorbit.com https://nextzenorbit.vercel.app</code></pre></div></li>
+  </ul>
+
+  <h2>3 · When you merge beta into main</h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="p3-1"><div><b class="t">Production moves to Tokyo too</b>
+      Nothing else to change. Payment webhooks, Google login and the Chrome extension don't care where the server runs, and there are no scheduled jobs in <code>vercel.json</code>.</div></li>
+    <li><input type="checkbox" id="p3-2"><div><b class="t">Rollback, if ever needed</b>
+      Change <code>"hnd1"</code> back to <code>"bom1"</code> in <code>vercel.json</code> and push, or use Vercel's <b>Promote to Production</b> on an older deployment.</div></li>
+  </ul>
+</main>
+<script>
+  const boxes = [...document.querySelectorAll('.tasks input')];
+  const KEY = 'orbit-speed-ticks';
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+  function render() {
+    const done = boxes.filter(b => b.checked).length;
+    document.getElementById('count').textContent = `${done} / ${boxes.length} steps done`;
+    document.getElementById('fill').style.width = `${(done / boxes.length) * 100}%`;
+    boxes.forEach(b => b.closest('li').classList.toggle('done', b.checked));
+  }
+  boxes.forEach(b => {
+    b.checked = !!saved[b.id];
+    b.addEventListener('change', () => {
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {}
+      render();
+    });
+  });
+  render();
+</script>
+</body>
+</html>
