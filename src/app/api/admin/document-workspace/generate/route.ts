@@ -1,3 +1,5 @@
+import { withStageStream } from '@/lib/ai/progress-stream';
+import type { AiStage } from '@/lib/ai/progress';
 import { after } from 'next/server';
 import { generateDocument } from '@/lib/admin/documents/generate';
 import { enqueueDocumentJob,runDocumentJob } from '@/lib/admin/documents/jobs';
@@ -9,7 +11,9 @@ import { z } from 'zod';
 const schema=z.object({kind:z.enum(['resume','cover_letter']),payload:documentPayloadSchema});
 // Background document jobs run via after() in this function; their AI budget is 85s (lease is 90s).
 export const maxDuration=120;
-export async function POST(request:Request){
+// Streams stage progress to clients that ask for it (see withStageStream).
+export function POST(request:Request){return withStageStream(request,onStage=>handle(request,onStage));}
+async function handle(request:Request,onStage:(stage:AiStage)=>void){
  const auth=await requireAdmin();if(isAuthError(auth))return auth;
  const limited=await rateLimit('admin-draft-generate',auth.userId,10,60);if(limited)return limited;
  const parsed=schema.safeParse(await request.json().catch(()=>null));if(!parsed.success)return Response.json({error:{message:'Check the resume and job details.'}},{status:400});
@@ -22,7 +26,7 @@ export async function POST(request:Request){
    const job=await enqueueDocumentJob(auth.userId,id,kind==='resume'?'generate_resume':'generate_cover_letter',payload);
    if(job){after(()=>runDocumentJob(job.id).catch(()=>console.error('Document processing failed')));return Response.json({data:{jobId:job.id}},{status:202,headers:{'Cache-Control':'private, no-store'}});}
   }
-  const result=await generateDocument(kind,payload);
+  const result=await generateDocument(kind,payload,{onStage});
   return Response.json({data:result.data},{headers:{...result.headers,'Cache-Control':'private, no-store'}});
  }catch{return Response.json({error:{message:'Generation failed. Your draft is unchanged; please retry.'}},{status:503});}
 }

@@ -3,6 +3,7 @@ import type Groq from "groq-sdk";
 import { AI_REVIEW_MODEL, AI_WRITER_MODEL } from "@/lib/ai/model";
 import { BANNED_PHRASES, RESUME_FACT_RULES, WRITING_STYLE_RULES } from "@/lib/ai/prompts/writing-rules";
 import type { ResumeContent } from "@/lib/validations/resume";
+import type { AiStage } from "@/lib/ai/progress";
 
 /**
  * Resume quality gate: code checks -> reviewer model -> writer rewrites only the
@@ -167,13 +168,14 @@ ${RESUME_FACT_RULES}
 ${WRITING_STYLE_RULES}`;
 
 export async function qualityGate(client: Groq, source: ResumeContent, draft: ResumeContent,
-  options: { jobDescription?: string; signal?: AbortSignal } = {}) {
+  options: { jobDescription?: string; signal?: AbortSignal; onStage?: (stage: AiStage) => void } = {}) {
   const jobDescription = options.jobDescription || "";
   let candidate = draft, tokensUsed = 0, reviewerIssues = 0;
   const found = checkResume(source, draft, jobDescription);
   const lines = (c: ResumeContent) => JSON.stringify({ summary: c.summary, experience: c.experience.map(e => ({ id: e.id, position: e.position, company: e.company, bullets: e.bullets })) });
   try {
     const context = `SOURCE RESUME:\n${JSON.stringify(source)}\n\nJOB POSTING:\n${jobDescription || "(none: general improvement)"}`;
+    options.onStage?.("review");
     const review = await client.chat.completions.create({
       model: AI_REVIEW_MODEL, temperature: 0, max_tokens: 4000, response_format: { type: "json_object" },
       messages: [{ role: "system", content: REVIEWER_SYSTEM }, { role: "user", content: `${context}\n\nTAILORED RESUME:\n${lines(draft)}` }],
@@ -184,6 +186,7 @@ export async function qualityGate(client: Groq, source: ResumeContent, draft: Re
     reviewerIssues = issues.length - found.length;
     if (issues.length) {
       // Only flagged lines are rewritten, so the rest of a good draft cannot regress.
+      options.onStage?.("fix");
       const fix = await client.chat.completions.create({
         model: AI_WRITER_MODEL, temperature: 0.3, max_tokens: 6000, response_format: { type: "json_object" },
         messages: [{ role: "system", content: FIXER_SYSTEM }, { role: "user", content: `${context}\n\nCURRENT VERSION:\n${lines(draft)}\n\nPROBLEMS TO FIX:\n${JSON.stringify(issues)}` }],

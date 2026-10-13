@@ -27,6 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS } from "@/lib/ai/progress";
 
 interface Resume {
   id: string;
@@ -298,6 +300,7 @@ export function CoverLetterGenerator({ resumes }: CoverLetterGeneratorProps) {
         >
           {generating ? "Generating..." : "Generate Cover Letter"}
         </Button>
+        {generating && <AiProgress className="mt-4" plan={AI_PLANS.coverLetter} />}
       </Card>
 
       {/* Output */}

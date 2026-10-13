@@ -31,6 +31,9 @@ import { ResumeLengthSelector } from "@/components/resume/resume-length-selector
 import { templatesForType, getTemplate } from "@/lib/resume/templates";
 import { layoutResume, PAPER } from "@/lib/resume/layout";
 import { cn } from "@/lib/utils";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS, resumeRewritePlan, type AiStage } from "@/lib/ai/progress";
+import { fetchWithProgress } from "@/lib/ai/fetch-progress";
 import { ResumePreview } from "@/components/resume/resume-preview";
 import { createEmptyResumeContent, type ResumeContent } from "@/lib/validations/resume";
 import Link from "next/link";
@@ -70,6 +73,7 @@ export function AdminResumeGeneratorClient({
   const [resumeTitle, setResumeTitle] = useState(`${userName} — Resume`);
   
   const [optimizing, setOptimizing] = useState(false);
+  const [stage, setStage] = useState<AiStage | null>(null);
   const [saving, setSaving] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [showUpload, setShowUpload] = useState(resumes.length === 0);
@@ -125,10 +129,10 @@ export function AdminResumeGeneratorClient({
       return;
     }
 
-    setOptimizing(true);
+    setOptimizing(true); setStage(null);
     try {
       // Use admin-specific optimize endpoint (bypasses subscription, doesn't mutate original)
-      const response = await fetch(`/api/admin/resumes/optimize`, {
+      const response = await fetchWithProgress(`/api/admin/resumes/optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -140,7 +144,7 @@ export function AdminResumeGeneratorClient({
           targetPages: content.layout?.target_pages ?? null,
           templateId,
         }),
-      });
+      }, setStage);
 
       const data = await response.json();
 
@@ -248,6 +252,7 @@ export function AdminResumeGeneratorClient({
               <Button className="w-full" onClick={uploadSource} disabled={!file || busy}>
                 {uploading ? "Uploading and parsing…" : "Use uploaded resume"}
               </Button>
+              {uploading && <AiProgress plan={AI_PLANS.resumeUpload} />}
             </div>}
             {(uploadWarning || baseResume?.content.custom_sections.some(section => section.id.startsWith("uploaded-text"))) &&
               <p role="status" className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-text-secondary">
@@ -300,6 +305,7 @@ export function AdminResumeGeneratorClient({
               leftIcon={optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}>
               {optimizing ? "Generating draft…" : generated ? "Regenerate draft" : "Generate draft"}
             </Button>
+            {optimizing && <AiProgress className="mt-4" plan={resumeRewritePlan(content.layout?.target_pages)} stage={stage} />}
             <p className="mt-3 text-center text-xs text-text-secondary">Review the draft, then save it to the client.</p>
           </section>
         </div>

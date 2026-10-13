@@ -2,6 +2,7 @@ import { extractJson } from "@/lib/ai/extract-json";
 import type Groq from "groq-sdk";
 import { AI_WRITER_MODEL } from "@/lib/ai/model";
 import type { ResumeContent } from "@/lib/validations/resume";
+import type { AiStage } from "@/lib/ai/progress";
 import { parseExportContent } from "@/lib/resume/export-content";
 import { applyResumeLength, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { layoutResume, mainWidth } from "@/lib/resume/layout";
@@ -128,7 +129,7 @@ const withReport = <T extends { layoutWarnings: string[] }>(fitted: T, report: G
 
 /** Quality gate, then one bounded length revision using measured pagination, never silent truncation. */
 export async function fitGeneratedResume(groq: Groq, content: ResumeContent, source: ResumeContent,
-  pages: number | null | undefined, templateId: string | null, options: { signal?: AbortSignal; jobDescription?: string } = {}) {
+  pages: number | null | undefined, templateId: string | null, options: { signal?: AbortSignal; jobDescription?: string; onStage?: (stage: AiStage) => void } = {}) {
   // This is a structural boundary, not merely an AI prompt. Never rewrite contract history.
   if (source.resume_type === "c2c") {
     const checked = enforceFacts(source, { ...source, summary: content.summary }, options.jobDescription);
@@ -139,6 +140,7 @@ export async function fitGeneratedResume(groq: Groq, content: ResumeContent, sou
   let fitted = applyResumeLength(content, pages, templateId);
   let tokensUsed = gated.tokensUsed;
   if (pages && fitted.pageCount > pages) {
+    options.onStage?.("fit");
     try {
       const response = await groq.chat.completions.create({
         model: AI_WRITER_MODEL, temperature: 0.2, max_tokens: 24000,

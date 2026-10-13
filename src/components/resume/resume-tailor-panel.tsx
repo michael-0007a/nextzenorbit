@@ -26,6 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS } from "@/lib/ai/progress";
 
 interface BulletRewrite {
   sectionType: string;
@@ -140,6 +142,7 @@ export function ResumeTailorPanel({
             >
               {loading ? "Generating Suggestions..." : "Generate Tailoring Suggestions"}
             </Button>
+            {loading && <AiProgress className="mt-4" plan={AI_PLANS.tailorSuggestions} />}
           </CardBody>
         </Card>
       )}

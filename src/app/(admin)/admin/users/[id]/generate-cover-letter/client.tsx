@@ -24,6 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS } from "@/lib/ai/progress";
 
 interface AdminCoverLetterGeneratorClientProps {
   userId: string;
@@ -290,6 +292,7 @@ export function AdminCoverLetterGeneratorClient({
               >
                 {generating ? "Generating via AI..." : "Generate Cover Letter"}
               </Button>
+              {generating && <AiProgress className="mt-4" plan={AI_PLANS.coverLetter} />}
             </CardBody>
           </Card>
         </div>

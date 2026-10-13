@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { LINKEDIN_LIMITS, type LinkedinProfile } from "@/lib/ai/prompts/linkedin";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS } from "@/lib/ai/progress";
 
 export interface LinkedinOptimizerProps {
   resumes: { id: string; title: string }[];
@@ -134,6 +136,7 @@ export function LinkedinOptimizer({ resumes }: LinkedinOptimizerProps) {
                 >
                   {loading ? "Writing your profile..." : profile ? "Regenerate" : "Optimize my LinkedIn"}
                 </Button>
+                {loading && <AiProgress className="mt-4" plan={AI_PLANS.linkedin} />}
               </div>
             </form>
           )}

@@ -18,5 +18,6 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
  }
  if((job.status==='queued'&&Date.parse(job.available_at)<=Date.now())||(job.status==='running'&&job.lease_until&&Date.parse(job.lease_until)<Date.now()))after(()=>runDocumentJob(id).catch(()=>console.error('Document job recovery failed')));
  return Response.json({data:{id:job.id,status:job.status,operation:job.operation,result:job.status==='succeeded'?job.result:null,error:job.error,
+  stage:job.status==='running'&&job.result&&typeof job.result==='object'&&'stage' in job.result?(job.result as {stage:string}).stage:null,
   progress:job.status==='succeeded'?'Ready to review':job.status==='running'?'Processing your document':job.status==='queued'?'Waiting to process':'Processing failed'}},{headers:{'Cache-Control':'private, no-store'}});
 }

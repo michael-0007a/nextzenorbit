@@ -11,6 +11,8 @@ import ReactMarkdown from "react-markdown";
 import { SectionHeader } from "@/components/career/section-header";
 import { useUser } from "@/hooks/use-user";
 import { useAiNotes } from "@/hooks/use-ai-notes";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS } from "@/lib/ai/progress";
 
 export interface AiNotesPanelProps {
   roleLabel: string;
@@ -95,6 +97,7 @@ export function AiNotesPanel({ roleLabel }: AiNotesPanelProps) {
             >
               {isGenerating ? "Generating..." : "Generate"}
             </Button>
+            {isGenerating && <AiProgress plan={AI_PLANS.notes} />}
           </CardBody>
         </Card>
 

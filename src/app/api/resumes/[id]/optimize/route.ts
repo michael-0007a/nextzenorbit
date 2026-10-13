@@ -1,3 +1,6 @@
+import { withStageStream } from "@/lib/ai/progress-stream";
+import type { AiStage } from "@/lib/ai/progress";
+import { isUnparsedUpload } from "@/lib/resume/text-fallback";
 import { extractJson } from "@/lib/ai/extract-json";
 import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
@@ -42,9 +45,15 @@ const optimizeRequestSchema = z.object({
 
 // Writer + reviewer + fix + optional length pass share an 85s AI budget.
 export const maxDuration=120;
-export async function POST(
+// Streams stage progress to clients that ask for it (see withStageStream).
+export function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return withStageStream(request, onStage => handle(request, context, onStage));
+}
+
+async function handle(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
+  onStage: (stage: AiStage) => void
 ): Promise<Response> {
   const timings=createTimings(),signal=AbortSignal.timeout(85_000);
   try {
@@ -129,6 +138,7 @@ export async function POST(
       change_summary: "Backup before JD optimization",
     });
 
+    if (isUnparsedUpload(typedResume.content)) onStage("parse");
     const structured = await timings.measure("parse",()=>structureUploadedResume(typedResume.content, signal));
     if (!structured) return apiError(ERROR_CODES.INTERNAL_ERROR, UNPARSED_RESUME_MESSAGE, 503);
     typedResume.content = structured;
@@ -146,6 +156,7 @@ export async function POST(
       embellishmentLevel as EmbellishmentLevel
     );
 
+    onStage("write");
     const completion = await timings.measure('model',()=>groq.chat.completions.create({
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
@@ -193,7 +204,7 @@ export async function POST(
 
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
-    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal,jobDescription}));
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal,jobDescription,onStage}));
     result.resumeContent = fitted.content;
 
     // Update resume with optimized content

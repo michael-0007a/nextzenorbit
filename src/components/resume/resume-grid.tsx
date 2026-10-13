@@ -31,6 +31,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { fadeIn, staggerContainer, staggerItem } from "@/lib/animations";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS } from "@/lib/ai/progress";
 
 interface ResumeListItem {
   id: string;
@@ -216,6 +218,9 @@ export function ResumeGrid({ resumes: initialResumes, adminResumes: initialAdmin
 
   return (
     <div className="space-y-6">
+      {uploading && <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-4 shadow-lg">
+        <AiProgress plan={AI_PLANS.resumeUpload} />
+      </div>}
       {/* Action bar */}
       <div className="flex items-center gap-3">
         <Button
