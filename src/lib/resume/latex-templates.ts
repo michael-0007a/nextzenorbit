@@ -12,15 +12,20 @@ function escapeLatex(text: string): string {
   return text.replace(/[\\&%$#_{}~^]/g, c => escapes[c]);
 }
 
-/** Editable source uses the same content and template. TeX engines paginate independently. */
+/** Editable source uses the same content and template. TeX engines paginate independently;
+ * two-column templates are emitted as one column (sidebar sections first) for reliable page breaks. */
 export function generateLatex(content: ResumeContent, templateId: string): string {
   const template = getTemplate(templateId);
   const margin = template.layout.margins;
-  const body = resumeBlocks(content).map(block => {
-    const text = escapeLatex(block.text);
+  const body = resumeBlocks(content, template).map(block => {
+    const style = (value: string) => block.italic ? `\\textit{${value}}` : value;
+    const text = (block.lead ? `\\textbf{${escapeLatex(block.lead)}} ` : "") + style(escapeLatex(block.text));
+    // Right-aligned dates/location, never bold.
+    const right = block.right ? `\\hfill ${style(escapeLatex(block.right))}` : "";
     if (block.kind === "name") return `\\begin{${template.layout.headerStyle === "centered" ? "center" : "flushleft"}}{\\LARGE\\bfseries ${text}}\\end{${template.layout.headerStyle === "centered" ? "center" : "flushleft"}}`;
     if (block.kind === "section") return `\\section*{${text}}`;
-    if (block.kind === "entry") return `\\needspace{3\\baselineskip}\\noindent\\textbf{${text}}\\par`;
+    if (block.kind === "entry") return `\\needspace{3\\baselineskip}\\noindent\\textbf{${text}}${right}\\par`;
+    if (right) return `\\noindent ${text}${right}\\par`;
     if (block.kind === "bullet") return `\\noindent\\hangindent=12pt \\textbullet\\ ${text}\\par`;
     return `\\noindent ${text}\\par`;
   }).join("\n");

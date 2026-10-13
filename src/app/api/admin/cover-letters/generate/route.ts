@@ -1,4 +1,4 @@
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { createAIClient } from "@/lib/ai/model";
 /**
  * Admin API: Generate Cover Letter
  *
@@ -12,7 +12,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { denyUnassignedClient } from "@/lib/admin/assignments";
-import Groq from "groq-sdk";
 import { z } from "zod";
 import { COVER_LETTER_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { resumeContentSchema } from "@/lib/validations/resume";
@@ -20,9 +19,7 @@ import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
 import { rateLimit } from "@/lib/rate-limit";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groq = createAIClient();
 
 const adminGenerateSchema = z.object({
   userId: z.string().uuid(),
@@ -85,7 +82,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     const prompt = COVER_LETTER_PROMPT_V1;
 
     const completion = await groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: prompt.model,
       messages: [
         { role: "system", content: prompt.system },

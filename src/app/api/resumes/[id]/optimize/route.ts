@@ -1,8 +1,10 @@
+import { extractJson } from "@/lib/ai/extract-json";
 import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
 import { parseExportContent } from "@/lib/resume/export-content";
 import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { createAIClient } from "@/lib/ai/model";
+import { structureUploadedResume, UNPARSED_RESUME_MESSAGE } from "@/lib/ai/parsers/resume-parser";
 /**
  * JD-Based Resume Optimization API
  *
@@ -20,7 +22,6 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Groq from "groq-sdk";
 import { z } from "zod";
 import {
   JD_OPTIMIZER_PROMPT_V1,
@@ -30,9 +31,7 @@ import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,timeout:45000,maxRetries:0,
-});
+const groq = createAIClient();
 
 const optimizeRequestSchema = z.object({
   targetPages: targetPagesSchema,
@@ -41,12 +40,13 @@ const optimizeRequestSchema = z.object({
   userAcknowledged: z.boolean().optional(), // Required for aggressive mode
 });
 
-export const maxDuration=60;
+// Writer + reviewer + fix + optional length pass share an 85s AI budget.
+export const maxDuration=120;
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
-  const timings=createTimings(),signal=AbortSignal.timeout(45000);
+  const timings=createTimings(),signal=AbortSignal.timeout(85_000);
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -129,6 +129,10 @@ export async function POST(
       change_summary: "Backup before JD optimization",
     });
 
+    const structured = await timings.measure("parse",()=>structureUploadedResume(typedResume.content, signal));
+    if (!structured) return apiError(ERROR_CODES.INTERNAL_ERROR, UNPARSED_RESUME_MESSAGE, 503);
+    typedResume.content = structured;
+
     // Prepare content for AI
     const resumeString = JSON.stringify(typedResume.content, null, 2);
 
@@ -143,7 +147,6 @@ export async function POST(
     );
 
     const completion = await timings.measure('model',()=>groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
         { role: "system", content: systemPrompt + "\n\n" + (typedResume.content.resume_type === "c2c" ? "C2C: Rewrite only the professional summary as newline-separated detailed factual bullets. Preserve all other fields exactly; do not shorten history to fit pages." : resumeLengthInstruction(requestedPages)) },
@@ -170,35 +173,7 @@ export async function POST(
     };
 
     try {
-      const cleaned = responseText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-
-      // Find the outermost JSON object by tracking brace depth
-      let depth = 0;
-      let startIdx = -1;
-      let endIdx = -1;
-
-      for (let i = 0; i < cleaned.length; i++) {
-        if (cleaned[i] === "{") {
-          if (depth === 0) startIdx = i;
-          depth++;
-        } else if (cleaned[i] === "}") {
-          depth--;
-          if (depth === 0 && startIdx !== -1) {
-            endIdx = i + 1;
-            break;
-          }
-        }
-      }
-
-      if (startIdx === -1 || endIdx === -1) {
-        throw new Error("No JSON object found");
-      }
-
-      const jsonStr = cleaned.slice(startIdx, endIdx);
-      result = JSON.parse(jsonStr);
+      result = extractJson(responseText) as typeof result;
     } catch (parseError) {
       console.error("Failed to parse optimization response:", responseText.slice(0, 1000));
       console.error("Parse error:", parseError);
@@ -218,7 +193,7 @@ export async function POST(
 
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
-    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal}));
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal,jobDescription}));
     result.resumeContent = fitted.content;
 
     // Update resume with optimized content

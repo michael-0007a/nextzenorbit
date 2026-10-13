@@ -130,7 +130,7 @@ export async function POST(request: Request): Promise<Response> {
     let parsedByAI = false;
 
     if (resumeText && resumeText.length >= 50) {
-      const parseResult = await timings.measure('model',()=>parseResumeWithAI(resumeText,{signal:AbortSignal.timeout(15000)}));
+      const parseResult = await timings.measure('model',()=>parseResumeWithAI(resumeText,{signal:AbortSignal.timeout(40000)}));
       content = parseResult.content;
       tokensUsed = parseResult.tokensUsed;
       parsedByAI = parseResult.parsedByAI;

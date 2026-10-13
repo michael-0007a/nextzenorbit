@@ -1,4 +1,5 @@
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { extractJson } from "@/lib/ai/extract-json";
+import { createAIClient } from "@/lib/ai/model";
 /**
  * AI Resume Enhancement API
  *
@@ -14,15 +15,12 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Groq from "groq-sdk";
 import { z } from "zod";
 import { BULLET_REWRITER_PROMPT_V1, SUMMARY_GENERATOR_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { apiError, ERROR_CODES } from "@/types/api";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groq = createAIClient();
 
 // Request schema
 const enhanceRequestSchema = z.object({
@@ -112,7 +110,6 @@ export async function POST(
       const prompt = BULLET_REWRITER_PROMPT_V1;
 
       const completion = await groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
         model: prompt.model,
         messages: [
           { role: "system", content: prompt.system },
@@ -126,13 +123,7 @@ export async function POST(
 
       // Parse JSON response
       try {
-        // Extract JSON from response (handle potential markdown wrapping)
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("No JSON found in response");
-        }
-
-        const result = JSON.parse(jsonMatch[0]);
+        const result = extractJson(responseText) as { bullets?: string[] };
 
         // Track AI usage
         await trackAIUsage(admin, user.id, completion.usage?.total_tokens || 0);
@@ -156,7 +147,6 @@ export async function POST(
       const prompt = SUMMARY_GENERATOR_PROMPT_V1;
 
       const completion = await groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
         model: prompt.model,
         messages: [
           { role: "system", content: prompt.system },

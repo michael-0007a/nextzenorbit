@@ -1,16 +1,17 @@
-import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
+import { AI_WRITER_MODEL } from "@/lib/ai/model";
+import { RESUME_FACT_RULES, WRITING_STYLE_RULES } from "@/lib/ai/prompts/writing-rules";
 /**
  * AI Resume Improver Prompt — v2.0.0
  *
  * Full resume optimization for ATS compatibility and professional impact.
  * Creates an improved version of the entire resume.
- * Provider: Groq (openai/gpt-oss-120b)
+ * Provider: Amazon Bedrock (see @/lib/ai/model)
  */
 
 export const RESUME_IMPROVER_PROMPT_V1 = {
   version: "2.0.0",
   name: "resume_improver",
-  model: GROQ_TEXT_MODEL,
+  model: AI_WRITER_MODEL,
 
   system: `You are an expert resume writer focused on clarity, professionalism, and authenticity. Your task is to improve a resume while keeping it honest and natural-sounding.
 
@@ -59,7 +60,12 @@ STRICT RULES:
 OUTPUT FORMAT:
 Return ONLY valid JSON matching the exact structure of the input resume content.
 The structure should have: contact, summary, experience, education, skills, projects, certifications, languages, custom_sections.
-Preserve all field names and structure exactly.`,
+Preserve all field names and structure exactly.
+
+SHARED RULES (these take priority over anything above):
+${RESUME_FACT_RULES}
+
+${WRITING_STYLE_RULES}`,
 
   user: (resumeContent: string) => `Improve this resume to be clearer and more professional.
 
@@ -80,7 +86,7 @@ export type EmbellishmentLevel = "conservative" | "moderate" | "aggressive";
 export const JD_OPTIMIZER_PROMPT_V1 = {
   version: "2.0.0",
   name: "jd_optimizer",
-  model: GROQ_TEXT_MODEL,
+  model: AI_WRITER_MODEL,
 
   getSystemPrompt: (level: EmbellishmentLevel) => {
     const baseRules = `You are an expert resume writer who tailors resumes to match job descriptions while maintaining authenticity. You write like a human, not an AI.
@@ -95,7 +101,9 @@ CRITICAL KEYWORD TASK:
 1. First, extract ALL required skills/keywords from the job description
 2. For each keyword, find relevant experience in the resume to incorporate it naturally
 3. Include only evidenced keywords. Report unsupported requirements in keywordsMissing
-4. Track which keywords were successfully incorporated`;
+4. Track which keywords were successfully incorporated
+
+Reorder skills and bullets so the most job-relevant evidence comes first. Unsupported job requirements go in keywordsMissing.`;
 
     const levelRules = {
       conservative: "Improve clarity and order while staying close to the candidate's wording.",
@@ -123,7 +131,12 @@ Return ONLY valid JSON with this exact structure:
   "keywordsMissing": ["keyword1", ...keywords that couldn't be added naturally]
 }
 
-REMINDER: Do NOT add fake percentages or metrics. Keep language natural and factually supported.`;
+REMINDER: Do NOT add fake percentages or metrics. Keep language natural and factually supported.
+
+SHARED RULES (these take priority over anything above):
+${RESUME_FACT_RULES}
+
+${WRITING_STYLE_RULES}`;
   },
 
   user: (

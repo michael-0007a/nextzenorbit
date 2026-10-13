@@ -1,17 +1,16 @@
-import Groq from "groq-sdk";
+import { extractJson } from "@/lib/ai/extract-json";
 import type { z } from "zod";
-import { GROQ_TEXT_MODEL, GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { AI_WRITER_MODEL, createAIClient } from "@/lib/ai/model";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = createAIClient();
 
 export class AiOutputError extends Error {}
 
 /** One JSON-mode completion validated against a schema. Throws AiOutputError on malformed output. */
 export async function generateJson<T extends z.ZodType>(schema: T, system: string, user: string, maxTokens = 1500) {
   const completion = await groq.chat.completions.create({
-    ...GROQ_TEXT_OPTIONS,
-    model: GROQ_TEXT_MODEL,
+    model: AI_WRITER_MODEL,
     response_format: { type: "json_object" },
     messages: [{ role: "system", content: system }, { role: "user", content: user }],
     temperature: 0.6,
@@ -22,7 +21,7 @@ export async function generateJson<T extends z.ZodType>(schema: T, system: strin
 
 export function parseAiJson<T extends z.ZodType>(schema: T, raw: string | null | undefined): z.infer<T> {
   let json: unknown;
-  try { json = JSON.parse(raw ?? ""); } catch { throw new AiOutputError("The AI returned an unreadable answer. Please try again."); }
+  try { json = extractJson(raw); } catch { throw new AiOutputError("The AI returned an unreadable answer. Please try again."); }
   const parsed = schema.safeParse(json);
   if (!parsed.success) throw new AiOutputError("The AI answer was incomplete. Please try again.");
   return parsed.data;

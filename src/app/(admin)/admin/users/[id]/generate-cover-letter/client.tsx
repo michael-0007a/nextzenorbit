@@ -4,7 +4,7 @@
  * Admin Cover Letter Generator Client
  *
  * Provides a UI for the admin to generate a tailored cover letter for a user.
- * It uses the Groq AI API and saves the output to the admin_cover_letters table.
+ * It uses the Bedrock AI writer and saves the output to the admin_cover_letters table.
  */
 
 import { useState } from "react";
@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Save,
+  Download,
   Wand2,
   Loader2,
   FileSignature,
@@ -98,6 +99,28 @@ export function AdminCoverLetterGeneratorClient({
     }
   };
 
+  const [downloading, setDownloading] = useState<"pdf" | "docx" | null>(null);
+  const handleDownload = async (format: "pdf" | "docx") => {
+    setDownloading(format);
+    try {
+      const response = await fetch("/api/cover-letter/export", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, format, filename: letterTitle || "cover_letter" }) });
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || "Download failed. Please try again.");
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${(letterTitle || "cover_letter").replace(/[^a-zA-Z0-9_-]/g, "_")}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Download failed. Please try again.");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!letterTitle.trim() || !content.trim()) {
       toast.error("Please provide a title and generated content.");
@@ -165,6 +188,12 @@ export function AdminCoverLetterGeneratorClient({
           >
             Cancel
           </Button>
+          {(["pdf", "docx"] as const).map(format => (
+            <Button key={format} variant="secondary" onClick={() => handleDownload(format)} disabled={downloading !== null || !content.trim()}
+              leftIcon={downloading === format ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}>
+              {format === "pdf" ? "PDF" : "Word"}
+            </Button>
+          ))}
           <Button
             variant="primary"
             onClick={handleSave}

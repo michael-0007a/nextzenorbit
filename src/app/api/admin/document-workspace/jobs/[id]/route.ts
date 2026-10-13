@@ -3,7 +3,8 @@ import { requireAdmin,isAuthError } from '@/lib/admin/guards';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { runDocumentJob } from '@/lib/admin/documents/jobs';
 import { z } from 'zod';
-export const maxDuration=60;
+// Background document jobs run via after() in this function; their AI budget is 85s (lease is 90s).
+export const maxDuration=120;
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}) {
  const auth=await requireAdmin();if(isAuthError(auth))return auth;
  const {id}=await params;if(!z.string().uuid().safeParse(id).success)return Response.json({error:{message:'Invalid job.'}},{status:400});

@@ -1,4 +1,5 @@
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { extractJson } from "@/lib/ai/extract-json";
+import { createAIClient } from "@/lib/ai/model";
 /**
  * Job Analyzer API Route — v2.0
  *
@@ -10,14 +11,11 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Groq from "groq-sdk";
 import { JOB_ANALYZER_PROMPT_V2, type AnalysisResult } from "@/lib/ai/prompts/job-analyzer";
 import type { ResumeRow } from "@/types/database";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groq = createAIClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,7 +68,6 @@ export async function POST(request: NextRequest) {
 
     // Call Groq API with enhanced prompt
     const completion = await groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: JOB_ANALYZER_PROMPT_V2.model,
       messages: [
         { role: "system", content: JOB_ANALYZER_PROMPT_V2.system },
@@ -93,7 +90,7 @@ export async function POST(request: NextRequest) {
     let parsed: AnalysisResult;
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      parsed = JSON.parse(cleaned);
+      parsed = extractJson(cleaned) as typeof parsed;
     } catch {
       console.error("Failed to parse AI response:", content);
       // Fallback to basic analysis

@@ -1,11 +1,9 @@
-import { GROQ_TEXT_MODEL, GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { AI_WRITER_MODEL, createAIClient } from "@/lib/ai/model";
 // API Route: /api/ai/generate-notes
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { upsertNote } from '@/services/notes-service';
-
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,33 +21,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
     }
 
-    if (!GROQ_API_KEY) {
-      return NextResponse.json({ error: 'Groq API key not configured' }, { status: 500 });
-    }
-
-    // Call Groq API
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: GROQ_TEXT_MODEL,
-        ...GROQ_TEXT_OPTIONS,
-        messages: [
-          { role: 'system', content: 'You are a career expert creating concise, helpful study notes.' },
-          { role: 'user', content: `Create detailed study notes about the following topic: ${topic}. Focus on key concepts, best practices, and interview preparation if applicable. Format the response in Markdown.` }
-        ]
-      })
+    const completion = await createAIClient().chat.completions.create({
+      model: AI_WRITER_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a career expert creating concise, helpful study notes.' },
+        { role: 'user', content: `Create detailed study notes about the following topic: ${topic}. Focus on key concepts, best practices, and interview preparation if applicable. Format the response in Markdown.` }
+      ]
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate notes with Groq API');
-    }
-
-    const data = await response.json();
-    const generatedContent = data.choices[0]?.message?.content || '';
+    const generatedContent = completion.choices[0]?.message?.content || '';
 
     // Save to database
     const result = await upsertNote(user.id, user.email || '', {

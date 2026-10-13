@@ -115,12 +115,12 @@ export default function AdminUserDetailsPage({
   const [sendingNotification, setSendingNotification] = useState(false);
   const [downloadingResume, setDownloadingResume] = useState<string | null>(null);
 
-  const downloadResume = async (id: string, title: string, adminGenerated = false, format: "pdf" | "docx" = "pdf") => {
+  const downloadResume = (id: string, title: string, adminGenerated = false, format: "pdf" | "docx" = "pdf") =>
+    downloadFile(id, adminGenerated ? `/api/resumes/export-admin?id=${id}&format=${format}` : `/api/resumes/${id}/export?format=${format}`, title, format);
+  const downloadFile = async (id: string, url: string, title: string, format: "pdf" | "docx") => {
     setDownloadingResume(id);
     try {
-      const response = await fetch(adminGenerated
-        ? `/api/resumes/export-admin?id=${id}&format=${format}`
-        : `/api/resumes/${id}/export?format=${format}`);
+      const response = await fetch(url);
       if (!response.ok) {
         const result = await response.json().catch(() => null);
         throw new Error(result?.error?.message || "Failed to download PDF. Please try again.");
@@ -128,14 +128,14 @@ export default function AdminUserDetailsPage({
       if (!response.headers.get("content-type")?.includes(format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
         throw new Error("The PDF could not be downloaded. Please sign in again and retry.");
       }
-      const url = URL.createObjectURL(await response.blob());
+      const objectUrl = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
-      link.href = url;
+      link.href = objectUrl;
       link.download = `${title.replace(/[^a-zA-Z0-9]/g, "_") || "resume"}.${format}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to download PDF. Please try again.");
     } finally {
@@ -686,6 +686,15 @@ export default function AdminUserDetailsPage({
                         Expires in{" "}
                         {formatDistanceToNow(new Date(cl.expires_at))}
                       </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {(["pdf", "docx"] as const).map(format => (
+                        <button key={format} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 flex items-center gap-1.5" disabled={downloadingResume !== null}
+                          onClick={() => downloadFile(cl.id, `/api/admin/cover-letters/${cl.id}/export?format=${format}`, cl.title, format)}>
+                          <Download className="h-3.5 w-3.5" />
+                          {downloadingResume === cl.id ? "Downloading..." : format === "pdf" ? "PDF" : "Word"}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ))}

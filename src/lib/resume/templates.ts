@@ -30,6 +30,12 @@ export interface ResumeTemplate {
     headerStyle: "centered" | "left" | "split";
     sectionSpacing: number;
     showDividers: boolean;
+    /** "split": organization + location on one line, title + dates on the next (Jake's Resume style). */
+    entryStyle?: "stacked" | "split";
+    /** Two-column layout: education, skills, certifications and languages go in a left sidebar (Deedy style). */
+    sidebar?: { width: number; gap: number };
+    nameSize?: number;
+    sectionCase?: "upper";
   };
 }
 
@@ -114,6 +120,31 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
   },
 ];
 
+// Popular ATS-friendly community designs, rebuilt on the shared layout plan so PDF, Word and preview match.
+RESUME_TEMPLATES.push(
+  {
+    id: "jake", name: "Jake's Resume", description: "The most-used tech resume: centered header, ruled sections, dates aligned right.",
+    preview: "/templates/jake.png", category: "minimal", isPro: false,
+    colors: { primary: "#000000", secondary: "#000000", text: "#000000", muted: "#333333", background: "#ffffff", accent: "#000000" },
+    fonts: { heading: "Times-Bold", body: "Times-Roman" },
+    layout: { margins: { top: 36, right: 40, bottom: 36, left: 40 }, headerStyle: "centered", sectionSpacing: 10, showDividers: true, entryStyle: "split", nameSize: 24, sectionCase: "upper" },
+  },
+  {
+    id: "deedy", name: "Deedy Two-Column", description: "Two columns: education and skills in a sidebar, experience in the main column.",
+    preview: "/templates/deedy.png", category: "modern", isPro: false,
+    colors: { primary: "#1f2937", secondary: "#374151", text: "#1f2937", muted: "#6b7280", background: "#ffffff", accent: "#2b6cb0" },
+    fonts: { heading: "Helvetica-Bold", body: "Helvetica" },
+    layout: { margins: { top: 34, right: 34, bottom: 34, left: 34 }, headerStyle: "left", sectionSpacing: 10, showDividers: false, entryStyle: "split", sidebar: { width: 158, gap: 18 }, nameSize: 26, sectionCase: "upper" },
+  },
+  {
+    id: "awesome", name: "Awesome CV", description: "Polished modern resume with colored headings and right-aligned dates.",
+    preview: "/templates/awesome.png", category: "professional", isPro: false,
+    colors: { primary: "#1a1a1a", secondary: "#333333", text: "#1a1a1a", muted: "#5d5d5d", background: "#ffffff", accent: "#b91c1c" },
+    fonts: { heading: "Helvetica-Bold", body: "Helvetica" },
+    layout: { margins: { top: 38, right: 40, bottom: 38, left: 40 }, headerStyle: "centered", sectionSpacing: 11, showDividers: true, entryStyle: "split", nameSize: 26, sectionCase: "upper" },
+  },
+);
+
 // Contract layouts retain the reference's summary -> skills -> experience order.
 RESUME_TEMPLATES.push(
   { ...RESUME_TEMPLATES[1], id: "c2c-consultant", resumeType: "c2c", name: "Contract Consultant", description: "Reference-inspired contract resume with a detailed summary and grouped skills.", colors: { ...RESUME_TEMPLATES[1].colors, primary: "#111111", accent: "#111111" }, layout: { ...RESUME_TEMPLATES[1].layout, margins: {top:54,right:54,bottom:54,left:54}, showDividers: true } },
@@ -126,7 +157,7 @@ export function templatesForType(type: "corporate" | "c2c") {
 }
 
 export function getTemplate(id: string): ResumeTemplate {
-  const aliases: Record<string, string> = { "classic-professional": "classic", "modern-tech": "modern", "deedy-resume": "creative", "academic-cv": "classic", "jake-resume": "classic", "software-engineer": "modern" };
+  const aliases: Record<string, string> = { "classic-professional": "classic", "modern-tech": "modern", "deedy-resume": "deedy", "academic-cv": "classic", "jake-resume": "jake", "awesome-cv": "awesome", "software-engineer": "modern" };
   return RESUME_TEMPLATES.find((t) => t.id === (aliases[id] || id)) ?? RESUME_TEMPLATES[0];
 }
 

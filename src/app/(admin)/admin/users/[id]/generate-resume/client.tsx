@@ -289,7 +289,7 @@ export function AdminResumeGeneratorClient({
                       <span className="text-base font-bold leading-none" style={{ color: template.colors.accent, fontFamily: template.fonts.body.startsWith("Times") ? "Georgia, serif" : "Arial, sans-serif" }}>Aa</span>
                       <span className="h-px bg-slate-300" /><span className="h-px w-4 bg-slate-200" />
                     </span>
-                    <span className="text-xs font-medium">{template.id === "classic" ? "Classic" : template.id === "modern" ? "Modern" : "Creative"}</span>
+                    <span className="text-xs font-medium">{template.name}</span>
                     {getTemplate(templateId).id === template.id && <Check aria-hidden="true" className="absolute right-1.5 top-1.5 h-3 w-3 text-primary" />}
                   </button>)}
                 </div>

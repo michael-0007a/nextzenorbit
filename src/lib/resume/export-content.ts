@@ -15,7 +15,12 @@ export function parseExportContent(value: unknown) {
     if (input && typeof input === "object") return Object.fromEntries(Object.entries(input).filter(([, item]) => item != null).map(([key, item]) => [key, clean(item)]));
     return input;
   };
-  const normalized = clean(value);
+  let normalized = clean(value);
+  // Some models echo the request envelope and answer {"resume": {...}}; unwrap it.
+  if (normalized && typeof normalized === "object" && !Array.isArray(normalized)) {
+    const outer = normalized as Record<string, unknown>;
+    if (outer.resume && typeof outer.resume === "object" && !("experience" in outer) && !("summary" in outer)) normalized = outer.resume;
+  }
   if (normalized && typeof normalized === "object" && !Array.isArray(normalized)) {
     const content = normalized as Record<string, unknown>;
     for (const key of ["experience", "education", "skills", "projects", "certifications", "languages", "custom_sections"]) {
