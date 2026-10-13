@@ -23,6 +23,13 @@ export interface LayoutLine extends Omit<ResumeBlock, "kind"> {
 export interface ResumeLayout { pages: LayoutLine[][]; fontSize: number; lineHeight: number; warnings: string[] }
 const join = (values: (string | undefined)[], separator = " | ") => values.filter(v => v?.trim()).join(separator);
 export const dateRange = (start?: string, end?: string, current?: boolean) => join([start, current ? "Present" : end], " - ");
+/** "https://www.linkedin.com/in/x/" -> "linkedin.com/in/x" for display. */
+export const displayUrl = (url?: string) => (url || "").trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
+/** "McKinsey.org Forward Program" already names its issuer "McKinsey". */
+export const redundantIssuer = (name?: string, issuer?: string) => {
+  const key = (issuer || "").toLowerCase().split(/[\s/,|]+/).find(part => part.length >= 3);
+  return !!key && (name || "").toLowerCase().includes(key);
+};
 export const italicFont = (font: string) => font.startsWith("Times") ? "Times-Italic" : "Helvetica-Oblique";
 /** Width of the main column (the whole text area for one-column templates). */
 export const mainWidth = (template: ResumeTemplate) =>
@@ -63,8 +70,12 @@ export function resumeBlocks(content: ResumeContent, template?: ResumeTemplate):
   const inSidebar = (draw: () => void) => { column = sidebar ? "side" : undefined; draw(); column = undefined; };
   const c = content.contact;
   add(c.full_name, "name", true);
-  add(join([c.email, c.phone, c.location]), "contact", true);
-  add(join([c.linkedin_url, c.github_url, c.portfolio_url]), "contact");
+  const details = join([c.email, c.phone, c.location]);
+  const links = template ? join([c.linkedin_url, c.github_url, c.portfolio_url].map(displayUrl)) : join([c.linkedin_url, c.github_url, c.portfolio_url]);
+  // New-style templates fit contact on one line when it is short enough at the largest font size.
+  const oneLine = template && details && links && textUnits(`${details} | ${links}`, template.fonts.body) * 12 / 1000 <= PAPER.width - template.layout.margins.left - template.layout.margins.right - 8;
+  if (oneLine) add(`${details} | ${links}`, "contact");
+  else { add(details, "contact", true); add(links, "contact"); }
   if (content.summary?.text) {
     section("Professional Summary");
     if (contract) content.summary.text.split(/\n+/).filter(text => text.trim()).forEach(text => add(text.replace(/^\s*[•*\-]\s*/, ""), "bullet"));
@@ -91,7 +102,8 @@ export function resumeBlocks(content: ResumeContent, template?: ResumeTemplate):
         add(e.institution, "entry", true);
         add(join([e.degree, e.field_of_study], ", "), "body", true);
         add(dateRange(e.start_date, e.end_date), "body", true, { italic: true });
-        add(join([e.location, e.gpa ? `GPA: ${e.gpa}` : ""]));
+        add(e.location);
+        add(e.gpa ? `GPA: ${e.gpa}` : "");
       } else {
         add(e.institution, "entry", true);
         add(join([e.degree, e.field_of_study]), "body", true);
@@ -122,7 +134,7 @@ export function resumeBlocks(content: ResumeContent, template?: ResumeTemplate):
     content.projects.forEach(p => {
       if (split) add(join([p.name, p.technologies?.filter(Boolean).join(", ")]), "entry", true);
       else add(p.name, "entry", true);
-      add(p.description); add(p.url);
+      add(p.description); add(template ? displayUrl(p.url) : p.url);
       if (!split && p.technologies?.length) add(`Technologies: ${p.technologies.filter(Boolean).join(", ")}`);
       bullets(p.bullets);
     });
@@ -130,7 +142,13 @@ export function resumeBlocks(content: ResumeContent, template?: ResumeTemplate):
   inSidebar(() => {
     if (content.certifications?.length) {
       section("Certifications");
-      content.certifications.forEach(c => { add(join([c.name, c.issuer, c.date]), "body", !!c.url); add(c.url); });
+      content.certifications.forEach(c => {
+        const issuer = redundantIssuer(c.name, c.issuer) ? "" : c.issuer;
+        if (sidebar) { add(c.name, "body", !!(issuer || c.date || c.url)); add(join([issuer, c.date], " · "), "body", !!c.url, { italic: true }); }
+        else if (split) add(c.name, "body", !!c.url, { right: join([issuer, c.date], " · ") });
+        else add(join([c.name, issuer, c.date]), "body", !!c.url);
+        add(template ? displayUrl(c.url) : c.url);
+      });
     }
     if (content.languages?.length) {
       section("Languages"); add(content.languages.map(l => `${l.name}${l.proficiency ? ` (${l.proficiency})` : ""}`).join(", "));
@@ -290,12 +308,12 @@ export function unsupportedPdfCharacters(content: ResumeContent, template: Resum
 }
 
 /** Use the available sheet instead of leaving visibly unfinished pages: grow gaps proportionally, with a strict cap. */
-function spread(page: LayoutLine[], capacity: number) {
+function spread(page: LayoutLine[], capacity: number, maxUnit = 6) {
   const total = used(page);
   const room = Math.max(0, capacity * 0.96 - total);
   const weights = page.map((line, index) => index === 0 || line.before === 0 ? 0 : line.kind === "section" ? 3 : line.kind === "entry" ? 2 : 1);
   const sum = weights.reduce<number>((acc, weight) => acc + weight, 0);
-  const unit = total / capacity >= 0.65 && sum ? Math.min(6, room / sum) : 0;
+  const unit = total / capacity >= 0.65 && sum ? Math.min(maxUnit, room / sum) : 0;
   return page.map((line, index) => ({ ...line, before: line.before + weights[index] * unit }));
 }
 
@@ -324,7 +342,7 @@ export function layoutResume(content: ResumeContent, template: ResumeTemplate): 
   if (unsupportedPdfCharacters(content, template).length) warnings.push("Some characters are outside this PDF font's character set. Use Word export and review the characters before applying.");
   if (chosen.fill < 0.7) warnings.push("Available content leaves some whitespace. Add relevant factual detail if needed; no content has been invented or removed to fill pages.");
   const pages = chosen.pages.map(page => columns
-    ? [...spread(page.filter(line => line.column !== "side"), capacity), ...page.filter(line => line.column === "side")]
+    ? [...spread(page.filter(line => line.column !== "side"), capacity, 2.5), ...page.filter(line => line.column === "side")]
     : spread(page, capacity));
   return { ...chosen, pages, warnings };
 }

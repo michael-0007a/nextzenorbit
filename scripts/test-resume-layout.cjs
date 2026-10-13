@@ -84,7 +84,8 @@ test('legacy IDs resolve and templates produce distinct plans', () => {
 test('long URLs preserve characters and unsupported glyphs are surfaced', () => {
   const content = fixture(0); content.contact.portfolio_url = `https://example.com/${'a'.repeat(180)}`;
   const plan = layoutResume(content, getTemplate('classic'));
-  assert.ok(normalize(plan.pages.flat().map(l => l.text).join('')).includes(content.contact.portfolio_url));
+  // Links print without "https://" (resume convention) but every other character is kept.
+  assert.ok(normalize(plan.pages.flat().map(l => l.text).join('')).includes(content.contact.portfolio_url.replace('https://', '')));
   content.contact.full_name = 'Alex 李';
   assert.ok(layoutResume(content, getTemplate('classic')).warnings.some(w => w.includes('character set')));
 });
@@ -197,4 +198,32 @@ test('a selected page count is guaranteed: least important content goes first an
     assert.match(warning, /To fit 1 page, removed: .*Selected Deliverables/);
   }
   assert.deepEqual(trimToPages(fixture(1, 2), 1, 'classic').warning, '', 'content that already fits is untouched');
+});
+
+test('certifications drop a repeated issuer; split templates right-align issuer and date', () => {
+  const content = fixture(1, 1);
+  content.certifications = [
+    { id: 'a', name: 'McKinsey.org Forward Program', issuer: 'McKinsey', date: '', url: '' },
+    { id: 'b', name: 'Career Essentials in Business Analysis', issuer: 'Microsoft/LinkedIn', date: '2024', url: '' },
+  ];
+  const jake = resumeBlocks(content, getTemplate('jake'));
+  assert.ok(jake.some(b => b.text === 'McKinsey.org Forward Program' && !b.right));
+  assert.ok(jake.some(b => b.text === 'Career Essentials in Business Analysis' && b.right === 'Microsoft/LinkedIn · 2024'));
+  const deedy = resumeBlocks(content, getTemplate('deedy'));
+  assert.ok(deedy.some(b => b.text === 'Microsoft/LinkedIn · 2024' && b.column === 'side'));
+  assert.equal(resumeBlocks(content, getTemplate('jake')).filter(b => b.kind === 'contact').length, 2, 'three long links need a second line');
+  content.contact.github_url = ''; content.contact.portfolio_url = '';
+  assert.equal(resumeBlocks(content, getTemplate('jake')).filter(b => b.kind === 'contact').length, 1, 'a typical contact line fits one line');
+  assert.ok(!resumeBlocks(content, getTemplate('jake')).some(b => b.text.includes('https://')));
+});
+
+test('refill gives trimmed bullets back while the page still fits', () => {
+  const { refillToPages, describeRemovals } = loadSource('src/lib/resume/fit-generated-resume.ts', {});
+  const full = fixture(2, 3); full.education = []; full.projects = []; full.custom_sections = [];
+  full.experience.forEach((e, i) => { e.bullets = [`Led API migration ${i} for billing`, `Wrote SQL checks ${i} for reconciliation`, `Trained analysts ${i} on dashboards`]; });
+  const trimmed = { ...full, experience: full.experience.map(e => ({ ...e, bullets: e.bullets.slice(0, 1) })) };
+  const refilled = refillToPages(trimmed, full, 1, 'jake');
+  assert.deepEqual(refilled.experience.map(e => e.bullets.length), [3, 3]);
+  assert.equal(describeRemovals(full, refilled, 1), '');
+  assert.match(describeRemovals(full, trimmed, 1), /2 bullets from Company 0; 2 bullets from Company 1/);
 });

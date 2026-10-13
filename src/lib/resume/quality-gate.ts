@@ -25,6 +25,20 @@ const BANNED = new RegExp(`\\b(${BANNED_PHRASES.map(p => p.replace(/[-]/g, "\\-"
 const NUMBER = /\d[\d,.]*%?/g;
 const YEARS = /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\+?\s+years?\b/i;
 const EM_DASH = /\s*—\s*/g;
+/** "Cards & Payments: Support ..." -> "Support ..."; labelled bullet prefixes read as AI-written. */
+export const stripLabel = (bullet: string) => bullet.replace(/^[A-Z][A-Za-z0-9&/.' -]{1,40}:\s+(?=[A-Z])/, (label) => {
+  // Only Title Case labels ("Cards & Payments:"), never a sentence ("Built API for users: ...").
+  const words = label.replace(/:\s*$/, "").trim().split(/\s+/);
+  return words.length <= 4 && words.every(word => /^[A-Z&/]/.test(word)) ? "" : label;
+});
+/** Stem overlap: "documenting workflows" and "document workflows" count as the same point. */
+export const sameIdea = (a: string, b: string) => {
+  const filler = new Set(["and", "the", "for", "with", "from", "into", "acros", "using", "their", "while"]);
+  const x = new Set([...stems(a)].filter(s => !filler.has(s))), y = new Set([...stems(b)].filter(s => !filler.has(s)));
+  let shared = 0; for (const s of x) if (y.has(s)) shared++;
+  // Same point if broadly similar, or if half the shorter bullet is contained in the longer (merged) one.
+  return similarity(x, y) >= 0.3 || shared / Math.min(x.size, y.size || 1) >= 0.5;
+};
 
 function sourceRole(source: ResumeContent, role: Experience) {
   return source.experience.find(e => e.id === role.id)
@@ -90,7 +104,7 @@ export function enforceFacts(source: ResumeContent, output: ResumeContent, jobDe
       if (!fallback) return [];
       used.add(fallback);
       return [fallback];
-    }).map(b => b.replace(EM_DASH, " - "));
+    }).map(b => stripLabel(b.replace(EM_DASH, " - ")));
     // Titles, employers and dates always come from the source.
     return { ...role, id: original.id, company: original.company, position: original.position, location: original.location, start_date: original.start_date, end_date: original.end_date, is_current: original.is_current, bullets };
   });

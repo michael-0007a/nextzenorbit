@@ -138,3 +138,13 @@ test('generic action verbs from the posting are not treated as invented work', (
   out.experience[1].bullets[1] = 'Elicit and prioritize requirements from operations and leadership teams.';
   assert.deepEqual(checkResume(src, out, JOB + ' Elicit and prioritize requirements.'), []);
 });
+
+test('labelled bullet prefixes are stripped, real sentences with colons are not', () => {
+  const { stripLabel, sameIdea } = loadSource('src/lib/resume/quality-gate.ts', {});
+  assert.equal(stripLabel('Cards & Payments: Support financial-domain analysis.'), 'Support financial-domain analysis.');
+  assert.equal(stripLabel('Data Analysis: Build SQL reports.'), 'Build SQL reports.');
+  assert.equal(stripLabel('Built API for users: Python, SQL.'), 'Built API for users: Python, SQL.');
+  assert.equal(stripLabel('Led migration: moved services to AWS.'), 'Led migration: moved services to AWS.');
+  assert.ok(sameIdea('Support financial-domain analysis by documenting workflows, exceptions and controls for banking processes.', 'Support cards/payments analysis: document workflows, exceptions, controls for banking processes.'));
+  assert.ok(!sameIdea('Analyze revenue data for pricing', 'Coordinated Jira project activities'));
+});
