@@ -135,6 +135,7 @@ test('Admin upload parses and saves a selected source without a client subscript
     storage: { from(bucket){assert.equal(bucket,'resume-uploads');return { async upload(){stored++;return {error:null}} }} },
   };
   const mocks = {
+    '@/lib/ai/quota': { checkAiQuota: async () => null, recordAiUse: async () => {} },
     '@/lib/admin/guards': { requireAdmin: async()=>({userId:'admin',role:'admin'}),isAuthError:r=>r instanceof Response },
     '@/lib/rate-limit': {rateLimit:async()=>null},
     '@/lib/supabase/admin': {createAdminClient:()=>admin},

@@ -19,7 +19,8 @@ import {
   ArrowRight,
   Inbox,
   UserPlus,
-  MessageSquare
+  MessageSquare,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -45,6 +46,7 @@ const mainNavItems: NavItem[] = [
 const superAdminNavItems: NavItem[] = [
   { label: "Admin Team", href: "/admin/team", icon: Shield, requireSuperAdmin: true },
   { label: "SSO Users", href: "/admin/sso-users", icon: UserPlus, requireSuperAdmin: true },
+  { label: "AI Limits", href: "/admin/ai-limits", icon: Gauge, requireSuperAdmin: true },
 ];
 
 const supervisorAdminNavItems: NavItem[] = [
@@ -57,6 +59,7 @@ const supervisorAdminNavItems: NavItem[] = [
   { label: "Messages", href: "/admin/messages", icon: MessageSquare },
   { label: "Admin Team", href: "/admin/team", icon: Shield },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { label: "AI Limits", href: "/admin/ai-limits", icon: Gauge },
 ];
 
 const bottomNavItems: NavItem[] = [

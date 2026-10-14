@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { createAIClient } from "@/lib/ai/model";
 /**
  * Admin API: Generate Cover Letter
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (isAuthError(adminAuth)) return adminAuth;
     const limited = await rateLimit("admin-cover-letter", adminAuth.userId, 10, 60);
     if (limited) return limited;
+    const quotaLimited = await checkAiQuota(adminAuth.userId, "cover_letter");
+    if (quotaLimited) return quotaLimited;
 
     const body = await request.json();
     const parsed = adminGenerateSchema.safeParse(body);
@@ -111,6 +114,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to generate cover letter.", 500);
     }
 
+    await recordAiUse(adminAuth.userId, "cover_letter", completion.usage?.total_tokens || 0);
     return NextResponse.json({
       success: true,
       data: {

@@ -1,3 +1,4 @@
+import { AiLimitsNotice } from "@/components/ai/ai-limits-notice";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/layout/admin-shell";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
@@ -20,6 +21,6 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminShell role={result.role} email={result.email}>{children}</AdminShell>
+    <AdminShell role={result.role} email={result.email}><AiLimitsNotice audience="admin" />{children}</AdminShell>
   );
 }

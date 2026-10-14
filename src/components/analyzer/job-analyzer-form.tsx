@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { AiProgress } from "@/components/ui/ai-progress";
 import { AI_PLANS, type AiStage } from "@/lib/ai/progress";
 import { fetchWithProgress } from "@/lib/ai/fetch-progress";
+import { AiQuotaNote } from "@/components/ai/ai-quota-note";
 
 interface ResumeOption {
   id: string;
@@ -141,7 +142,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Analysis failed");
+        throw new Error(data.error?.message || (typeof data.error === "string" ? data.error : "") || "Analysis failed");
       }
 
       const data = await res.json();
@@ -217,7 +218,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
       }
     } catch (error) {
       console.error("Optimize error:", error);
-      toast.error("Failed to optimize resume. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to optimize resume. Please try again.");
     } finally {
       setOptimizing(false);
     }
@@ -318,6 +319,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
               {analyzing ? "Analyzing..." : "Analyze Match"}
             </Button>
             {analyzing && <AiProgress plan={AI_PLANS.analyzer} />}
+            <AiQuotaNote bucket="light" refresh={analyzing} />
           </form>
         </CardBody>
       </Card>
@@ -749,6 +751,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
                 )}
 
                 {optimizing && <AiProgress plan={AI_PLANS.resumeRewrite} stage={stage} />}
+                <AiQuotaNote bucket="rewrite" refresh={optimizing} />
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3 pt-2">

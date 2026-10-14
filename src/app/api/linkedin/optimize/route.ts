@@ -6,6 +6,7 @@
  * built only from the signed-in user's own resume. Nothing is stored.
  */
 
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCachedUser } from "@/lib/supabase/server";
@@ -32,6 +33,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const limited = await rateLimit("linkedin-optimize", user.id, 10, 3600);
   if (limited) return limited;
+  const quotaLimited = await checkAiQuota(user.id, "light");
+  if (quotaLimited) return quotaLimited;
   const usage = await checkAiTokenUsage(user.id);
   if (!usage.allowed) return apiError(ERROR_CODES.SUBSCRIPTION_REQUIRED, usage.error || "Monthly AI limit reached.", 403);
 
@@ -44,6 +47,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { data, tokens } = await generateJson(linkedinProfileSchema, LINKEDIN_SYSTEM, linkedinUserPrompt(content.data, parsed.data.targetRole), 2500);
     await trackAiUsage(user.id, tokens).catch((err) => console.error("AI usage tracking failed:", err));
+    await recordAiUse(user.id, "light", tokens);
     return NextResponse.json(apiSuccess(data), { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     if (err instanceof AiOutputError) return apiError(ERROR_CODES.INTERNAL_ERROR, err.message, 502);

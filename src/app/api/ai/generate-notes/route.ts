@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { AI_WRITER_MODEL, createAIClient } from "@/lib/ai/model";
 // API Route: /api/ai/generate-notes
 
@@ -17,9 +18,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { topic, career_id } = body;
 
-    if (!topic) {
-      return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
+    if (typeof topic !== 'string' || !topic.trim() || topic.length > 200) {
+      return NextResponse.json({ error: 'Topic is required (up to 200 characters)' }, { status: 400 });
     }
+    const quotaLimited = await checkAiQuota(user.id, 'light');
+    if (quotaLimited) return quotaLimited;
 
     const completion = await createAIClient().chat.completions.create({
       model: AI_WRITER_MODEL,
@@ -29,6 +32,7 @@ export async function POST(request: NextRequest) {
       ]
     });
     const generatedContent = completion.choices[0]?.message?.content || '';
+    await recordAiUse(user.id, 'light', completion.usage?.total_tokens);
 
     // Save to database
     const result = await upsertNote(user.id, user.email || '', {

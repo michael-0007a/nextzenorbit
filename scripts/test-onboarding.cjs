@@ -112,6 +112,7 @@ test('Cover letter generation validates input and returns generated text', async
   const query = { select() { return query; }, eq() { return query; }, is() { return query; }, maybeSingle: async () => ({ data: { content: { contact: { full_name: 'Client', email: 'client@example.com' } } } }) };
   class MockGroq { chat = { completions: { create: async () => { generated++; return { choices: [{ message: { content: 'Dear Hiring Team, I am applying for this position.' } }] }; } } }; }
   const { POST } = loadSource('src/app/api/admin/cover-letters/generate/route.ts', {
+    '@/lib/ai/quota': { checkAiQuota: async () => null, recordAiUse: async () => {} },
     'groq-sdk': MockGroq,
     '@/lib/supabase/admin': { createAdminClient: () => ({ from: () => query }) },
     '@/lib/admin/guards': { requireAdmin: async () => ({ role: 'admin', userId: viewer.id }), isAuthError: () => false },

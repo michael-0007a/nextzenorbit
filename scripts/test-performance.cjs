@@ -141,6 +141,7 @@ test('An ambiguous job save cannot requeue work that already completed',async()=
   }};
  }};
  const {runDocumentJob}=loadSource('src/lib/admin/documents/jobs.ts',{
+  '@/lib/ai/quota': { checkAiQuota: async () => null, recordAiUse: async () => {} },
   '@/lib/supabase/admin':{createAdminClient:()=>db},
   '@/lib/admin/documents/schema':{documentPayloadSchema:{parse:value=>value}},
   '@/lib/admin/documents/generate':{generateDocument:async()=>({data:{content:'draft'},headers:{'Server-Timing':'model;dur=1'}})},

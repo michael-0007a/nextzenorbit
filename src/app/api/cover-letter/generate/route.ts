@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { createAIClient } from "@/lib/ai/model";
 /**
  * Cover Letter Generation API
@@ -73,6 +74,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
+    const quotaLimited = await checkAiQuota(user.id, "cover_letter");
+    if (quotaLimited) return quotaLimited;
     const tokenCheck = await checkAiTokenUsage(user.id);
     if (!tokenCheck.allowed) {
       return apiError(
@@ -139,6 +142,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Track AI usage
     await trackAIUsage(admin, user.id, completion.usage?.total_tokens || 0);
+    await recordAiUse(user.id, "cover_letter", completion.usage?.total_tokens || 0);
 
     return NextResponse.json({
       success: true,

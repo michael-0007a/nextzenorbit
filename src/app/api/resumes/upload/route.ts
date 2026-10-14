@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { createTimings } from '@/lib/performance';
 /**
  * Resume Upload API
@@ -46,7 +47,9 @@ export async function POST(request: Request): Promise<Response> {
       return apiError(ERROR_CODES.UNAUTHORIZED, "Please sign in.", 401);
     }
 
-    // Check AI token limits
+    // Check AI limits (parsing an upload counts as one AI action)
+    const quotaLimited = await checkAiQuota(user.id, "light");
+    if (quotaLimited) return quotaLimited;
     const tokenCheck = await checkAiTokenUsage(user.id);
     if (!tokenCheck.allowed) {
       return apiError(
@@ -160,6 +163,7 @@ export async function POST(request: Request): Promise<Response> {
     const [{error:uploadError}]=await Promise.all([storagePromise,localPromise]);
     if(uploadError)console.error('Resume storage upload failed:',uploadError.name);
     // 7. Track AI token usage
+    if (tokensUsed > 0) await recordAiUse(user.id, "light", tokensUsed);
     if (tokensUsed > 0) {
       const now = new Date();
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();

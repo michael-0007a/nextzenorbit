@@ -1,3 +1,4 @@
+import { recordAiUse } from '@/lib/ai/quota';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { documentPayloadSchema } from '@/lib/admin/documents/schema';
 import { generateDocument } from '@/lib/admin/documents/generate';
@@ -33,6 +34,7 @@ export async function runDocumentJob(id:string) {
   const result=job.operation==='parse_resume'
    ? await (async()=>{const p=z.object({text:z.string().min(30).max(200000),title:z.string().max(200)}).parse(job.payload);report('parse');return parseDocument(p.text,p.title);})()
    : (await (async()=>{const generated=await generateDocument(job.operation==='generate_resume'?'resume':'cover_letter',documentPayloadSchema.parse(job.payload),{onStage:report});console.info('[document-job-timing]',{operation:job.operation,stages:generated.headers['Server-Timing']});return generated;})()).data;
+  await recordAiUse(job.user_id,job.operation==='generate_resume'?'rewrite':job.operation==='generate_cover_letter'?'cover_letter':'light');
   const {error:saveError}=await admin.from('document_jobs').update({status:'succeeded',result,payload:{},error:null,lease_until:null,updated_at:new Date().toISOString()}).eq('id',id).eq('status','running').eq('lease_token',job.lease_token!);
   if(saveError)throw saveError;
  }catch{

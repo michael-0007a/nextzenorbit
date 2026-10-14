@@ -5,6 +5,7 @@
  * POST /api/mock-interviews { role, jobDescription? } — start a session with AI-generated questions
  */
 
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCachedUser } from "@/lib/supabase/server";
@@ -40,6 +41,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) return apiError(ERROR_CODES.VALIDATION_ERROR, parsed.error.issues[0]?.message ?? "Invalid request.", 400);
   const limited = await rateLimit("mock-interview-start", user.id, 10, 3600);
   if (limited) return limited;
+  const quotaLimited = await checkAiQuota(user.id, "light");
+  if (quotaLimited) return quotaLimited;
   const usage = await checkAiTokenUsage(user.id);
   if (!usage.allowed) return apiError(ERROR_CODES.SUBSCRIPTION_REQUIRED, usage.error || "Monthly AI limit reached.", 403);
 
@@ -47,6 +50,7 @@ export async function POST(request: Request): Promise<Response> {
     const { role, jobDescription } = parsed.data;
     const { data: generated, tokens } = await generateJson(mockQuestionsSchema, MOCK_QUESTIONS_SYSTEM, mockQuestionsPrompt(role, jobDescription), 1200);
     await trackAiUsage(user.id, tokens).catch((err) => console.error("AI usage tracking failed:", err));
+    await recordAiUse(user.id, "light", tokens);
     const { data, error } = await createAdminClient().from("mock_interviews")
       .insert({ user_id: user.id, role, job_description: jobDescription || null, questions: generated.questions })
       .select("*").single();

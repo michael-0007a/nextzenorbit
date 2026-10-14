@@ -529,6 +529,18 @@ export type Database = {
         Update: { read_at?: string | null };
         Relationships: [];
       };
+      ai_usage_events: {
+        Row: { id: number; user_id: string; bucket: "rewrite" | "cover_letter" | "light"; tokens: number | null; created_at: string };
+        Insert: { user_id: string; bucket: "rewrite" | "cover_letter" | "light"; tokens?: number | null };
+        Update: never;
+        Relationships: [];
+      };
+      ai_quota_requests: {
+        Row: { id: string; user_id: string; bucket: "rewrite" | "cover_letter" | "light"; day: string; reason: string; status: "pending" | "approved" | "denied"; extra: number; decided_by: string | null; decided_at: string | null; created_at: string };
+        Insert: { user_id: string; bucket: "rewrite" | "cover_letter" | "light"; day: string; reason: string };
+        Update: { status?: "approved" | "denied"; extra?: number; decided_by?: string; decided_at?: string };
+        Relationships: [];
+      };
       mock_interviews: {
         Row: MockInterviewRow;
         Insert: { user_id: string; role: string; job_description?: string | null; questions: MockInterviewRow["questions"] };

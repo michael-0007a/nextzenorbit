@@ -21,7 +21,7 @@ npm run wipe:client-data
 - Tests do **not** hit a live server. They load source files with `loadSource(path, mocks)` (exported from `scripts/test-admin-resume-exports.cjs`), which compiles a `src/` file with its imports (`@/lib/supabase/admin`, `next/headers`, ...) replaced by mocks. Some (`test-performance.cjs`) run migrations 040/041 against in-memory PGlite. When a source file adds a new import, the mocks in these tests usually need updating.
 - `scripts/test-rls.ts`, `seed-admins.js`, `create-super-admin.ts` etc. talk to a real Supabase project and need `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Other env: `AWS_BEARER_TOKEN_BEDROCK` + `AWS_REGION` (Bedrock API key for all AI), PayU keys, `NEXT_PUBLIC_APP_URL`.
 - The Chrome autofill extension is a separate package: `cd extensions/nextzen-orbit-autofill && npm run build` (esbuild, `scripts/build.mjs`; `dev` watches). See `docs/AUTOFILL_EXTENSION_TESTING.md`.
-- Database schema lives in numbered SQL files in `supabase/migrations/` (latest 045); there is no migration runner in npm scripts — apply via Supabase CLI/MCP/SQL editor. Add new changes as the next number.
+- Database schema lives in numbered SQL files in `supabase/migrations/` (latest 046); there is no migration runner in npm scripts — apply via Supabase CLI/MCP/SQL editor. Add new changes as the next number.
 
 ## Architecture
 
@@ -49,4 +49,5 @@ Roles: `user`, `admin`, `supervisor_admin`, `super_admin`, `sso_user` (the last 
 ### Conventions worth knowing
 
 - Repo root contains many one-off seed/fix scripts (`seed-*.js`, `fix-types.js`, `expand-roadmaps.js`) and output dumps (`*-output.txt`); they are not part of the app.
+- AI routes check a daily allowance first and record successful runs (`src/lib/ai/quota.ts`, migration 046, resets 00:00 GMT): `checkAiQuota` before the model call, `recordAiUse` after success. New AI routes need both, and tests that load them mock `@/lib/ai/quota`.
 - `docs/` holds per-feature design notes (security, performance, shared-client-assignments, signup-review-rollout) — check the relevant one before changing those areas. `docs/performance-*.json` are benchmark artifacts.

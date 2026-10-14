@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
   if (isAuthError(auth)) return auth;
   const limited = await rateLimit("admin-resume-upload", auth.userId, 10, 300);
   if (limited) return limited;
+  const quotaLimited = await checkAiQuota(auth.userId, "light");
+  if (quotaLimited) return quotaLimited;
   try {
     if (Number(request.headers.get("content-length")) > 6 * 1024 * 1024) return Response.json({ error: { message: "Choose a file under 5 MB." } }, { status: 413 });
     const form = await request.formData();
@@ -33,6 +36,7 @@ export async function POST(request: Request) {
     const text = await extractText(buffer, type);
     if (text.trim().length < 50) return Response.json({ error: { message: "This document has no readable resume text. Upload a text-based PDF or DOCX." } }, { status: 422 });
     const parsed = await parseResumeWithAI(text, { signal: AbortSignal.timeout(40000) }).catch(() => null);
+    if (parsed?.parsedByAI) await recordAiUse(auth.userId, "light", parsed.tokensUsed);
     const validated = parseExportContent(parsed?.content);
     const parsedByAI = !!parsed?.parsedByAI && validated.success && hasResumeBody(validated.data);
     const profile = Array.isArray(user.profile) ? user.profile[0] : user.profile;

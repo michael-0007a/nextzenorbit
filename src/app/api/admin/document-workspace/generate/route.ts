@@ -1,3 +1,4 @@
+import { checkAiQuota,recordAiUse } from '@/lib/ai/quota';
 import { withStageStream } from '@/lib/ai/progress-stream';
 import type { AiStage } from '@/lib/ai/progress';
 import { after } from 'next/server';
@@ -20,6 +21,7 @@ async function handle(request:Request,onStage:(stage:AiStage)=>void){
  const {kind,payload}=parsed.data,source=payload.resume;
  if(!hasResumeBody(source))return Response.json({error:{message:'Upload or enter your actual experience before generating.'}},{status:400});
  if(kind==='cover_letter'&&(!payload.company.trim()||!payload.jobTitle.trim()))return Response.json({error:{message:'Enter the company and target job title.'}},{status:400});
+ const quotaLimited=await checkAiQuota(auth.userId,kind==='resume'?'rewrite':'cover_letter');if(quotaLimited)return quotaLimited;
  try{
   if(request.headers.get('Prefer')==='respond-async'){
    const id=z.string().uuid().parse(request.headers.get('Idempotency-Key'));
@@ -27,6 +29,7 @@ async function handle(request:Request,onStage:(stage:AiStage)=>void){
    if(job){after(()=>runDocumentJob(job.id).catch(()=>console.error('Document processing failed')));return Response.json({data:{jobId:job.id}},{status:202,headers:{'Cache-Control':'private, no-store'}});}
   }
   const result=await generateDocument(kind,payload,{onStage});
+  await recordAiUse(auth.userId,kind==='resume'?'rewrite':'cover_letter');
   return Response.json({data:result.data},{headers:{...result.headers,'Cache-Control':'private, no-store'}});
  }catch{return Response.json({error:{message:'Generation failed. Your draft is unchanged; please retry.'}},{status:503});}
 }

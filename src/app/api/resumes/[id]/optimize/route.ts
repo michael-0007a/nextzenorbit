@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { withStageStream } from "@/lib/ai/progress-stream";
 import type { AiStage } from "@/lib/ai/progress";
 import { isUnparsedUpload } from "@/lib/resume/text-fallback";
@@ -68,6 +69,8 @@ async function handle(
     }
 
     // Check AI token limits
+    const quotaLimited = await checkAiQuota(user.id, "rewrite");
+    if (quotaLimited) return quotaLimited;
     const tokenCheck = await checkAiTokenUsage(user.id);
     if (!tokenCheck.allowed) {
       return apiError(
@@ -241,6 +244,7 @@ async function handle(
 
     // Track AI usage
     await trackAIUsage(admin, user.id, (completion.usage?.total_tokens || 0) + fitted.tokensUsed);
+    await recordAiUse(user.id, "rewrite", (completion.usage?.total_tokens || 0) + fitted.tokensUsed);
 
     return NextResponse.json({
       success: true,
