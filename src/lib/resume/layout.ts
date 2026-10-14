@@ -11,6 +11,8 @@ export interface ResumeBlock {
   right?: string;
   /** Bold label printed before the text on the first line ("Languages: ..."). */
   lead?: string;
+  /** Character ranges of `text` printed bold (job keywords in bullets). */
+  bold?: [number, number][];
   italic?: boolean;
   /** Sidebar column in two-column templates; omitted means the main column. */
   column?: "side";
@@ -19,6 +21,8 @@ export interface LayoutLine extends Omit<ResumeBlock, "kind"> {
   kind: BlockKind | "spacer";
   font: string; size: number; height: number; before: number; indent: number;
   align: "left" | "center"; color: string; rightFont?: string;
+  /** Mixed regular/bold pieces of `text`; absent when the whole line uses `font`. */
+  runs?: { text: string; bold: boolean }[];
 }
 export interface ResumeLayout { pages: LayoutLine[][]; fontSize: number; lineHeight: number; warnings: string[] }
 const join = (values: (string | undefined)[], separator = " | ") => values.filter(v => v?.trim()).join(separator);
@@ -53,11 +57,13 @@ export function resumeBlocks(content: ResumeContent, template?: ResumeTemplate):
   const split = template?.layout.entryStyle === "split";
   const sidebar = !!template?.layout.sidebar;
   let column: "side" | undefined;
+  const highlights = template?.layout.highlightKeywords ? (content.layout?.highlights || []).filter(h => h.trim().length >= 2) : [];
   const add = (text: string | undefined, kind: BlockKind = "body", keepNext = false, extra: { right?: string; italic?: boolean; lead?: string } = {}) => {
     if (!text?.trim()) return;
     const block: ResumeBlock = { text: normalizeResumeTypography(text.trim()), kind, keepNext };
     if (extra.right?.trim()) block.right = normalizeResumeTypography(extra.right.trim());
     if (extra.lead?.trim()) block.lead = normalizeResumeTypography(extra.lead.trim());
+    if (kind === "bullet" && highlights.length) { const ranges = keywordRanges(block.text, highlights); if (ranges.length) block.bold = ranges; }
     if (extra.italic) block.italic = true;
     if (column) block.column = column;
     blocks.push(block);
@@ -160,6 +166,54 @@ export function resumeBlocks(content: ResumeContent, template?: ResumeTemplate):
   return blocks;
 }
 
+/** Up to two non-overlapping, whole-word, case-insensitive keyword matches; longer phrases win. */
+export function keywordRanges(text: string, keywords: string[]): [number, number][] {
+  const ranges: [number, number][] = [];
+  const lower = text.toLowerCase();
+  for (const keyword of [...keywords].sort((a, b) => b.length - a.length)) {
+    if (ranges.length >= 2) break;
+    const needle = keyword.toLowerCase().trim();
+    for (let at = lower.indexOf(needle); at >= 0; at = lower.indexOf(needle, at + 1)) {
+      const end = at + needle.length;
+      const whole = !/[a-z0-9]/.test(lower[at - 1] || "") && !/[a-z0-9]/.test(lower[end] || "");
+      if (whole && !ranges.some(([a, b]) => at < b && end > a)) { ranges.push([at, end]); break; }
+    }
+  }
+  return ranges.sort((a, b) => a[0] - b[0]);
+}
+
+/** Word wrap with per-word fonts so bold keywords are measured at bold width. Null if a word cannot fit. */
+function wrapRuns(text: string, bold: [number, number][], fonts: { regular: string; bold: string }, size: number, width: number, firstWidth: number) {
+  type Piece = { text: string; bold: boolean };
+  // Each word is split at keyword edges, so "criteria," bolds the word but not the comma.
+  const words = [...text.matchAll(/\S+/g)].map(m => {
+    const at = m.index!, cuts = new Set([0, m[0].length]);
+    for (const [a, b] of bold) for (const edge of [a - at, b - at]) if (edge > 0 && edge < m[0].length) cuts.add(edge);
+    const edges = [...cuts].sort((x, y) => x - y);
+    return edges.slice(1).map((edge, i): Piece => ({ text: m[0].slice(edges[i], edge), bold: bold.some(([a, b]) => at + edges[i] >= a && at + edges[i] < b) }));
+  });
+  const measure = (pieces: Piece[]) => pieces.reduce((sum, p) => sum + textUnits(p.text, p.bold ? fonts.bold : fonts.regular), 0) * size / 1000;
+  const space = textUnits(" ", fonts.regular) * size / 1000;
+  const lines: Piece[][][] = [];
+  let line: Piece[][] = [], used = 0;
+  for (const word of words) {
+    const w = measure(word), limit = lines.length ? width : firstWidth;
+    if (w > limit) return null;
+    if (line.length && used + space + w > limit) { lines.push(line); line = []; used = 0; }
+    used += (line.length ? space : 0) + w;
+    line.push(word);
+  }
+  if (line.length) lines.push(line);
+  // Merge neighbouring pieces of the same weight into runs; the space between words joins the next run.
+  return lines.map(lineWords => lineWords.flatMap((word, i) => i ? [{ text: " ", bold: false }, ...word] : word)
+    .reduce<Piece[]>((runs, piece) => {
+      const last = runs.at(-1);
+      if (last && (last.bold === piece.bold || piece.text === " ")) last.text += piece.text;
+      else runs.push({ ...piece });
+      return runs;
+    }, []));
+}
+
 const textUnits = (text: string, font: string) => {
   const metrics = fontWidths[font as keyof typeof fontWidths] as Record<string, number>;
   return Array.from(text).reduce((sum, c) => sum + (metrics[c] ?? 1000), 0);
@@ -208,7 +262,8 @@ function makeLines(blocks: ResumeBlock[], template: ResumeTemplate, size: number
     const reserved = block.right ? textUnits(block.right, rightFont!) * fontSize / 1000 + 10 : 0;
     // A bold lead label shares the first line with the text.
     const leadWidth = block.lead ? (textUnits(block.lead, template.fonts.heading) + textUnits(" ", font)) * fontSize / 1000 : 0;
-    const lines = wrapText(block.text, font, fontSize, width - indent, width - indent - reserved - leadWidth);
+    const runLines = block.bold ? wrapRuns(block.text, block.bold, { regular: font, bold: template.fonts.heading }, fontSize, width - indent, width - indent - reserved - leadWidth) : null;
+    const lines = runLines ? runLines.map(runs => runs.map(r => r.text).join("")) : wrapText(block.text, font, fontSize, width - indent, width - indent - reserved - leadWidth);
     return lines.map((text, i) => {
       const line: LayoutLine = {
         ...block, text: block.kind === "bullet" && i === 0 ? `• ${text}` : text,
@@ -223,6 +278,8 @@ function makeLines(blocks: ResumeBlock[], template: ResumeTemplate, size: number
       };
       if (block.right && i === 0) line.rightFont = rightFont; else delete line.right;
       if (i > 0) delete line.lead;
+      delete line.bold;
+      if (runLines) line.runs = block.kind === "bullet" && i === 0 ? [{ text: "• ", bold: false }, ...runLines[i]] : runLines[i];
       delete line.italic;
       if (!block.column) delete line.column;
       return line;

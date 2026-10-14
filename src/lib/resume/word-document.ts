@@ -19,7 +19,7 @@ function paragraph(line: LayoutLine, template: ResumeTemplate, width: number, pa
     border: line.kind === "section" && template.layout.showDividers ? {
       bottom: { color: template.colors.accent.slice(1), style: BorderStyle.SINGLE, size: 4, space: 0 },
     } : undefined,
-    children: [...(line.lead ? [run(`${line.lead} `, template.fonts.heading, line.size, line.color)] : []), run(line.text, line.font, line.size, line.color), ...(line.right ? [run(`\t${line.right}`, line.rightFont!, line.size, template.colors.muted)] : [])],
+    children: [...(line.lead ? [run(`${line.lead} `, template.fonts.heading, line.size, line.color)] : []), ...(line.runs ? line.runs.map(piece => run(piece.text, piece.bold ? template.fonts.heading : line.font, line.size, line.color)) : [run(line.text, line.font, line.size, line.color)]), ...(line.right ? [run(`\t${line.right}`, line.rightFont!, line.size, template.colors.muted)] : [])],
   });
 }
 

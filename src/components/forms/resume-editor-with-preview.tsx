@@ -293,7 +293,7 @@ export function ResumeEditorWithPreview({ resume, isPro = false }: ResumeEditorW
           handleTemplateChange({ id: type === "c2c" ? "c2c-consultant" : "classic", name: type });
         }} />
         <ResumeLengthSelector value={watchedContent.layout?.target_pages ?? null} onChange={pages => {
-          methods.setValue("layout", { target_pages: pages }, { shouldDirty: true });
+          methods.setValue("layout", { ...watchedContent.layout, target_pages: pages }, { shouldDirty: true });
         }} />
       </div>
       {/* Main content area */}

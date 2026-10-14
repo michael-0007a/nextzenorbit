@@ -3,6 +3,7 @@ import type Groq from "groq-sdk";
 import { AI_WRITER_MODEL } from "@/lib/ai/model";
 import type { ResumeContent } from "@/lib/validations/resume";
 import type { AiStage } from "@/lib/ai/progress";
+import type { Intensity } from "@/lib/ai/prompts/writing-rules";
 import { parseExportContent } from "@/lib/resume/export-content";
 import { applyResumeLength, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { layoutResume, mainWidth } from "@/lib/resume/layout";
@@ -124,19 +125,34 @@ export function describeRemovals(full: ResumeContent, final: ResumeContent, page
   return removed.length ? `To fit ${pages} page${pages > 1 ? "s" : ""}, shortened or removed: ${removed.join("; ")}.` : "";
 }
 
+/** Phrases worth bolding: the candidate's own skill terms the job also asks for, plus job acronyms used in bullets. */
+export function pickHighlights(content: ResumeContent, jobDescription: string): string[] {
+  const job = jobDescription.toLowerCase();
+  const bullets = content.experience.flatMap(e => e.bullets).join(" ").toLowerCase();
+  const skills = content.skills.flatMap(group => group.items).map(item => item.trim()).filter(item => item.length >= 2 && item.length <= 40);
+  const acronyms = jobDescription.match(/\b[A-Z][A-Z0-9/&+]{1,7}\b/g) || [];
+  const found = [...skills, ...acronyms].filter(term => job.includes(term.toLowerCase()) && bullets.includes(term.toLowerCase()));
+  const skip = new Set(["US", "USA", "UK", "NJ", "NY", "CA", "TX", "EU", "IT", "HR", "PM", "AM"]);
+  const unique = [...new Set(found)].filter(term => term.length >= 3 && !skip.has(term)).sort((a, b) => b.length - a.length);
+  // "BRD" adds nothing once "BRD/FRD" is bold; "BI" nothing once "Power BI" is.
+  return unique.filter((term, i) => !unique.slice(0, i).some(longer => longer.toLowerCase().includes(term.toLowerCase()))).slice(0, 12);
+}
+
 const withReport = <T extends { layoutWarnings: string[] }>(fitted: T, report: GateReport) =>
   ({ ...fitted, qualityReport: report, layoutWarnings: [...fitted.layoutWarnings, gateWarning(report)].filter(Boolean) });
 
 /** Quality gate, then one bounded length revision using measured pagination, never silent truncation. */
 export async function fitGeneratedResume(groq: Groq, content: ResumeContent, source: ResumeContent,
-  pages: number | null | undefined, templateId: string | null, options: { signal?: AbortSignal; jobDescription?: string; onStage?: (stage: AiStage) => void } = {}) {
+  pages: number | null | undefined, templateId: string | null, options: { signal?: AbortSignal; jobDescription?: string; onStage?: (stage: AiStage) => void; level?: Intensity } = {}) {
   // This is a structural boundary, not merely an AI prompt. Never rewrite contract history.
   if (source.resume_type === "c2c") {
-    const checked = enforceFacts(source, { ...source, summary: content.summary }, options.jobDescription);
+    const checked = enforceFacts(source, { ...source, summary: content.summary }, options.jobDescription, options.level);
     return { ...withReport(applyResumeLength(checked.content, pages, templateId), { problemsFound: checked.problems.length, reviewerIssues: 0, restored: checked.restored }), tokensUsed: 0 };
   }
   const gated = await qualityGate(groq, source, { ...content, resume_type: source.resume_type || "corporate" }, options);
   content = { ...gated.content, resume_type: source.resume_type || "corporate" };
+  // Bold text is wider, so keywords are chosen before any page fitting measures the layout.
+  if (options.jobDescription) content = { ...content, layout: { ...content.layout, target_pages: content.layout?.target_pages ?? null, highlights: pickHighlights(content, options.jobDescription) } };
   let fitted = applyResumeLength(content, pages, templateId);
   let tokensUsed = gated.tokensUsed;
   if (pages && fitted.pageCount > pages) {
@@ -154,7 +170,7 @@ export async function fitGeneratedResume(groq: Groq, content: ResumeContent, sou
         const parsed = parseExportContent(extractJson(response.choices[0]?.message?.content));
         if (parsed.success && sameHistory(content, parsed.data)) {
           // The condensed version gets the same code-only fact enforcement.
-          const condensed = enforceFacts(source, { ...parsed.data, resume_type: content.resume_type }, options.jobDescription);
+          const condensed = enforceFacts(source, { ...parsed.data, resume_type: content.resume_type }, options.jobDescription, options.level);
           const candidate = applyResumeLength(condensed.content, pages, templateId);
           // Prefer fewer pages, or the same pages with less text, so the trimming below removes as little as possible.
           if (candidate.pageCount < fitted.pageCount || (candidate.pageCount === fitted.pageCount && lineCount(candidate, templateId) < lineCount(fitted, templateId))) { fitted = candidate; gated.report.restored.push(...condensed.restored); }

@@ -113,7 +113,7 @@ async function handle(request: NextRequest, onStage: (stage: AiStage) => void): 
         { role: "system", content: systemPrompt + (typedResume.content.resume_type === "c2c" ? "\nC2C: Tailor ONLY the professional summary as detailed newline-separated bullets using source-supported facts. Preserve all other sections exactly. Do not condense history to meet page limits." : "\n\n" + resumeLengthInstruction(requestedPages)) },
         { role: "user", content: userPrompt },
       ],
-      temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
+      temperature: embellishmentLevel === "conservative" ? 0.3 : 0.5,
       max_tokens: 24000,
       response_format: { type: "json_object" },
     },{signal}));
@@ -155,7 +155,7 @@ async function handle(request: NextRequest, onStage: (stage: AiStage) => void): 
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success || !hasResumeBody(validatedContent.data)) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
 
-    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id,{signal,jobDescription,onStage}));
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id,{signal,jobDescription,onStage,level:embellishmentLevel}));
 
     // Return optimized content WITHOUT mutating the original resume
     return NextResponse.json({

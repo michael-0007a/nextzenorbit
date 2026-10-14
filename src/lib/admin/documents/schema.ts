@@ -7,6 +7,7 @@ export const documentPayloadSchema = z.object({
   jobDescription: z.string().max(15000).default(""),
   company: z.string().max(200).default(""),
   jobTitle: z.string().max(200).default(""),
+  intensity: z.enum(["conservative", "moderate", "aggressive"]).default("moderate"),
 });
 export const adminDocumentSchema = z.object({
   id: z.string().uuid(), kind: z.enum(["resume", "cover_letter"]), title: z.string().trim().min(1).max(200),

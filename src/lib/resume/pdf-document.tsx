@@ -9,7 +9,7 @@ function Line({ line, template }: { line: LayoutLine; template: ResumeTemplate }
     borderBottomWidth: line.kind === "section" && template.layout.showDividers ? 0.5 : 0,
     borderBottomColor: template.colors.accent }}>
     <Text wrap={false} style={{ fontFamily: line.font, fontSize: line.size, lineHeight: 1, flexGrow: 1,
-      color: line.color, textAlign: line.align, paddingLeft: line.indent }}>{line.lead && <Text style={{ fontFamily: template.fonts.heading }}>{line.lead} </Text>}{line.text}</Text>
+      color: line.color, textAlign: line.align, paddingLeft: line.indent }}>{line.lead && <Text style={{ fontFamily: template.fonts.heading }}>{line.lead} </Text>}{line.runs ? line.runs.map((run, i) => <Text key={i} style={run.bold ? { fontFamily: template.fonts.heading } : undefined}>{run.text}</Text>) : line.text}</Text>
     {line.right && <Text wrap={false} style={{ fontFamily: line.rightFont, fontSize: line.size, lineHeight: 1, color: template.colors.muted }}>{line.right}</Text>}
   </View>;
 }
