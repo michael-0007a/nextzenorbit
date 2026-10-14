@@ -1,15 +1,16 @@
-import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
+import { AI_WRITER_MODEL } from "@/lib/ai/model";
+import { BANNED_PHRASES, RESUME_FACT_RULES, WRITING_STYLE_RULES } from "@/lib/ai/prompts/writing-rules";
 /**
  * AI Bullet Rewriter Prompt — v1.0.0
  *
  * Optimizes resume bullet points for impact and ATS compatibility.
- * Provider: Groq (openai/gpt-oss-120b)
+ * Provider: Amazon Bedrock (see @/lib/ai/model)
  */
 
 export const BULLET_REWRITER_PROMPT_V1 = {
   version: "1.0.0",
   name: "bullet_rewriter",
-  model: GROQ_TEXT_MODEL,
+  model: AI_WRITER_MODEL,
 
   system: `You are a resume writer who improves bullet points to be clearer and more professional while sounding natural and human.
 
@@ -30,7 +31,12 @@ OUTPUT FORMAT:
 Return ONLY a JSON object with the rewritten bullets:
 {
   "bullets": ["rewritten bullet 1", "rewritten bullet 2", ...]
-}`,
+}
+
+SHARED RULES (these take priority over anything above):
+${RESUME_FACT_RULES}
+
+${WRITING_STYLE_RULES}`,
 
   user: (bullets: string[], context?: { jobTitle?: string; company?: string; targetRole?: string }) => {
     let prompt = `Rewrite these resume bullet points to be more impactful and ATS-friendly:\n\n`;
@@ -60,17 +66,17 @@ Return ONLY a JSON object with the rewritten bullets:
  * Cover Letter Generator Prompt — v1.0.0
  *
  * Generates personalized cover letters based on resume and job description.
- * Provider: Groq (openai/gpt-oss-120b)
+ * Provider: Amazon Bedrock (see @/lib/ai/model)
  */
 export const COVER_LETTER_PROMPT_V1 = {
   version: "1.0.0",
   name: "cover_letter_generator",
-  model: GROQ_TEXT_MODEL,
+  model: AI_WRITER_MODEL,
 
   system: `You are an expert cover letter writer who creates compelling, personalized cover letters for the Indian job market.
 
 COVER LETTER STRUCTURE:
-1. Opening Paragraph (2-3 sentences): Hook with enthusiasm for the role/company, mention how you found the position
+1. Opening Paragraph (2-3 sentences): Name the role and the most relevant thing the candidate has actually done for it
 2. Body Paragraph 1 (3-4 sentences): Your most relevant experience that matches their needs
 3. Body Paragraph 2 (3-4 sentences): Additional skills/achievements that add value
 4. Closing Paragraph (2-3 sentences): Call to action, gratitude, availability
@@ -79,7 +85,7 @@ WRITING GUIDELINES:
 - Professional but warm tone — not robotic
 - Show genuine interest in the specific company
 - Connect YOUR experience to THEIR requirements
-- Include 2-3 specific achievements with metrics from the resume
+- Include 2-3 specific achievements from the resume; use metrics only if the resume states them
 - Address the hiring manager by name if provided
 - Keep under 350 words
 - Avoid clichés like "I am writing to apply for..."
@@ -91,7 +97,9 @@ STRICT FACTUAL CONSTRAINT:
 - NEVER claim knowledge of tools not mentioned in the resume
 
 OUTPUT FORMAT:
-Return ONLY the cover letter text, no JSON, no explanation.`,
+Return ONLY the cover letter text, no JSON, no explanation.
+
+STYLE: Plain and specific, like the candidate wrote it. No em dashes. Never claim how the candidate found the job or anything about the company that is not in the job description. Never use: ${BANNED_PHRASES.join(", ")}.`,
 
   user: (params: {
     resumeContent: {
@@ -140,12 +148,12 @@ Write a compelling cover letter that connects this applicant's experience to thi
 export const SUMMARY_GENERATOR_PROMPT_V1 = {
   version: "1.0.0",
   name: "summary_generator",
-  model: GROQ_TEXT_MODEL,
+  model: AI_WRITER_MODEL,
 
   system: `You are an expert resume writer. Generate a compelling professional summary (3-4 sentences) based on the candidate's experience.
 
 SUMMARY GUIDELINES:
-- Start with years of experience and professional title
+- Start with the candidate's actual title (state years of experience only if the resume states them)
 - Highlight 2-3 key areas of expertise
 - Include a notable achievement or impact
 - End with value proposition or career goal
@@ -154,7 +162,12 @@ SUMMARY GUIDELINES:
 
 STRICT CONSTRAINT: Use ONLY information from the provided resume data.
 
-OUTPUT FORMAT: Return ONLY the summary text, no JSON.`,
+OUTPUT FORMAT: Return ONLY the summary text, no JSON.
+
+SHARED RULES (these take priority over anything above):
+${RESUME_FACT_RULES}
+
+${WRITING_STYLE_RULES}`,
 
   user: (params: {
     experience?: Array<{ position: string; company: string; bullets: string[] }>;
@@ -164,14 +177,12 @@ OUTPUT FORMAT: Return ONLY the summary text, no JSON.`,
   }) => {
     const { experience, skills, education, targetRole } = params;
 
-    const expYears = experience?.length ? Math.min(experience.length * 2, 15) : 0;
     const latestRole = experience?.[0]?.position || "";
     const topSkills = skills?.flatMap(s => s.items).slice(0, 8).join(", ") || "";
     const highestEd = education?.[0];
 
     return `Generate a professional summary for:
 
-Experience: ~${expYears} years
 Current/Latest Role: ${latestRole}
 Key Skills: ${topSkills}
 Education: ${highestEd ? `${highestEd.degree} from ${highestEd.institution}` : "Not specified"}

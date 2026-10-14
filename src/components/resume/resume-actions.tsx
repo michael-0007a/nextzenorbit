@@ -33,6 +33,9 @@ import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { TemplateSelector } from "./template-selector";
 import { cn } from "@/lib/utils";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { resumeRewritePlan, type AiStage } from "@/lib/ai/progress";
+import { fetchWithProgress } from "@/lib/ai/fetch-progress";
 
 // Common template interface for both LaTeX and React-PDF templates
 interface BaseTemplate {
@@ -85,6 +88,7 @@ export function ResumeActions({
   const [improving, setImproving] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [stage, setStage] = useState<AiStage | null>(null);
   const [jobDescription, setJobDescription] = useState("");
   const [embellishmentLevel, setEmbellishmentLevel] = useState<EmbellishmentLevel>("moderate");
   const [userAcknowledged, setUserAcknowledged] = useState(false);
@@ -209,14 +213,14 @@ export function ResumeActions({
 
   // AI Improve (general ATS optimization)
   const handleImprove = async () => {
-    setImproving(true);
+    setImproving(true); setStage(null);
     try {
       await onBeforeAction?.();
-      const response = await fetch(`/api/resumes/${resumeId}/improve`, {
+      const response = await fetchWithProgress(`/api/resumes/${resumeId}/improve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetPages }),
-      });
+      }, setStage);
 
       const data = await response.json();
 
@@ -248,10 +252,10 @@ export function ResumeActions({
       return;
     }
 
-    setOptimizing(true);
+    setOptimizing(true); setStage(null);
     try {
       await onBeforeAction?.();
-      const response = await fetch(`/api/resumes/${resumeId}/optimize`, {
+      const response = await fetchWithProgress(`/api/resumes/${resumeId}/optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -260,7 +264,7 @@ export function ResumeActions({
           embellishmentLevel,
           userAcknowledged: embellishmentLevel === "aggressive" ? userAcknowledged : undefined,
         }),
-      });
+      }, setStage);
 
       const data = await response.json();
 
@@ -287,6 +291,9 @@ export function ResumeActions({
 
   return (
     <>
+      {improving && <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-4 shadow-lg">
+        <AiProgress plan={resumeRewritePlan(targetPages)} stage={stage} />
+      </div>}
       <div className={cn("flex items-center gap-2", className)}>
         {/* Export Dropdown */}
         <div className="relative" ref={exportMenuRef}>
@@ -642,6 +649,8 @@ export function ResumeActions({
               </div>
             </div>
           )}
+
+          {optimizing && <AiProgress plan={resumeRewritePlan(targetPages)} stage={stage} />}
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2">

@@ -204,8 +204,25 @@ test('Extracted text fallback preserves text and flags schema-limit truncation',
   const complete = resumeFromExtractedText('a'.repeat(18000));
   assert.equal(complete.truncated,false);
   assert.equal(complete.content.custom_sections.map(s=>s.content).join('').length,18000);
+  const lines = resumeFromExtractedText('Integration and reporting work.\n'.repeat(200));
+  assert.ok(lines.content.custom_sections.slice(0,-1).every(s=>s.content.endsWith('\n')),'chunks end on a line break, not mid-word');
   const long = resumeFromExtractedText('a'.repeat(180000));
   assert.equal(long.truncated,true);
   assert.equal(long.content.custom_sections.length,50);
   assert.equal(parseExportContent(long.content).success,true);
+});
+
+test('Raw-text uploads are structured before tailoring, never tailored as-is', async () => {
+  const { resumeFromExtractedText } = loadSource('src/lib/resume/text-fallback.ts', {});
+  const raw = resumeFromExtractedText('Jane Doe\nAnalyst at Acme 2020 - 2024\n'.repeat(5), { full_name: 'Jane Doe', email: 'jane@example.com' }).content;
+  const parsed = { contact: { full_name: '', email: 'jane@acme.com' }, summary: { text: '' }, experience: [{ id: 'e', company: 'Acme', position: 'Analyst', start_date: '2020', bullets: [] }], education: [], skills: [], projects: [], certifications: [], languages: [], custom_sections: [] };
+  for (const [reply, expected] of [[{ parsedByAI: true, content: parsed }, 'Acme'], [{ parsedByAI: false, content: raw }, null]]) {
+    const groqClass = class { chat = { completions: { create: async () => ({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(reply.content) } }] }) } }; };
+    const { structureUploadedResume } = loadSource('src/lib/ai/parsers/resume-parser.ts', { 'groq-sdk': reply.parsedByAI ? groqClass : class { chat = { completions: { create: async () => { throw new Error('429'); } } }; } });
+    const result = await structureUploadedResume(raw);
+    assert.equal(result?.experience[0]?.company ?? null, expected);
+    if (result) assert.deepEqual([result.contact.full_name, result.contact.email], ['Jane Doe', 'jane@acme.com']);
+  }
+  const { structureUploadedResume } = loadSource('src/lib/ai/parsers/resume-parser.ts', {});
+  assert.equal(await structureUploadedResume(parsed), parsed, 'structured resumes pass through without an AI call');
 });

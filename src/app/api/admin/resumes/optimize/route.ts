@@ -1,7 +1,12 @@
+import { withStageStream } from "@/lib/ai/progress-stream";
+import type { AiStage } from "@/lib/ai/progress";
+import { isUnparsedUpload } from "@/lib/resume/text-fallback";
+import { extractJson } from "@/lib/ai/extract-json";
 import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
 import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { createAIClient } from "@/lib/ai/model";
+import { structureUploadedResume, UNPARSED_RESUME_MESSAGE } from "@/lib/ai/parsers/resume-parser";
 /**
  * Admin API: Resume Optimization
  *
@@ -16,7 +21,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { rateLimit } from "@/lib/rate-limit";
-import Groq from "groq-sdk";
 import { z } from "zod";
 import {
   JD_OPTIMIZER_PROMPT_V1,
@@ -26,9 +30,7 @@ import { apiError, ERROR_CODES } from "@/types/api";
 import { parseExportContent, hasResumeBody } from "@/lib/resume/export-content";
 import type { ResumeRow } from "@/types/database";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,timeout:45000,maxRetries:0,
-});
+const groq = createAIClient();
 
 const adminOptimizeSchema = z.object({
   resumeType: z.enum(["corporate", "c2c"]).optional(),
@@ -40,9 +42,13 @@ const adminOptimizeSchema = z.object({
   embellishmentLevel: z.enum(["conservative", "moderate", "aggressive"]).default("moderate"),
 });
 
-export const maxDuration=60;
-export async function POST(request: NextRequest): Promise<Response> {
-  const timings=createTimings(),signal=AbortSignal.timeout(45000);
+// Writer + reviewer + fix + optional length pass share an 85s AI budget.
+export const maxDuration=120;
+// Streams stage progress to clients that ask for it (see withStageStream).
+export function POST(request: NextRequest) { return withStageStream(request, onStage => handle(request, onStage)); }
+
+async function handle(request: NextRequest, onStage: (stage: AiStage) => void): Promise<Response> {
+  const timings=createTimings(),signal=AbortSignal.timeout(85_000);
   try {
     const adminAuth = await requireAdmin();
     if (isAuthError(adminAuth)) return adminAuth;
@@ -82,6 +88,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     typedResume.content = {...typedResume.content, resume_type: parsed.data.resumeType || typedResume.content.resume_type || "corporate"};
     const requestedPages = targetPages === undefined ? typedResume.content.layout?.target_pages : targetPages;
     if (!hasResumeBody(typedResume.content)) return apiError(ERROR_CODES.VALIDATION_ERROR, "Choose or upload a populated base resume.", 422);
+    if (isUnparsedUpload(typedResume.content)) onStage("parse");
+    const structured = await timings.measure('parse',()=>structureUploadedResume(typedResume.content, signal));
+    if (!structured) return apiError(ERROR_CODES.INTERNAL_ERROR, UNPARSED_RESUME_MESSAGE, 503);
+    typedResume.content = structured;
 
     // Prepare content for AI
     const resumeString = JSON.stringify(typedResume.content, null, 2);
@@ -96,8 +106,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       embellishmentLevel as EmbellishmentLevel
     );
 
+    onStage("write");
     const completion = await timings.measure('model',()=>groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: JD_OPTIMIZER_PROMPT_V1.model,
       messages: [
         { role: "system", content: systemPrompt + (typedResume.content.resume_type === "c2c" ? "\nC2C: Tailor ONLY the professional summary as detailed newline-separated bullets using source-supported facts. Preserve all other sections exactly. Do not condense history to meet page limits." : "\n\n" + resumeLengthInstruction(requestedPages)) },
@@ -124,35 +134,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     };
 
     try {
-      const cleaned = responseText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-
-      // Find the outermost JSON object by tracking brace depth
-      let depth = 0;
-      let startIdx = -1;
-      let endIdx = -1;
-
-      for (let i = 0; i < cleaned.length; i++) {
-        if (cleaned[i] === "{") {
-          if (depth === 0) startIdx = i;
-          depth++;
-        } else if (cleaned[i] === "}") {
-          depth--;
-          if (depth === 0 && startIdx !== -1) {
-            endIdx = i + 1;
-            break;
-          }
-        }
-      }
-
-      if (startIdx === -1 || endIdx === -1) {
-        throw new Error("No JSON object found");
-      }
-
-      const jsonStr = cleaned.slice(startIdx, endIdx);
-      result = JSON.parse(jsonStr);
+      result = extractJson(responseText) as typeof result;
     } catch (parseError) {
       console.error("Failed to parse admin optimization response:", responseText.slice(0, 1000));
       console.error("Parse error:", parseError);
@@ -173,7 +155,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success || !hasResumeBody(validatedContent.data)) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
 
-    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id,{signal}));
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id,{signal,jobDescription,onStage}));
 
     // Return optimized content WITHOUT mutating the original resume
     return NextResponse.json({

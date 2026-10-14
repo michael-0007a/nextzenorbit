@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { resumeDocumentJobs } from '@/lib/admin/documents/jobs';
-export const maxDuration=60;
+// Background document jobs run via after() in this function; their AI budget is 85s (lease is 90s).
+export const maxDuration=120;
 export async function GET(request:Request) {
  const expected=process.env.CRON_SECRET;
  if(!expected)return new Response(null,{status:503});

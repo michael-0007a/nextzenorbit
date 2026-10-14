@@ -64,7 +64,7 @@ In short: resume builder + AI application copilot + job tracker + assisted autof
 
 - Next.js App Router is used for all pages and API routes.
 - Supabase handles auth, PostgreSQL, and storage.
-- Groq is the AI provider.
+- Amazon Bedrock is the AI provider (Kimi K2.5 writer/parser, DeepSeek V3.2 reviewer; see `src/lib/ai/model.ts`).
 - Zod validates profile, resume, and API request data.
 - Service-role Supabase clients are used in server routes where RLS recursion or privileged access would otherwise block the flow.
 - Assisted autofill runs in a Chrome extension; no autonomous submission is allowed.
@@ -128,7 +128,7 @@ In short: resume builder + AI application copilot + job tracker + assisted autof
 2. `POST /api/resumes/upload` validates file type and size.
 3. Raw file is uploaded to the `resume-uploads` storage bucket.
 4. `src/lib/ai/parsers/resume-parser.ts` extracts text using `unpdf` or `mammoth`.
-5. The extracted text is sent to Groq using `RESUME_PARSER_PROMPT_V1`.
+5. The extracted text is sent to the Bedrock extraction model using `RESUME_PARSER_PROMPT_V1`.
 6. Parsed JSON is validated against the resume schema.
 7. A resume row is created in `resumes`.
 8. AI token usage is recorded in `ai_usage`.
@@ -157,7 +157,7 @@ In short: resume builder + AI application copilot + job tracker + assisted autof
 1. User opens `/analyzer`.
 2. `src/components/analyzer/job-analyzer-form.tsx` submits job description + resume selection.
 3. `POST /api/analyzer` fetches the resume and formats it as text.
-4. Groq runs `JOB_ANALYZER_PROMPT_V2`.
+4. The Bedrock writer model runs `JOB_ANALYZER_PROMPT_V2`.
 5. API returns:
    - overall score
    - weighted breakdown
@@ -195,7 +195,7 @@ In short: resume builder + AI application copilot + job tracker + assisted autof
 
 1. User selects a resume and pastes a job description at `/cover-letter`.
 2. `POST /api/cover-letter/generate` fetches the selected resume.
-3. Groq runs `COVER_LETTER_PROMPT_V1`.
+3. The Bedrock writer model runs `COVER_LETTER_PROMPT_V1`.
 4. The generated text is returned to the client.
 5. Export options:
    - TXT direct download in the browser
@@ -558,7 +558,7 @@ Storage buckets:
 The app currently depends on:
 
 - Supabase URL + anon key + service role key
-- Groq API key
+- Amazon Bedrock API key
 - Adzuna API credentials
 - Razorpay credentials and webhook secret
 - Cashfree credentials and webhook secret
@@ -569,7 +569,7 @@ Legacy worker dependencies (deprecated):
 
 - its own `.env.local`
 - Playwright/Chromium runtime support
-- access to the same Supabase and Groq credentials
+- access to the same Supabase and Bedrock credentials
 
 ## 8. What is lacking or inconsistent
 

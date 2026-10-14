@@ -3,6 +3,7 @@ import { documentPayloadSchema } from '@/lib/admin/documents/schema';
 import { generateDocument } from '@/lib/admin/documents/generate';
 import { parseDocument } from '@/lib/admin/documents/parse';
 import { z } from 'zod';
+import type { AiStage } from '@/lib/ai/progress';
 export type JobOperation='generate_resume'|'generate_cover_letter'|'parse_resume';
 export type DocumentJob={id:string;user_id:string;operation:JobOperation;payload:unknown;result:unknown;status:'queued'|'running'|'succeeded'|'failed';attempts:number;available_at:string;lease_until:string|null;lease_token:string|null;error:string|null;created_at:string;updated_at:string};
 const missing=(code?:string)=>code==='42P01'||code==='PGRST205';
@@ -27,9 +28,11 @@ export async function runDocumentJob(id:string) {
    await admin.from('document_jobs').update({status:'failed',error:'Admin access is no longer available.',payload:{},updated_at:new Date().toISOString()}).eq('id',id).eq('status','running').eq('lease_token',job.lease_token!);
    return;
   }
+  // Progress for the polling UI; best effort, never blocks or fails the job.
+  const report=(stage:AiStage)=>{Promise.resolve(admin.from('document_jobs').update({result:{stage}}).eq('id',id).eq('status','running').eq('lease_token',job.lease_token!)).catch(()=>{});};
   const result=job.operation==='parse_resume'
-   ? await (async()=>{const p=z.object({text:z.string().min(30).max(200000),title:z.string().max(200)}).parse(job.payload);return parseDocument(p.text,p.title);})()
-   : (await (async()=>{const generated=await generateDocument(job.operation==='generate_resume'?'resume':'cover_letter',documentPayloadSchema.parse(job.payload));console.info('[document-job-timing]',{operation:job.operation,stages:generated.headers['Server-Timing']});return generated;})()).data;
+   ? await (async()=>{const p=z.object({text:z.string().min(30).max(200000),title:z.string().max(200)}).parse(job.payload);report('parse');return parseDocument(p.text,p.title);})()
+   : (await (async()=>{const generated=await generateDocument(job.operation==='generate_resume'?'resume':'cover_letter',documentPayloadSchema.parse(job.payload),{onStage:report});console.info('[document-job-timing]',{operation:job.operation,stages:generated.headers['Server-Timing']});return generated;})()).data;
   const {error:saveError}=await admin.from('document_jobs').update({status:'succeeded',result,payload:{},error:null,lease_until:null,updated_at:new Date().toISOString()}).eq('id',id).eq('status','running').eq('lease_token',job.lease_token!);
   if(saveError)throw saveError;
  }catch{

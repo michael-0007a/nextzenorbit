@@ -1,4 +1,4 @@
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { createAIClient } from "@/lib/ai/model";
 /**
  * Cover Letter Generation API
  *
@@ -11,7 +11,6 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Groq from "groq-sdk";
 import { z } from "zod";
 import { COVER_LETTER_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { resumeContentSchema } from "@/lib/validations/resume";
@@ -20,9 +19,7 @@ import type { ResumeRow, SubscriptionRow } from "@/types/database";
 import { isSubscriptionActive, getPlanLimits } from "@/lib/subscription";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groq = createAIClient();
 
 // Request schema
 const generateCoverLetterSchema = z.object({
@@ -111,7 +108,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     const prompt = COVER_LETTER_PROMPT_V1;
 
     const completion = await groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: prompt.model,
       messages: [
         { role: "system", content: prompt.system },

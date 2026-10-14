@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const type = pdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     const text = await extractText(buffer, type);
     if (text.trim().length < 50) return Response.json({ error: { message: "This document has no readable resume text. Upload a text-based PDF or DOCX." } }, { status: 422 });
-    const parsed = await parseResumeWithAI(text, { signal: AbortSignal.timeout(12000) }).catch(() => null);
+    const parsed = await parseResumeWithAI(text, { signal: AbortSignal.timeout(40000) }).catch(() => null);
     const validated = parseExportContent(parsed?.content);
     const parsedByAI = !!parsed?.parsedByAI && validated.success && hasResumeBody(validated.data);
     const profile = Array.isArray(user.profile) ? user.profile[0] : user.profile;

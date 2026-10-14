@@ -1,10 +1,10 @@
-import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
+import { AI_EXTRACT_MODEL } from "@/lib/ai/model";
 /**
  * Resume Parser Prompt — v1.0.0
  *
  * Versioned prompt for AI-powered resume text extraction.
  * Used by the resume upload flow.
- * Provider: Groq (openai/gpt-oss-120b)
+ * Provider: Amazon Bedrock (see @/lib/ai/model)
  *
  * NEVER inline prompts in route handlers — always reference from here.
  */
@@ -12,7 +12,7 @@ import { GROQ_TEXT_MODEL } from "@/lib/ai/model";
 export const RESUME_PARSER_PROMPT_V1 = {
   version: "1.0.0",
   name: "resume_parser",
-  model: GROQ_TEXT_MODEL,
+  model: AI_EXTRACT_MODEL,
 
   system: `You are a precise resume data extractor. Your ONLY task is to convert raw resume text into a structured JSON object.
 
@@ -98,12 +98,19 @@ Return ONLY a valid JSON object matching this exact schema (no markdown, no expl
       "proficiency": "intermediate"
     }
   ],
-  "custom_sections": []
+  "custom_sections": [
+    {
+      "id": "custom_1",
+      "title": "",
+      "content": ""
+    }
+  ]
 }
 
 Rules for IDs: Use prefixes like "exp_1", "edu_1", "skill_1", "proj_1", "cert_1", "lang_1" incrementing for each entry.
 Rules for dates: Use formats like "Jan 2023", "2023", "Mar 2021 - Present". If end_date is "Present" or missing and clearly current, set is_current to true and end_date to "".
-Rules for skills: Group related skills into categories when possible (e.g., "Programming Languages", "Frameworks", "Tools").
+Rules for skills: Group related skills into categories when possible (e.g., "Programming Languages", "Frameworks", "Tools"). Each items element is ONE skill: split comma-separated lists into separate elements.
+Rules for custom_sections: Every source section that does not fit the fields above (e.g. "Selected Deliverables", "Research Highlights", "Awards", "Publications", "Volunteering") becomes one custom_sections entry with its heading as title and its full text as content (bullets on separate lines). Never drop a section.
 Rules for proficiency: Use one of: "native", "fluent", "advanced", "intermediate", "basic".`,
 
   userTemplate: (resumeText: string) =>

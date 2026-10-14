@@ -27,6 +27,9 @@ function fixture(roles = 2, bullets = 6) {
   return content;
 }
 const normalize = text => text.replace(/\s+/g, '');
+// Two-column templates fill each column independently.
+const columns = page => [page.filter(l => l.column !== 'side'), page.filter(l => l.column === 'side')].filter(c => c.length);
+const height = lines => lines.reduce((h, l) => h + l.before + l.height, 0);
 
 for (const template of RESUME_TEMPLATES) {
   test(`${template.id}: complete, readable, balanced pages and recoverable PDF/DOCX text`, async () => {
@@ -34,19 +37,19 @@ for (const template of RESUME_TEMPLATES) {
     const plan = layoutResume(content, template);
     assert.ok(plan.pages.length >= 2);
     assert.ok(plan.fontSize >= 10.5 && plan.fontSize <= 12);
-    const heights = plan.pages.map(page => page.reduce((h, l) => h + l.before + l.height, 0));
+    const heights = plan.pages.map(page => height(columns(page)[0]));
     const capacity = PAPER.height - template.layout.margins.top - template.layout.margins.bottom;
-    assert.ok(heights.every(h => h <= capacity));
+    assert.ok(plan.pages.every(page => columns(page).every(c => height(c) <= capacity)));
     assert.ok(Math.max(...heights) - Math.min(...heights) < 100, `Unbalanced pages: ${heights}`);
-    assert.ok(plan.pages.every(page => page.at(-1).kind !== 'section'));
+    assert.ok(plan.pages.every(page => columns(page).every(c => c.at(-1).kind !== 'section')));
     const pdf = await renderToBuffer(ResumePDF({ content, template }));
     const extracted = await extractText(new Uint8Array(pdf), { mergePages: true });
     assert.equal(extracted.totalPages, plan.pages.length);
     const docx = await generateWordDocument(content, { template });
     const word = await mammoth.extractRawText({ buffer: docx });
-    for (const block of resumeBlocks(content)) {
-      assert.ok(normalize(extracted.text).includes(normalize(block.text)), `PDF missing: ${block.text}`);
-      assert.ok(normalize(word.value).includes(normalize(block.text)), `DOCX missing: ${block.text}`);
+    for (const block of resumeBlocks(content, template)) for (const text of [block.lead, block.text, block.right].filter(Boolean)) {
+      assert.ok(normalize(extracted.text).includes(normalize(text)), `PDF missing: ${text}`);
+      assert.ok(normalize(word.value).includes(normalize(text)), `DOCX missing: ${text}`);
     }
     const proxy = await getDocumentProxy(new Uint8Array(pdf));
     for (let p = 1; p <= proxy.numPages; p++) {
@@ -81,7 +84,8 @@ test('legacy IDs resolve and templates produce distinct plans', () => {
 test('long URLs preserve characters and unsupported glyphs are surfaced', () => {
   const content = fixture(0); content.contact.portfolio_url = `https://example.com/${'a'.repeat(180)}`;
   const plan = layoutResume(content, getTemplate('classic'));
-  assert.ok(normalize(plan.pages.flat().map(l => l.text).join('')).includes(content.contact.portfolio_url));
+  // Links print without "https://" (resume convention) but every other character is kept.
+  assert.ok(normalize(plan.pages.flat().map(l => l.text).join('')).includes(content.contact.portfolio_url.replace('https://', '')));
   content.contact.full_name = 'Alex 李';
   assert.ok(layoutResume(content, getTemplate('classic')).warnings.some(w => w.includes('character set')));
 });
@@ -134,9 +138,11 @@ test('selected page count survives validation and controls pagination without cl
 test('AI length revision uses actual overflow and preserves contact details', async () => {
   const { fitGeneratedResume } = loadSource('src/lib/resume/fit-generated-resume.ts', {});
   const source = fixture();
-  let calls = 0;
+  let calls = 0, reviews = 0;
   const shorter = fixture(2, 1);
   const groq = { chat: { completions: { create: async args => {
+    // The quality-gate reviewer runs first; a clean review means no fix call.
+    if (args.messages[0].content.includes("fact-checker")) { reviews++; return { choices: [{ finish_reason: "stop", message: { content: "{\"issues\":[]}" } }], usage: { total_tokens: 8 } }; }
     calls++;
     assert.match(args.messages[1].content, /renders as .* target is 1/);
     return { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(shorter) } }], usage: { total_tokens: 42 } };
@@ -144,7 +150,8 @@ test('AI length revision uses actual overflow and preserves contact details', as
   const fitted = await fitGeneratedResume(groq, source, source, 1, 'classic');
   assert.equal(calls, 1);
   assert.equal(fitted.pageCount, 1);
-  assert.equal(fitted.tokensUsed, 42);
+  assert.equal(fitted.tokensUsed, 50);
+  assert.equal(reviews, 1);
   assert.deepEqual(fitted.content.contact, source.contact);
   await fitGeneratedResume(groq, source, source, null, 'classic');
   assert.equal(calls, 1, 'Auto must not condense the source');
@@ -157,12 +164,66 @@ test('reference resume fills both sheets without losing source details', () => {
     const plan = layoutResume(content, template);
     assert.equal(plan.pages.length, 2);
     const capacity = PAPER.height - template.layout.margins.top - template.layout.margins.bottom;
-    for (const page of plan.pages) {
-      const used = page.reduce((sum, line) => sum + line.height + line.before, 0);
-      assert.ok(used / capacity >= 0.9, `${template.id}: underfilled at ${used / capacity}`);
-      assert.ok(used <= capacity);
+    // Compact templates fit this resume on one page; a forced second page is never padded with invented content.
+    const natural = layoutResume({ ...reference, layout: { target_pages: null } }, template).pages.length;
+    for (const page of plan.pages) for (const [index, column] of columns(page).entries()) {
+      if (natural >= 2 && index === 0) assert.ok(height(column) / capacity >= 0.9, `${template.id}: underfilled at ${height(column) / capacity}`);
+      assert.ok(height(column) <= capacity);
     }
-    const text = normalize(plan.pages.flat().map(line => line.text).join(' '));
-    for (const block of resumeBlocks(content)) assert.ok(text.includes(normalize(block.text)));
+    const text = normalize(plan.pages.flat().map(line => (line.lead || '') + line.text + (line.right || '')).join(' '));
+    for (const block of resumeBlocks(content, template)) for (const part of [block.lead, block.text, block.right].filter(Boolean)) assert.ok(text.includes(normalize(part)), part);
   }
+});
+
+test('LaTeX export keeps right-aligned dates, italics and bold labels for split templates', () => {
+  const { generateLatex } = loadSource('src/lib/resume/latex-templates.ts', {});
+  const tex = generateLatex(fixture(1, 1), 'jake');
+  assert.ok(!tex.includes('\t'), 'a "\\t" escape turned into a tab character');
+  assert.ok(tex.includes('\\textbf{Company 0}\\hfill Austin, Texas\\par'));
+  assert.ok(tex.includes('\\textit{Software Engineer}\\hfill \\textit{Jan 2020 - Present}'));
+  assert.ok(tex.includes('\\textbf{Engineering:} Python, SQL'));
+});
+
+test('a selected page count is guaranteed: least important content goes first and every removal is reported', () => {
+  const { trimToPages } = loadSource('src/lib/resume/fit-generated-resume.ts', {});
+  const content = fixture(4, 6);
+  content.custom_sections.push({ id: 'y', title: 'Selected Deliverables', content: 'Long extra section. '.repeat(40) });
+  for (const id of ['classic', 'jake', 'deedy']) {
+    assert.ok(layoutResume(content, getTemplate(id)).pages.length > 1);
+    const { content: trimmed, warning } = trimToPages(content, 1, id);
+    assert.equal(layoutResume({ ...trimmed, layout: { target_pages: 1 } }, getTemplate(id)).pages.length, 1, id);
+    assert.equal(trimmed.experience.length, 4, 'every role is kept');
+    assert.ok(trimmed.experience[0].bullets.length >= trimmed.experience[3].bullets.length, 'older roles are trimmed first');
+    assert.ok(trimmed.experience.every(e => e.bullets.length >= 1));
+    assert.match(warning, /To fit 1 page, removed: .*Selected Deliverables/);
+  }
+  assert.deepEqual(trimToPages(fixture(1, 2), 1, 'classic').warning, '', 'content that already fits is untouched');
+});
+
+test('certifications drop a repeated issuer; split templates right-align issuer and date', () => {
+  const content = fixture(1, 1);
+  content.certifications = [
+    { id: 'a', name: 'McKinsey.org Forward Program', issuer: 'McKinsey', date: '', url: '' },
+    { id: 'b', name: 'Career Essentials in Business Analysis', issuer: 'Microsoft/LinkedIn', date: '2024', url: '' },
+  ];
+  const jake = resumeBlocks(content, getTemplate('jake'));
+  assert.ok(jake.some(b => b.text === 'McKinsey.org Forward Program' && !b.right));
+  assert.ok(jake.some(b => b.text === 'Career Essentials in Business Analysis' && b.right === 'Microsoft/LinkedIn · 2024'));
+  const deedy = resumeBlocks(content, getTemplate('deedy'));
+  assert.ok(deedy.some(b => b.text === 'Microsoft/LinkedIn · 2024' && b.column === 'side'));
+  assert.equal(resumeBlocks(content, getTemplate('jake')).filter(b => b.kind === 'contact').length, 2, 'three long links need a second line');
+  content.contact.github_url = ''; content.contact.portfolio_url = '';
+  assert.equal(resumeBlocks(content, getTemplate('jake')).filter(b => b.kind === 'contact').length, 1, 'a typical contact line fits one line');
+  assert.ok(!resumeBlocks(content, getTemplate('jake')).some(b => b.text.includes('https://')));
+});
+
+test('refill gives trimmed bullets back while the page still fits', () => {
+  const { refillToPages, describeRemovals } = loadSource('src/lib/resume/fit-generated-resume.ts', {});
+  const full = fixture(2, 3); full.education = []; full.projects = []; full.custom_sections = [];
+  full.experience.forEach((e, i) => { e.bullets = [`Led API migration ${i} for billing`, `Wrote SQL checks ${i} for reconciliation`, `Trained analysts ${i} on dashboards`]; });
+  const trimmed = { ...full, experience: full.experience.map(e => ({ ...e, bullets: e.bullets.slice(0, 1) })) };
+  const refilled = refillToPages(trimmed, full, 1, 'jake');
+  assert.deepEqual(refilled.experience.map(e => e.bullets.length), [3, 3]);
+  assert.equal(describeRemovals(full, refilled, 1), '');
+  assert.match(describeRemovals(full, trimmed, 1), /2 bullets from Company 0; 2 bullets from Company 1/);
 });

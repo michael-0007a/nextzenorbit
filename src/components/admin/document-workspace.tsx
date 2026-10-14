@@ -7,6 +7,8 @@ import { ResumeTypeSelector } from '@/components/resume/resume-type-selector';
 import { ResumeLengthSelector } from '@/components/resume/resume-length-selector';
 import dynamic from 'next/dynamic';
 import { waitForDocumentJob,type DocumentResult } from '@/lib/admin/documents/job-client';
+import { AiProgress } from '@/components/ui/ai-progress';
+import { AI_PLANS,resumeRewritePlan,type AiPlan,type AiStage } from '@/lib/ai/progress';
 const ResumePreview=dynamic(()=>import('@/components/resume/resume-preview').then(m=>m.ResumePreview),{loading:()=> <p role="status">Loading preview…</p>});
 import { templatesForType,getTemplate } from '@/lib/resume/templates';
 import { ContactSection } from '@/components/forms/resume-sections/contact-section';
@@ -30,10 +32,12 @@ export function AdminDocumentWorkspace({kind,clients,ownerId}:{kind:'resume'|'co
  const [resumable,setResumable]=useState<{id:string;operation:'upload'|'generate'}|null>(null);
  useEffect(()=>{lifetime.current=new AbortController();try{const stored=JSON.parse(sessionStorage.getItem(storageKey)||'null');if(stored&&/^[0-9a-f-]{36}$/i.test(stored.id))setResumable(stored);}catch{}return()=>lifetime.current?.abort();},[storageKey]);
  function remember(operation:'upload'|'generate'){if(resumable?.operation===operation)return resumable.id;const job={id:crypto.randomUUID(),operation};sessionStorage.setItem(storageKey,JSON.stringify(job));setResumable(job);return job.id;}
+ // The polled job reports its real stage; the bar estimates time within it.
+ function trackJob(_message:string,stage?:AiStage|null){if(stage)setProgress(p=>p&&{...p,stage});}
  function finished(){sessionStorage.removeItem(storageKey);setResumable(null);}
- async function jobResult(response:Response):Promise<DocumentResult>{const result=await response.json();if(!response.ok){if(response.status>=400&&response.status<500)finished();throw Error(result.error?.message||'Processing failed.');}if(response.status!==202){finished();return result.data;}const data=await waitForDocumentJob(result.data.jobId,setNotice,lifetime.current!.signal);finished();return data;}
+ async function jobResult(response:Response):Promise<DocumentResult>{const result=await response.json();if(!response.ok){if(response.status>=400&&response.status<500)finished();throw Error(result.error?.message||'Processing failed.');}if(response.status!==202){finished();return result.data;}const data=await waitForDocumentJob(result.data.jobId,trackJob,lifetime.current!.signal);finished();return data;}
  function applyResult(data:DocumentResult,operation:'upload'|'generate'){if(data.content)methods.reset(operation==='upload'?{...data.content,resume_type:content.resume_type||'corporate'}:data.content);if(typeof data.letter==='string')setLetter(data.letter);setNotice(data.warning||'Draft ready. Review before saving or downloading.');if(operation==='generate')setStep(2);else setTab('Summary');}
- async function resumeJob(){if(!resumable)return;await run(async()=>{const data=await waitForDocumentJob(resumable.id,setNotice,lifetime.current!.signal);applyResult(data,resumable.operation);finished();});}
+ async function resumeJob(){if(!resumable)return;await run(async()=>{setProgress({plan:resumable.operation==='upload'?AI_PLANS.resumeUpload:kind==='resume'?resumeRewritePlan(content.layout?.target_pages):AI_PLANS.coverLetter,stage:null});const data=await waitForDocumentJob(resumable.id,trackJob,lifetime.current!.signal);applyResult(data,resumable.operation);finished();});}
  const previewRef=useRef<HTMLDivElement>(null);
  const [previewWidth,setPreviewWidth]=useState(600),[zoom,setZoom]=useState<number|null>(null);
  useEffect(()=>{const element=previewRef.current;if(!element)return;const observer=new ResizeObserver(([entry])=>setPreviewWidth(entry.contentRect.width));observer.observe(element);return()=>observer.disconnect();},[]);
@@ -43,6 +47,7 @@ export function AdminDocumentWorkspace({kind,clients,ownerId}:{kind:'resume'|'co
  const [id,setId]=useState(''),[title,setTitle]=useState(kind==='resume'?'Untitled resume':'Untitled cover letter'),[templateId,setTemplate]=useState('classic');
  const [letter,setLetter]=useState(''),[jobDescription,setJobDescription]=useState(''),[company,setCompany]=useState(''),[jobTitle,setJobTitle]=useState('');
  const [clientId,setClient]=useState(''),[step,setStep]=useState(0),[tab,setTab]=useState<keyof typeof sections>('Contact');
+ const [progress,setProgress]=useState<{plan:AiPlan;stage:AiStage|null}|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[savedSnapshot,setSavedSnapshot]=useState('');
  const [library,setLibrary]=useState<Omit<AdminDocument,'payload'>[]>([]),[libraryError,setLibraryError]=useState('');
  const payload:AdminDocumentPayload=useMemo(()=>({resume:content,letter,templateId,jobDescription,company,jobTitle}),[content,letter,templateId,jobDescription,company,jobTitle]);
@@ -55,9 +60,9 @@ export function AdminDocumentWorkspace({kind,clients,ownerId}:{kind:'resume'|'co
  useEffect(()=>{void libraryList();},[]);
  function body(){const parsed=resumeContentFormSchema.safeParse(methods.getValues());if(!parsed.success)throw Error(`Check your resume: ${parsed.error.issues[0]?.path.join('.')} ${parsed.error.issues[0]?.message}`);if(!title.trim())throw Error('Enter a document title.');return {id:id||crypto.randomUUID(),kind,title:title.trim(),payload:{...payload,resume:parsed.data},clientId:clientId||null};}
  async function json(url:string,value:unknown){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});const data=await r.json();if(!r.ok)throw Error(data.error?.message||'Request failed.');return data.data;}
- async function run(work:()=>Promise<void>){if(pending.current)return;pending.current=true;setBusy(true);setError('');setNotice('');try{await work();}catch(e){if(e&&typeof e==='object'&&'terminal' in e)finished();setError(e instanceof Error?e.message:'Please retry.');}finally{pending.current=false;setBusy(false);}}
- async function upload(file:File){await run(async()=>{const form=new FormData();form.set('file',file);const jobId=remember('upload');const r=await fetch('/api/admin/document-workspace/upload',{method:'POST',headers:{Prefer:'respond-async','Idempotency-Key':jobId},body:form,signal:lifetime.current!.signal});applyResult(await jobResult(r),'upload');});}
- async function generate(){await run(async()=>{const payload=body().payload;const jobId=remember('generate');const r=await fetch('/api/admin/document-workspace/generate',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'respond-async','Idempotency-Key':jobId},body:JSON.stringify({kind,payload}),signal:lifetime.current!.signal});applyResult(await jobResult(r),'generate');});}
+ async function run(work:()=>Promise<void>){if(pending.current)return;pending.current=true;setBusy(true);setError('');setNotice('');try{await work();}catch(e){if(e&&typeof e==='object'&&'terminal' in e)finished();setError(e instanceof Error?e.message:'Please retry.');}finally{pending.current=false;setBusy(false);setProgress(null);}}
+ async function upload(file:File){await run(async()=>{setProgress({plan:AI_PLANS.resumeUpload,stage:null});const form=new FormData();form.set('file',file);const jobId=remember('upload');const r=await fetch('/api/admin/document-workspace/upload',{method:'POST',headers:{Prefer:'respond-async','Idempotency-Key':jobId},body:form,signal:lifetime.current!.signal});applyResult(await jobResult(r),'upload');});}
+ async function generate(){await run(async()=>{setProgress({plan:kind==='resume'?resumeRewritePlan(content.layout?.target_pages):AI_PLANS.coverLetter,stage:null});const payload=body().payload;const jobId=remember('generate');const r=await fetch('/api/admin/document-workspace/generate',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'respond-async','Idempotency-Key':jobId},body:JSON.stringify({kind,payload}),signal:lifetime.current!.signal});applyResult(await jobResult(r),'generate');});}
  async function download(format:'pdf'|'docx',document=body()){
   const r=await fetch('/api/admin/document-workspace/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...document,format})});
   if(!r.ok){const result=await r.json();throw Error(result.error?.message||'Download failed.');}
@@ -78,6 +83,7 @@ export function AdminDocumentWorkspace({kind,clients,ownerId}:{kind:'resume'|'co
    <div className="flex items-center gap-3"><span className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-text-secondary">{dirty?'Unsaved changes':savedSnapshot?'Saved to library':'New draft'}</span><Button variant="secondary" disabled={busy} onClick={newDraft} leftIcon={<Plus className="h-4 w-4"/>}>New draft</Button></div>
   </header>
   <nav aria-label="Creation steps" className="grid grid-cols-3 gap-2 sm:gap-4">{[['Source & category','Start with candidate details'],['Tailor','Add the target opportunity'],['Review & export','Refine, save and download']].map(([label,description],i)=><button key={label} disabled={busy} onClick={()=>setStep(i)} aria-current={step===i?'step':undefined} className={`flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition sm:p-4 ${step===i?'border-primary/50 bg-primary/5 shadow-sm':'border-border bg-surface hover:border-primary/30'}`}><span className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold sm:flex ${step===i?'bg-primary text-white':'bg-muted text-text-secondary'}`}>{String(i+1).padStart(2,'0')}</span><span><span className={`block text-xs font-semibold sm:text-sm ${step===i?'text-primary':''}`}>{label}</span><span className="mt-1 hidden text-xs text-text-secondary sm:block">{description}</span></span></button>)}</nav>
+  {busy&&progress&&<div className="rounded-xl border border-border bg-surface p-4"><AiProgress plan={progress.plan} stage={progress.stage}/></div>}
   {error&&<p role="alert" className="rounded-xl border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</p>}{notice&&<p role="status" className="flex items-start gap-2 rounded-xl border border-border bg-surface p-4 text-sm"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary"/>{notice}</p>}
   <fieldset disabled={busy} className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
    <div className="min-w-0 space-y-5">

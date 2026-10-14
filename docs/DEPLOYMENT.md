@@ -20,7 +20,7 @@
 - Node.js 20+
 - [Fly.io CLI](https://fly.io/docs/flyctl/install/) (`flyctl`)
 - Supabase project
-- Groq API key
+- Amazon Bedrock API key (AWS_BEARER_TOKEN_BEDROCK)
 - Adzuna API keys (free at [developer.adzuna.com](https://developer.adzuna.com/))
 
 ---
@@ -233,7 +233,8 @@ Option B — External cron service (e.g., cron-job.org):
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | App + Worker | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | App | Supabase anon key (client-side) |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ | App + Worker | Admin key (bypasses RLS) |
-| `GROQ_API_KEY` | ✅ | App + Worker | Groq AI for resume parsing + form detection |
+| `AWS_BEARER_TOKEN_BEDROCK` | ✅ | App | Bedrock API key for all AI (models in `src/lib/ai/model.ts`) |
+| `AWS_REGION` | ✅ | App | Bedrock region, `us-east-1` |
 | `ADZUNA_APP_ID` | ✅ | App | Adzuna job search API |
 | `ADZUNA_APP_KEY` | ✅ | App | Adzuna job search API |
 | `NEXT_PUBLIC_APP_URL` | ✅ | App | Public app URL |

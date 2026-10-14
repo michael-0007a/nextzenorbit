@@ -7,7 +7,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { extractText } from "@/lib/ai/parsers/resume-parser";
 import { parseExportContent,hasResumeBody } from "@/lib/resume/export-content";
 import { resumeFromExtractedText } from "@/lib/resume/text-fallback";
-export const maxDuration=60;
+// Background document jobs run via after() in this function; their AI budget is 85s (lease is 90s).
+export const maxDuration=120;
 export async function POST(request:Request){
  const auth=await requireAdmin();if(isAuthError(auth))return auth;
  const limited=await rateLimit('admin-draft-upload',auth.userId,10,60);if(limited)return limited;

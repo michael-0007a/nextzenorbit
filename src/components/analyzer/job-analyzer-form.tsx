@@ -35,6 +35,9 @@ import {
 import { RadarChart } from "./radar-chart";
 import { KeywordHeatmap } from "./keyword-heatmap";
 import { cn } from "@/lib/utils";
+import { AiProgress } from "@/components/ui/ai-progress";
+import { AI_PLANS, type AiStage } from "@/lib/ai/progress";
+import { fetchWithProgress } from "@/lib/ai/fetch-progress";
 
 interface ResumeOption {
   id: string;
@@ -95,6 +98,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
 
   // Optimization state
   const [optimizing, setOptimizing] = useState(false);
+  const [stage, setStage] = useState<AiStage | null>(null);
   const [embellishmentLevel, setEmbellishmentLevel] = useState<EmbellishmentLevel>("moderate");
   const [userAcknowledged, setUserAcknowledged] = useState(false);
   const [optimizeResult, setOptimizeResult] = useState<{
@@ -184,11 +188,11 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
       return;
     }
 
-    setOptimizing(true);
+    setOptimizing(true); setStage(null);
     setOptimizeResult(null);
 
     try {
-      const response = await fetch(`/api/resumes/${selectedResumeId}/optimize`, {
+      const response = await fetchWithProgress(`/api/resumes/${selectedResumeId}/optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -196,7 +200,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
           embellishmentLevel,
           userAcknowledged: embellishmentLevel === "aggressive" ? userAcknowledged : undefined,
         }),
-      });
+      }, setStage);
 
       const data = await response.json();
 
@@ -313,6 +317,7 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
             >
               {analyzing ? "Analyzing..." : "Analyze Match"}
             </Button>
+            {analyzing && <AiProgress plan={AI_PLANS.analyzer} />}
           </form>
         </CardBody>
       </Card>
@@ -742,6 +747,8 @@ export function JobAnalyzerForm({ resumes }: JobAnalyzerFormProps) {
                     </Link>
                   </div>
                 )}
+
+                {optimizing && <AiProgress plan={AI_PLANS.resumeRewrite} stage={stage} />}
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3 pt-2">

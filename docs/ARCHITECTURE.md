@@ -28,7 +28,7 @@ Nextzen Orbit is an AI-powered career workspace. It helps users build resumes, s
               ┌───────────────┼───────────────────────┐
               ▼               ▼                       ▼
 ┌─────────────────┐  ┌───────────────┐  ┌─────────────────────┐
-│   Supabase      │  │   Groq AI     │  │   Adzuna API        │
+│   Supabase      │  │  Bedrock AI   │  │   Adzuna API        │
 │   - Auth        │  │   (LLaMA 3.3) │  │   (Job Search)      │
 │   - Database    │  │               │  │                     │
 │   - Storage     │  │   - Resume    │  │   - Free tier       │
@@ -56,7 +56,7 @@ Nextzen Orbit is an AI-powered career workspace. It helps users build resumes, s
 | Auth | Supabase Auth (Google OAuth) | Login/signup |
 | Database | Supabase PostgreSQL | All data storage |
 | Storage | Supabase Storage | Resumes + uploads (legacy screenshots) |
-| AI | Groq (LLaMA 3.3 70B) | Resume parsing, form detection |
+| AI | Amazon Bedrock (Kimi K2.5, DeepSeek V3.2) | Resume parsing, writing, fact-checking |
 | Job Search | Adzuna API (free) | India job listings |
 | Extension | Chrome Extension (MV3) | Assisted autofill |
 | Payments | Razorpay | Subscription billing |
@@ -94,7 +94,7 @@ nextzenorbit/
 │   │   └── dashboard/          # JobSearchClient
 │   ├── lib/
 │   │   ├── supabase/           # Supabase clients (server, admin)
-│   │   ├── ai/                 # Groq client + prompts
+│   │   ├── ai/                 # Bedrock client + prompts
 │   │   ├── jobs/               # Adzuna API client
 │   │   └── validations/        # Zod schemas
 │   └── types/                  # TypeScript types (database.ts)

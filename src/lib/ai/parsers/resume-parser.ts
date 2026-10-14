@@ -1,16 +1,17 @@
-import { resumeFromExtractedText } from "@/lib/resume/text-fallback";
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { extractJson } from "@/lib/ai/extract-json";
+import { resumeFromExtractedText, isUnparsedUpload, uploadedText } from "@/lib/resume/text-fallback";
+import { createAIClient } from "@/lib/ai/model";
 /**
  * Resume Parser — AI-Powered Resume Text Extraction
  *
- * Extracts text from PDF/DOCX, sends to Groq (openai/gpt-oss-120b),
+ * Extracts text from PDF/DOCX, sends it to the extraction model on Bedrock,
  * returns validated ResumeContent.
  *
  * On parse failure: returns empty skeleton for manual entry.
  * Server-side only.
  */
 
-import Groq from "groq-sdk";
+import type Groq from "groq-sdk";
 import mammoth from "mammoth";
 import JSZip from "jszip";
 import { extractText as extractPdfText } from "unpdf";
@@ -24,7 +25,7 @@ import { RESUME_PARSER_PROMPT_V1 } from "@/lib/ai/prompts/resume-parser";
 let _groq: Groq | null = null;
 function getGroq(): Groq {
   if (!_groq) {
-    _groq = new Groq({ apiKey: process.env.GROQ_API_KEY!,timeout:45000,maxRetries:0 });
+    _groq = createAIClient();
   }
   return _groq;
 }
@@ -128,7 +129,6 @@ export async function parseResumeWithAI(
 
   try {
     const completion = await getGroq().chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: RESUME_PARSER_PROMPT_V1.model,
       messages: [
         {
@@ -159,7 +159,7 @@ export async function parseResumeWithAI(
     }
 
     // Parse + normalize the AI output
-    const parsed = JSON.parse(rawOutput);
+    const parsed = extractJson(rawOutput) as Record<string, any>;
     const normalized = normalizeAIOutput(parsed);
 
     // Validate with lenient schema
@@ -198,6 +198,20 @@ export async function parseResumeWithAI(
       parsedByAI: false,
     };
   }
+}
+
+/**
+ * Uploads that missed AI parsing are saved as raw text. Tailoring that text
+ * just echoes it back, so structure it first. Null means it is still unparsed
+ * (provider busy or failed) and the caller must not generate from it.
+ */
+export const UNPARSED_RESUME_MESSAGE = "This resume is still unformatted uploaded text and the AI parser is busy. Nothing was generated; retry in a minute.";
+export async function structureUploadedResume(content: ResumeContent, signal?: AbortSignal): Promise<ResumeContent | null> {
+  if (!isUnparsedUpload(content)) return content;
+  const result = await parseResumeWithAI(uploadedText(content), signal ? { signal } : undefined).catch(() => null);
+  if (!result?.parsedByAI) return null;
+  const found = Object.fromEntries(Object.entries(result.content.contact).filter(([, value]) => value));
+  return { ...result.content, contact: { ...content.contact, ...found }, layout: content.layout, resume_type: content.resume_type };
 }
 
 // Normalize AI output to ensure all arrays have IDs and required fields

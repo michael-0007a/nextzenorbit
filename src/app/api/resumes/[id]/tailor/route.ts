@@ -1,4 +1,5 @@
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { extractJson } from "@/lib/ai/extract-json";
+import { createAIClient } from "@/lib/ai/model";
 /**
  * Resume Tailoring API
  *
@@ -11,16 +12,13 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Groq from "groq-sdk";
 import { z } from "zod";
 import { RESUME_TAILOR_PROMPT_V1, type TailoringResult } from "@/lib/ai/prompts/resume-tailor";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groq = createAIClient();
 
 const tailorRequestSchema = z.object({
   jobDescription: z.string().min(100, "Job description too short").max(10000),
@@ -86,7 +84,6 @@ Missing/Gap Skills: ${missingSkills?.join(", ") || "None provided"}
 
     // Call AI
     const completion = await groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: RESUME_TAILOR_PROMPT_V1.model,
       messages: [
         { role: "system", content: RESUME_TAILOR_PROMPT_V1.system },
@@ -106,7 +103,7 @@ Missing/Gap Skills: ${missingSkills?.join(", ") || "None provided"}
     let result: TailoringResult;
     try {
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      result = JSON.parse(cleaned);
+      result = extractJson(cleaned) as typeof result;
     } catch {
       console.error("Failed to parse tailoring response:", content);
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to parse AI response.", 500);

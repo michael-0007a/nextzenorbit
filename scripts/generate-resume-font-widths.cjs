@@ -5,7 +5,7 @@ const path = require('node:path');
 const { PDFFont } = require('@react-pdf/pdfkit');
 const output = {};
 const punctuation = [0x2013, 0x2014, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2026, 0x20ac];
-for (const name of ['Helvetica', 'Helvetica-Bold', 'Times-Roman', 'Times-Bold']) {
+for (const name of ['Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Times-Roman', 'Times-Bold', 'Times-Italic']) {
   const font = PDFFont.open(null, name);
   output[name] = {};
   for (const code of [...Array.from({ length: 224 }, (_, i) => i + 32), ...punctuation]) {

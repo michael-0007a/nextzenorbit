@@ -1,8 +1,13 @@
+import { withStageStream } from "@/lib/ai/progress-stream";
+import type { AiStage } from "@/lib/ai/progress";
+import { isUnparsedUpload } from "@/lib/resume/text-fallback";
+import { extractJson } from "@/lib/ai/extract-json";
 import { createTimings } from '@/lib/performance';
 import { fitGeneratedResume } from "@/lib/resume/fit-generated-resume";
 import { targetPagesSchema, resumeLengthInstruction } from "@/lib/resume/generation-length";
 import { parseExportContent } from "@/lib/resume/export-content";
-import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
+import { createAIClient } from "@/lib/ai/model";
+import { structureUploadedResume, UNPARSED_RESUME_MESSAGE } from "@/lib/ai/parsers/resume-parser";
 /**
  * AI Resume Improvement API
  *
@@ -16,22 +21,26 @@ import { GROQ_TEXT_OPTIONS } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import Groq from "groq-sdk";
 import { RESUME_IMPROVER_PROMPT_V1 } from "@/lib/ai/prompts/resume-improver";
 import { apiError, ERROR_CODES } from "@/types/api";
 import type { ResumeRow } from "@/types/database";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,timeout:45000,maxRetries:0,
-});
+const groq = createAIClient();
 
-export const maxDuration=60;
-export async function POST(
+// Writer + reviewer + fix + optional length pass share an 85s AI budget.
+export const maxDuration=120;
+// Streams stage progress to clients that ask for it (see withStageStream).
+export function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return withStageStream(request, onStage => handle(request, context, onStage));
+}
+
+async function handle(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
+  onStage: (stage: AiStage) => void
 ): Promise<Response> {
-  const timings=createTimings(),signal=AbortSignal.timeout(45000);
+  const timings=createTimings(),signal=AbortSignal.timeout(85_000);
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -94,12 +103,17 @@ export async function POST(
       change_summary: "Backup before AI improvement",
     });
 
+    if (isUnparsedUpload(typedResume.content)) onStage("parse");
+    const structured = await timings.measure("parse",()=>structureUploadedResume(typedResume.content, signal));
+    if (!structured) return apiError(ERROR_CODES.INTERNAL_ERROR, UNPARSED_RESUME_MESSAGE, 503);
+    typedResume.content = structured;
+
     // Prepare resume content for AI
     const resumeString = JSON.stringify(typedResume.content, null, 2);
 
     // Call AI for improvement
+    onStage("write");
     const completion = await timings.measure('model',()=>groq.chat.completions.create({
-      ...GROQ_TEXT_OPTIONS,
       model: RESUME_IMPROVER_PROMPT_V1.model,
       messages: [
         { role: "system", content: RESUME_IMPROVER_PROMPT_V1.system + "\n\n" + (typedResume.content.resume_type === "c2c" ? "C2C: Rewrite only the professional summary as newline-separated detailed factual bullets. Preserve all other fields exactly; do not shorten history to fit pages." : resumeLengthInstruction(requestedPages)) },
@@ -119,18 +133,7 @@ export async function POST(
     // Parse improved content
     let improvedContent: ResumeRow["content"];
     try {
-      const cleaned = responseText
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-
-      // Find JSON object in response
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in AI response");
-      }
-
-      improvedContent = JSON.parse(jsonMatch[0]);
+      improvedContent = extractJson(responseText) as ResumeRow["content"];
     } catch {
       console.error("Failed to parse improved resume:", responseText.slice(0, 500));
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to parse AI response.", 500);
@@ -147,7 +150,7 @@ export async function POST(
 
     const validatedContent = parseExportContent(improvedContent);
     if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
-    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal}));
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal,onStage}));
     improvedContent = fitted.content;
 
     // Update resume with improved content
