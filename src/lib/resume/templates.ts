@@ -36,6 +36,8 @@ export interface ResumeTemplate {
     sidebar?: { width: number; gap: number };
     nameSize?: number;
     sectionCase?: "upper";
+    /** Bold the job keywords stored in content.layout.highlights inside bullets (max 2 per bullet). */
+    highlightKeywords?: boolean;
   };
 }
 
@@ -127,21 +129,21 @@ RESUME_TEMPLATES.push(
     preview: "/templates/jake.png", category: "minimal", isPro: false,
     colors: { primary: "#000000", secondary: "#000000", text: "#000000", muted: "#333333", background: "#ffffff", accent: "#000000" },
     fonts: { heading: "Times-Bold", body: "Times-Roman" },
-    layout: { margins: { top: 36, right: 40, bottom: 36, left: 40 }, headerStyle: "centered", sectionSpacing: 10, showDividers: true, entryStyle: "split", nameSize: 24, sectionCase: "upper" },
+    layout: { margins: { top: 36, right: 40, bottom: 36, left: 40 }, headerStyle: "centered", sectionSpacing: 10, showDividers: true, entryStyle: "split", nameSize: 24, sectionCase: "upper", highlightKeywords: true },
   },
   {
     id: "deedy", name: "Deedy Two-Column", description: "Two columns: education and skills in a sidebar, experience in the main column.",
     preview: "/templates/deedy.png", category: "modern", isPro: false,
     colors: { primary: "#1f2937", secondary: "#374151", text: "#1f2937", muted: "#6b7280", background: "#ffffff", accent: "#2b6cb0" },
     fonts: { heading: "Helvetica-Bold", body: "Helvetica" },
-    layout: { margins: { top: 34, right: 34, bottom: 34, left: 34 }, headerStyle: "left", sectionSpacing: 10, showDividers: false, entryStyle: "split", sidebar: { width: 158, gap: 18 }, nameSize: 26, sectionCase: "upper" },
+    layout: { margins: { top: 34, right: 34, bottom: 34, left: 34 }, headerStyle: "left", sectionSpacing: 10, showDividers: false, entryStyle: "split", sidebar: { width: 158, gap: 18 }, nameSize: 26, sectionCase: "upper", highlightKeywords: true },
   },
   {
     id: "awesome", name: "Awesome CV", description: "Polished modern resume with colored headings and right-aligned dates.",
     preview: "/templates/awesome.png", category: "professional", isPro: false,
     colors: { primary: "#1a1a1a", secondary: "#333333", text: "#1a1a1a", muted: "#5d5d5d", background: "#ffffff", accent: "#b91c1c" },
     fonts: { heading: "Helvetica-Bold", body: "Helvetica" },
-    layout: { margins: { top: 38, right: 40, bottom: 38, left: 40 }, headerStyle: "centered", sectionSpacing: 11, showDividers: true, entryStyle: "split", nameSize: 26, sectionCase: "upper" },
+    layout: { margins: { top: 38, right: 40, bottom: 38, left: 40 }, headerStyle: "centered", sectionSpacing: 11, showDividers: true, entryStyle: "split", nameSize: 26, sectionCase: "upper", highlightKeywords: true },
   },
 );
 

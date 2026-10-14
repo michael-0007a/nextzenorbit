@@ -11,7 +11,7 @@ export function resumeLengthInstruction(pages?: number | null): string {
 }
 
 export function applyResumeLength(content: ResumeContent, pages: number | null | undefined, templateId: string | null) {
-  const result = { ...content, layout: { target_pages: pages ?? null } };
+  const result = { ...content, layout: { ...content.layout, target_pages: pages ?? null } };
   const layout = layoutResume(result, getTemplate(templateId || "classic"));
   return { content: result, pageCount: layout.pages.length, layoutWarnings: layout.warnings };
 }

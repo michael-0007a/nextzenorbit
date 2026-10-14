@@ -1,5 +1,5 @@
 import { AI_WRITER_MODEL } from "@/lib/ai/model";
-import { RESUME_FACT_RULES, WRITING_STYLE_RULES } from "@/lib/ai/prompts/writing-rules";
+import { RESUME_FACT_RULES, WRITING_STYLE_RULES, factRules, styleRules } from "@/lib/ai/prompts/writing-rules";
 /**
  * AI Resume Improver Prompt — v2.0.0
  *
@@ -107,8 +107,8 @@ Reorder skills and bullets so the most job-relevant evidence comes first. Unsupp
 
     const levelRules = {
       conservative: "Improve clarity and order while staying close to the candidate's wording.",
-      moderate: "Rephrase and reorder relevant details. Explain directly supported context to make achievements understandable.",
-      aggressive: "Rewrite the summary and bullets thoroughly for relevance, preserving all facts. Never add unevidenced skills or assume seniority.",
+      moderate: "Rewrite and reorder for this job: lead with the most relevant work, use the job's terminology, and add the skills the work clearly implies.",
+      aggressive: "Rewrite thoroughly to sell this candidate for this job: strongest supported verbs, ownership and scope up front, implied skills named, related bullets merged into stronger ones. Hard facts stay exact.",
     };
 
     return `${baseRules}
@@ -134,9 +134,9 @@ Return ONLY valid JSON with this exact structure:
 REMINDER: Do NOT add fake percentages or metrics. Keep language natural and factually supported.
 
 SHARED RULES (these take priority over anything above):
-${RESUME_FACT_RULES}
+${factRules(level)}
 
-${WRITING_STYLE_RULES}`;
+${styleRules(level)}`;
   },
 
   user: (

@@ -19,7 +19,10 @@ export function generateLatex(content: ResumeContent, templateId: string): strin
   const margin = template.layout.margins;
   const body = resumeBlocks(content, template).map(block => {
     const style = (value: string) => block.italic ? `\\textit{${value}}` : value;
-    const text = (block.lead ? `\\textbf{${escapeLatex(block.lead)}} ` : "") + style(escapeLatex(block.text));
+    // Bold keyword ranges apply to the raw text, so escape each piece separately.
+    const pieces = block.bold ? block.bold.reduce<{ out: string; at: number }>((acc, [a, b]) => ({ out: acc.out + escapeLatex(block.text.slice(acc.at, a)) + `\\textbf{${escapeLatex(block.text.slice(a, b))}}`, at: b }), { out: "", at: 0 }) : null;
+    const body = pieces ? pieces.out + escapeLatex(block.text.slice(pieces.at)) : escapeLatex(block.text);
+    const text = (block.lead ? `\\textbf{${escapeLatex(block.lead)}} ` : "") + style(body);
     // Right-aligned dates/location, never bold.
     const right = block.right ? `\\hfill ${style(escapeLatex(block.right))}` : "";
     if (block.kind === "name") return `\\begin{${template.layout.headerStyle === "centered" ? "center" : "flushleft"}}{\\LARGE\\bfseries ${text}}\\end{${template.layout.headerStyle === "centered" ? "center" : "flushleft"}}`;

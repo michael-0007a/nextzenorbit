@@ -28,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ResumeTypeSelector } from "@/components/resume/resume-type-selector";
 import { ResumeLengthSelector } from "@/components/resume/resume-length-selector";
+import { IntensitySelector } from "@/components/resume/intensity-selector";
+import type { Intensity } from "@/lib/ai/prompts/writing-rules";
 import { templatesForType, getTemplate } from "@/lib/resume/templates";
 import { layoutResume, PAPER } from "@/lib/resume/layout";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,7 @@ export function AdminResumeGeneratorClient({
   
   const [optimizing, setOptimizing] = useState(false);
   const [stage, setStage] = useState<AiStage | null>(null);
+  const [intensity, setIntensity] = useState<Intensity>("moderate");
   const [saving, setSaving] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [showUpload, setShowUpload] = useState(resumes.length === 0);
@@ -140,7 +143,7 @@ export function AdminResumeGeneratorClient({
           resumeType: content.resume_type || "corporate",
           resumeId: baseResume.id,
           jobDescription,
-          embellishmentLevel: "moderate",
+          embellishmentLevel: intensity,
           targetPages: content.layout?.target_pages ?? null,
           templateId,
         }),
@@ -283,7 +286,8 @@ export function AdminResumeGeneratorClient({
             <StepHeading number="03" title="Length & style" description="Choose the shape of the final resume." />
             <fieldset disabled={busy} className="mt-5 space-y-5 disabled:opacity-60">
               <ResumeTypeSelector value={content.resume_type || "corporate"} disabled={busy} onChange={type => { setContent(previous => ({...previous, resume_type: type})); setTemplateId(type === "c2c" ? "c2c-consultant" : "classic"); }} />
-              <ResumeLengthSelector value={content.layout?.target_pages ?? null} onChange={pages => setContent(previous => ({ ...previous, layout: { target_pages: pages } }))} />
+              {content.resume_type !== "c2c" && <IntensitySelector value={intensity} onChange={setIntensity} disabled={busy} />}
+              <ResumeLengthSelector value={content.layout?.target_pages ?? null} onChange={pages => setContent(previous => ({ ...previous, layout: { ...previous.layout, target_pages: pages } }))} />
               <div>
                 <p className="mb-2 text-xs font-medium text-text-secondary">Template</p>
                 <div className="grid grid-cols-3 gap-2" role="group" aria-label="Resume template">

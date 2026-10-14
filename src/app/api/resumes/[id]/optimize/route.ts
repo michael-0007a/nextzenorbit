@@ -163,7 +163,7 @@ async function handle(
         { role: "system", content: systemPrompt + "\n\n" + (typedResume.content.resume_type === "c2c" ? "C2C: Rewrite only the professional summary as newline-separated detailed factual bullets. Preserve all other fields exactly; do not shorten history to fit pages." : resumeLengthInstruction(requestedPages)) },
         { role: "user", content: userPrompt },
       ],
-      temperature: embellishmentLevel === "aggressive" ? 0.8 : embellishmentLevel === "moderate" ? 0.6 : 0.4,
+      temperature: embellishmentLevel === "conservative" ? 0.3 : 0.5,
       max_tokens: 24000,
       response_format: { type: "json_object" },
     },{signal}));
@@ -204,7 +204,7 @@ async function handle(
 
     const validatedContent = parseExportContent(result.resumeContent);
     if (!validatedContent.success) return apiError(ERROR_CODES.INTERNAL_ERROR, "AI returned invalid resume content. Please retry.", 502);
-    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal,jobDescription,onStage}));
+    const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, typedResume.template_id,{signal,jobDescription,onStage,level:embellishmentLevel}));
     result.resumeContent = fitted.content;
 
     // Update resume with optimized content

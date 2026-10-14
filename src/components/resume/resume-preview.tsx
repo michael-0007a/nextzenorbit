@@ -14,7 +14,7 @@ function Line({ line, template }: { line: LayoutLine; template: ResumeTemplate }
     lineHeight: `${line.height}px`, color: line.color, whiteSpace: "pre",
     borderBottom: line.kind === "section" && template.layout.showDividers ? `0.5px solid ${template.colors.accent}` : undefined,
   }}>
-    <span style={{ flexGrow: 1, textAlign: line.align }}>{line.lead && <b>{line.lead} </b>}{line.text}</span>
+    <span style={{ flexGrow: 1, textAlign: line.align }}>{line.lead && <b>{line.lead} </b>}{line.runs ? line.runs.map((run, i) => run.bold ? <b key={i}>{run.text}</b> : <span key={i}>{run.text}</span>) : line.text}</span>
     {line.right && <span style={{ fontFamily: font(line.rightFont!), fontWeight: 400, fontStyle: /Italic|Oblique/.test(line.rightFont!) ? "italic" : undefined, color: template.colors.muted }}>{line.right}</span>}
   </div>;
 }
