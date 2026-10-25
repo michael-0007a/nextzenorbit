@@ -1,11 +1,13 @@
 # Signup review rollout
 
+> **Status (2026-10-16):** shipped on main, and migrations 033–035 are applied in production. This note is kept as the design and rollout record. One thing has changed since it was written: AI moved from Groq to Amazon Bedrock (see the last section). Current payment behavior is summarized in [PAYMENTS.md](PAYMENTS.md).
+
 ## Deployment order
 
 1. Apply `supabase/migrations/033_signup_review.sql` to the target Supabase project before deploying the application. It creates the review tables, private resume bucket, atomic rate-limit counters, and service-only submission/review functions. It also removes direct user-table writes from browser roles so users cannot promote themselves.
 2. Keep the existing Google OAuth provider configured and require email confirmation for any enabled email/password registration.
 3. Keep Supabase Auth's own rate limits enabled: requests made directly to Supabase do not pass through this application's counters. SMS setup is not required.
-4. Deploy application code with the existing Supabase service-role credentials. Do not expose them to the browser. Groq parsing is optional during signup: applications retain their original uploaded document when parsing fails or times out.
+4. Deploy application code with the existing Supabase service-role credentials. Do not expose them to the browser. AI parsing (now Bedrock) is optional during signup: applications retain their original uploaded document when parsing fails or times out.
 5. Run the acceptance checks below using test accounts and payment sandbox credentials.
 
 The migration explicitly marks all existing public user accounts as approved legacy accounts. New normal users have no access until their application is approved. Admin and SSO accounts retain their intended access; suspended accounts are denied.
@@ -65,7 +67,7 @@ Apply `035_payment_orders_and_access.sql` with `supabase db push` before deployi
 - Set `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_APP_URL` and the matching test/production `NEXT_PUBLIC_PAYU_URL`. Merchant key/salt must belong to the same PayU environment. Configure PayU callbacks to `/api/webhooks/payu`.
 - Before production rollout, complete a PayU sandbox payment, reload `/subscription`, simulate a lost browser return and use Check payment status. Confirm a second checkout does not interrupt an existing paid plan. Local tests mock PayU and cannot verify the merchant account configuration.
 
-Admin resume generation now offers a saved-source selector and PDF/DOCX upload/parsing. The source is retained as a client resume and original private file; optimization saves a separate admin draft. Scanned/empty documents show an actionable error. When AI parsing fails or times out, readable documents are imported as extracted-text sources with an explicit review notice; the complete original is retained. Text previews are limited to 15,000 characters with a truncation notice. AI optimization still requires the production Groq configuration to be working.
+Admin resume generation now offers a saved-source selector and PDF/DOCX upload/parsing. The source is retained as a client resume and original private file; optimization saves a separate admin draft. Scanned/empty documents show an actionable error. When AI parsing fails or times out, readable documents are imported as extracted-text sources with an explicit review notice; the complete original is retained. Text previews are limited to 15,000 characters with a truncation notice. AI optimization still requires a working production AI configuration (now `AWS_BEARER_TOKEN_BEDROCK` + `AWS_REGION`).
 
 Validation: `npm run test:signup` includes local PostgreSQL payment/access tests and admin upload/middleware checks. No live accounts, payments or storage files are changed by those tests.
 
@@ -77,6 +79,11 @@ If migration 035 fails with `column "payu_subscription_id" does not exist`, use 
 
 Regression tests use the actual `subscriptions` table definition from migration 001, including its provider constraint, and cover installations where PayU was already configured. They verify activation and repeated migration execution without duplicating payment records or extending billing periods.
 
-## Groq model selection
+## AI model selection
 
-All application text generation uses `openai/gpt-oss-120b`, selected from the enabled Groq model list. The shared model/settings live in `src/lib/ai/model.ts`; resume parsing, optimization, cover letters, job analysis and notes use it. There is no fallback to unavailable Llama models. Redeploy the app after changing this configuration; no database migration is required. Groq reference: https://console.groq.com/docs/model/openai/gpt-oss-120b.
+*Superseded 2026-10-13.* At rollout, all text generation used Groq `openai/gpt-oss-120b`. AI now runs on Amazon Bedrock (`src/lib/ai/model.ts`):
+
+- `AI_WRITER_MODEL` and `AI_EXTRACT_MODEL` are `moonshotai.kimi-k2.5`, used for writing and parsing.
+- `AI_REVIEW_MODEL` is `deepseek.v3.2`, which fact-checks resume rewrites in the quality gate.
+
+Calls go through `groq-sdk` pointed at Bedrock's OpenAI-compatible endpoint, with `AWS_BEARER_TOKEN_BEDROCK` and `AWS_REGION`. To change a model, edit `model.ts` and redeploy; no migration is needed.

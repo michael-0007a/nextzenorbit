@@ -1,5 +1,7 @@
 # Job search implementation and rollout
 
+> Status (2026-10-16): shipped on main; migrations 036 and 037 are applied in production. Beta adds a hardening policy on `saved_job_searches` (042).
+
 Implemented in the shared client and admin workspace:
 
 - Keyword/location/country search, exclusions, posting age, employment type, full-time status, salary bounds, sorting and pagination.
@@ -13,7 +15,7 @@ Implemented in the shared client and admin workspace:
 
 ## Deployment
 
-Apply `036_expanded_onboarding.sql` and then `037_job_search_workspace.sql` before deploying this application version. Both rely on earlier migrations. Migration 036 changes the signup consent version, so deploy during a controlled rollout: older open signup forms should refresh before submitting. Neither migration has been applied to production by this task.
+Apply `036_expanded_onboarding.sql` and then `037_job_search_workspace.sql` before deploying this application version. Both rely on earlier migrations. Migration 036 changes the signup consent version, so deploy during a controlled rollout: older open signup forms should refresh before submitting. Both are now applied in production (status 2026-10-16).
 
 Keep `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` server-side. Verify a real search in each supported market after deployment. Provider requests are bounded, cached for five minutes, and retry temporary HTTP failures once. Search API calls are rate limited per account.
 

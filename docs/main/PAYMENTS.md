@@ -1,270 +1,72 @@
-# Payments Integration — JobSearch AI
+# Payments: Nextzen Orbit (main)
 
-## Overview
+Last reviewed from code: 2026-10-16. Code: `src/lib/payments/*`, `src/lib/subscription.ts`, `src/app/api/{subscription,payments,webhooks/payu}`. Rollout history and edge cases: [signup-review-rollout.md](signup-review-rollout.md).
 
-JobSearch AI uses Razorpay as the primary payment gateway with Cashfree as a secondary option. All payments are in INR with GST compliance.
+## Summary
 
-## Pricing Plans
+- **Gateway:** PayU, INR, monthly. The USD gateway (`usd-gateway.ts`) is a placeholder, and checkout rejects USD.
+- **Who pays:** only approved `user` accounts. Staff roles and `sso_user` bypass payment.
+- **What unlocks service:** an active, paid, unexpired subscription. Trials, missing end dates and expired periods do **not** unlock service (migration 035).
+- The old Razorpay and Cashfree integrations were removed. Only `RAZORPAY_KEY_ID` is still read, as a leftover in `subscription/create`.
 
-| Plan | Monthly (INR) | Annual (INR) | AI Tokens | Resumes | Applications/Day |
-|------|---------------|--------------|-----------|---------|------------------|
-| Free | ₹0 | - | 50,000 | 2 | 5 |
-| Pro | ₹499 | ₹3,999 | 500,000 | Unlimited | 50 |
-| Elite | ₹999 | ₹7,999 | 2,000,000 | Unlimited | Unlimited |
+## Plans
 
-### GST Calculation
-All prices are inclusive of 18% GST.
+From `PLANS` in `src/lib/subscription.ts`. The internal ids are historical: `free` is the paid Silver plan.
 
-```typescript
-const calculateGST = (amountPaise: number) => {
-  const baseAmount = Math.round(amountPaise / 1.18);
-  const gstAmount = amountPaise - baseAmount;
-  return { baseAmount, gstAmount };
-};
-```
+| Id | Name | Monthly INR | Monthly USD (display) | Annual INR | Apply target / month |
+| --- | --- | --- | --- | --- | --- |
+| `free` | Silver | ₹13,999 | $149 | ₹1,67,988 | 300 |
+| `pro` | Gold | ₹18,999 | $199 | ₹2,27,988 | 400 |
+| `elite` | Elite | ₹23,999 | $249 | ₹2,87,988 | 500 |
 
-## Razorpay Integration
+All plans have unlimited resumes and AI. The plan mainly sets the done-for-you application target (see [shared-client-assignments.md](shared-client-assignments.md)). `price_paise` is the amount charged. `calculateGST` in `types.ts` (18%) exists but isn't applied at checkout, so treat the listed prices as final.
 
-### Environment Variables
-```env
-RAZORPAY_KEY_ID=rzp_test_xxx
-RAZORPAY_KEY_SECRET=your_secret
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
-```
-
-### Creating an Order
-```typescript
-// POST /api/payments/create-order
-import Razorpay from 'razorpay';
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
-const order = await razorpay.orders.create({
-  amount: 49900, // ₹499 in paise
-  currency: 'INR',
-  receipt: `order_${userId}_${Date.now()}`,
-  notes: {
-    user_id: userId,
-    plan_id: 'pro',
-  },
-});
-```
-
-### Client-Side Checkout
-```typescript
-const options = {
-  key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-  amount: order.amount,
-  currency: order.currency,
-  name: 'Nextzen Orbit',
-  description: 'Pro Plan Subscription',
-  order_id: order.id,
-  handler: async (response) => {
-    // Verify payment server-side
-    await verifyPayment(response);
-  },
-  prefill: {
-    email: user.email,
-    contact: user.phone,
-  },
-  theme: {
-    color: '#56e39f',
-  },
-};
-
-const rzp = new window.Razorpay(options);
-rzp.open();
-```
-
-### Webhook Handler
-```typescript
-// POST /api/webhooks/razorpay
-import crypto from 'crypto';
-
-export async function POST(request: Request) {
-  const body = await request.text();
-  const signature = request.headers.get('x-razorpay-signature');
-
-  // Verify signature
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
-    .update(body)
-    .digest('hex');
-
-  if (signature !== expectedSignature) {
-    return new Response('Invalid signature', { status: 401 });
-  }
-
-  const event = JSON.parse(body);
-
-  // Handle events
-  switch (event.event) {
-    case 'payment.captured':
-      await handlePaymentCaptured(event.payload);
-      break;
-    case 'subscription.activated':
-      await handleSubscriptionActivated(event.payload);
-      break;
-    // ... other events
-  }
-
-  return new Response('OK', { status: 200 });
-}
-```
-
-### Webhook Events
-
-| Event | Action |
-|-------|--------|
-| `payment.captured` | Activate subscription, send confirmation email |
-| `payment.failed` | Notify user, retry logic |
-| `subscription.activated` | Update subscription status to 'active' |
-| `subscription.charged` | Renew subscription period |
-| `subscription.cancelled` | Update status to 'cancelled' |
-| `subscription.halted` | Update status to 'past_due', grace period |
-| `refund.created` | Process refund, update subscription |
-
-## Cashfree Integration (Secondary)
-
-### Environment Variables
-```env
-CASHFREE_APP_ID=your_app_id
-CASHFREE_SECRET_KEY=your_secret_key
-```
-
-### Creating an Order
-```typescript
-const order = await fetch('https://sandbox.cashfree.com/pg/orders', {
-  method: 'POST',
-  headers: {
-    'x-client-id': process.env.CASHFREE_APP_ID,
-    'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-    'x-api-version': '2022-09-01',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    order_id: `order_${userId}_${Date.now()}`,
-    order_amount: 499,
-    order_currency: 'INR',
-    customer_details: {
-      customer_id: userId,
-      customer_email: user.email,
-      customer_phone: user.phone,
-    },
-  }),
-});
-```
-
-### Webhook Verification
-```typescript
-function verifyCashfreeWebhook(
-  body: string,
-  signature: string,
-  timestamp: string
-): boolean {
-  const payload = timestamp + body;
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.CASHFREE_SECRET_KEY!)
-    .update(payload)
-    .digest('base64');
-  return expectedSignature === signature;
-}
-```
-
-## Subscription Database Schema
-
-```sql
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY,
-  user_id UUID REFERENCES users(id),
-  provider TEXT CHECK (provider IN ('razorpay', 'cashfree')),
-  plan_id TEXT CHECK (plan_id IN ('free', 'pro', 'elite')),
-  status TEXT CHECK (status IN ('trialing', 'active', 'past_due', 'cancelled')),
-  
-  -- Provider IDs
-  razorpay_customer_id TEXT,
-  razorpay_subscription_id TEXT,
-  
-  -- Billing
-  currency TEXT DEFAULT 'INR',
-  amount_paise INTEGER,
-  gst_amount_paise INTEGER,
-  
-  -- Periods
-  trial_starts_at TIMESTAMPTZ,
-  trial_ends_at TIMESTAMPTZ,
-  current_period_start TIMESTAMPTZ,
-  current_period_end TIMESTAMPTZ,
-  
-  -- Cancellation
-  cancel_at_period_end BOOLEAN DEFAULT FALSE,
-  cancelled_at TIMESTAMPTZ
-);
-```
-
-## Payment Flow
+## Checkout flow
 
 ```
-1. User selects plan
-   ↓
-2. POST /api/payments/create-order
-   ↓
-3. Razorpay order created
-   ↓
-4. Open Razorpay checkout modal
-   ↓
-5. User completes payment
-   ↓
-6. Razorpay sends webhook
-   ↓
-7. Verify signature
-   ↓
-8. Update subscription in DB
-   ↓
-9. Send confirmation email
-   ↓
-10. User sees updated plan
+/subscription (approved, unpaid client)
+   │ choose plan
+   ▼
+POST /api/subscription/create  (plan: free|pro|elite, INR only)
+  or POST /api/payments/create-order (planId: pro|elite, monthly INR only)
+   │ rate limit: 5 per user per 5 min (shared "checkout" bucket)
+   │ payment_orders row (status pending, random txnid)
+   ▼
+PayU hosted checkout (form post with hash, NEXT_PUBLIC_PAYU_URL)
+   ▼
+POST /api/webhooks/payu  ← PayU success/failure redirect
+   │ verify response hash (merchant salt)
+   │ success → complete_payu_payment(txnid, amount_paise, mihpayid)
+   │           (checks amount, records payment, extends period once)
+   ▼
+303 → /subscription?payment=confirmed | incomplete
 ```
 
-## Trial Management
+## Recovery and reconciliation
 
-### 7-Day Free Trial
-- All new users get 7-day trial on signup
-- Trial status: `trialing`
-- Trial expiry checks run on each login
-- Email reminders: 3 days, 1 day before expiry
+- **Check payment status** on `/subscription` calls `POST /api/payments/reconcile`. It asks PayU's verify API about the user's five latest pending orders, or one given `txnid`, and activates any that were captured with the matching amount. Limit: 6 per 5 minutes.
+- **Admins** use "Verify payment & sync plan" on a client page (`POST /api/admin/subscription/activate`). It verifies with PayU, never grants unpaid access, and is limited to 10 per 5 minutes.
+- A new checkout never overwrites an active subscription. Repeated callbacks don't add duplicate periods.
+- If the callback returns 503, the payment is safe. The user should press **Check payment status** and must not pay again.
 
-### Trial Expiry Logic
-```typescript
-export function isTrialActive(subscription: Subscription | null): boolean {
-  if (!subscription) return false;
-  if (subscription.status !== 'trialing') return false;
-  if (!subscription.trial_ends_at) return false;
-  return new Date(subscription.trial_ends_at) > new Date();
-}
+## Configuration
 
-export function getTrialDaysRemaining(subscription: Subscription | null): number {
-  if (!isTrialActive(subscription)) return 0;
-  const endDate = new Date(subscription.trial_ends_at!);
-  const now = new Date();
-  const diffMs = endDate.getTime() - now.getTime();
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-}
-```
+| Variable | Notes |
+| --- | --- |
+| `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT` | Must come from the same PayU environment (test or live) |
+| `NEXT_PUBLIC_PAYU_URL` | PayU test or production payment URL |
+| `NEXT_PUBLIC_APP_URL` | Used to build the success/failure return URLs |
 
-## Security Best Practices
+In the PayU dashboard, set the callback / return URL to `https://<app host>/api/webhooks/payu`.
 
-1. **Never trust client-side payment status** — Always verify via webhook
-2. **Verify all webhook signatures** — Use timing-safe comparison
-3. **Handle idempotency** — Same webhook may arrive multiple times
-4. **Store amounts in paise** — Avoid floating-point issues
-5. **Log webhook events** — For debugging and audit trail
-6. **Return 200 immediately** — Process async to avoid timeouts
+## Security rules
 
----
+1. Never trust client-side payment status. Activation happens only after the hash is verified or PayU's verify API confirms the payment.
+2. Amounts are stored in paise and checked against the original order.
+3. Activation is one `SECURITY DEFINER` transaction (`complete_payu_payment`) and is idempotent.
+4. The checkout and reconcile endpoints require an approved account and are rate limited.
 
-*Last updated: 2026-03-05*
+## Testing
 
+- `npm run test:signup` includes local PGlite payment/access tests (`scripts/test-payment-access.cjs`). PayU itself is mocked.
+- Before a release: complete a PayU sandbox payment, reload `/subscription`, simulate a lost browser return, run **Check payment status**, and confirm a second checkout doesn't disturb an active plan.

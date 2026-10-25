@@ -1,318 +1,93 @@
-# Enhanced Architecture: Nextzen Orbit
+# Enhanced architecture: feature guide (main)
 
-## Overview
+Last reviewed from code: 2026-10-16. This was the 2026 planning doc for the career workspace and the extension. It now describes what was built. The repo layout and services are in [CAREER_WORKSPACE_ARCHITECTURE.md](CAREER_WORKSPACE_ARCHITECTURE.md).
 
-Nextzen Orbit is an AI-powered career workspace focused on the Indian job market, combining job discovery, interview preparation, and assisted application tools.
+## Principles that held
 
-## Core Principles
+- **User-controlled:** assisted autofill only, with no autonomous submission. The Playwright auto-apply worker was removed.
+- **Modular services:** route handlers are thin and call `src/services/*`.
+- **Type-safe end to end:** Zod validates every boundary, and `src/types/database.ts` mirrors the schema.
+- **Database-driven content:** careers, roadmaps, questions and resources are seeded rows, not hardcoded.
+- **RLS plus paid access:** user-owned rows are owner-only and gated by `has_paid_service_access()`.
 
-- **User-controlled**: No autonomous auto-apply; assisted autofill only
-- **Modular services**: Clean separation of concerns
-- **Type-safe**: TypeScript everywhere
-- **Scalable**: Database-driven, not hardcoded
-- **Production-ready**: Proper error handling, loading states, RLS
+## Features
 
-## System Architecture
+### 1. Career pages `/career/[slug]`
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Next.js App Router                       │
-├─────────────────────────────────────────────────────────────┤
-│  Pages                                                       │
-│  ├── /career/[slug]      Dynamic career pages               │
-│  ├── /jobs               Job search & aggregation           │
-│  ├── /applications       Kanban + table tracker             │
-│  ├── /roadmaps           Career roadmaps                    │
-│  ├── /interview          Question bank                      │
-│  ├── /notes              AI-generated notes                 │
-│  └── /projects           User project showcase              │
-├─────────────────────────────────────────────────────────────┤
-│  Services Layer                                              │
-│  ├── JobService          Adzuna API aggregation             │
-│  ├── AIService           Groq API notes generation          │
-│  ├── YouTubeService      Video search & caching            │
-│  ├── RoadmapService      Dynamic roadmap rendering          │
-│  ├── QuestionService     Interview questions                │
-│  └── ProfileService      User data for autofill             │
-├─────────────────────────────────────────────────────────────┤
-│  Data Layer (Supabase)                                       │
-│  ├── PostgreSQL          Relational data                    │
-│  ├── RLS Policies        Row-level security                 │
-│  └── Storage             Resume & project files             │
-└─────────────────────────────────────────────────────────────┘
+- **Data:** the career by slug, its roadmap and steps, interview questions and YouTube resources for the role, related catalog jobs, the user's AI notes and projects. Independent sections load concurrently.
+- **UI:** `components/career/*`: hero, roadmap, resources, interview prep, related jobs, AI notes panel, projects.
+- **Caching:** reference data is cached under the `career-reference` tag. A super admin invalidates it with `POST /api/admin/reference-cache`.
 
-┌─────────────────────────────────────────────────────────────┐
-│           Chrome Extension (Manifest V3)                     │
-├─────────────────────────────────────────────────────────────┤
-│  ├── Background Worker   Message routing, API calls         │
-│  ├── Content Scripts     Portal detection & DOM injection   │
-│  ├── Portal Adapters     Workday, Greenhouse, Lever, LI     │
-│  ├── Field Mappers       Profile → form field mapping       │
-│  └── Popup UI            Settings & status                  │
-└─────────────────────────────────────────────────────────────┘
-```
+### 2. AI notes
 
-## Database Schema Enhancements
+1. The user enters a topic in the AI notes panel.
+2. `POST /api/ai/generate-notes` calls Bedrock (`AI_WRITER_MODEL`, Kimi K2.5).
+3. `notes-service.upsertNote` saves the result per user and topic, so asking again for the same topic updates that note.
+4. Notes can be read, edited and deleted through `/api/ai-notes` and `/api/ai-notes/[id]`.
 
-### careers
-Primary career paths (SWE, Data Science, Product Management, etc.)
+### 3. Job catalog
 
-### jobs
-Aggregated from Adzuna + manual additions
+There is no scheduled crawl. The catalog fills as people search: `POST /api/jobs/search` → Adzuna → `store_job_results` normalizes and refreshes the `jobs` rows. Career pages read related jobs through `GET /api/jobs` (`jobs-service.listJobs`). Queuing requires a catalog row less than 24 hours old (037). See [job-search-improvement-plan.md](job-search-improvement-plan.md).
 
-### youtube_resources
-Cached video results by role/topic
+### 4. Roadmaps
 
-### roadmaps + roadmap_steps
-Dynamic multi-step career progression
+`roadmaps` → ordered `roadmap_steps` (`order_index`, `level`). They're rendered as a linear, sectioned view. Branching paths are not modeled.
 
-### interview_questions
-Filterable by role, company, difficulty, topic
+### 5. Interview questions
 
-### ai_notes
-Generated content cached per topic to reduce API usage
+Filter by role, company, difficulty and topic (`use-interview-filter`), on expandable cards with answers. Bookmarking isn't built.
 
-### projects
-User GitHub repos + screenshots + tech stack
+### 6. YouTube resources
 
-### applications
-Job application tracker with status workflow
+Seeded rows in `youtube_resources`, filterable by topic and difficulty. The live `GET /api/youtube/search` route (YouTube Data API v3) exists on main but nothing in the UI calls it, and beta removes it.
 
-## Feature Implementation Guide
+### 7. User projects
 
-### 1. Dynamic Career Pages `/career/[slug]`
+`projects`: title, GitHub URL, description, tech stack tags and screenshot URLs. Plain CRUD; no AI features.
 
-**Data fetching:**
-- Fetch career by slug
-- Load related roadmap
-- Load interview questions (filtered by role)
-- Load YouTube resources (filtered by role)
-- Load related jobs (filtered by tags)
-- Load cached AI notes (if any)
+### 8. Assisted autofill extension
 
-**UI sections:**
-- Hero with career overview
-- Roadmap visualization
-- Learning resources grid
-- Interview prep section
-- Job listings
-- AI notes panel
-
-### 2. AI Notes Generation
-
-**Flow:**
-1. User enters topic (e.g., "React Hooks")
-2. Check cache in ai_notes table
-3. If not found, call Groq API
-4. Parse and structure response
-5. Save to database
-6. Return to user
-
-**Prompt template:**
-```
-Generate interview-focused notes for: {topic}
-
-Include:
-- Concise explanation (2-3 paragraphs)
-- Key concepts (bullet points)
-- Common interview questions (3-5)
-- Code examples (if applicable)
-- Quick revision summary
-```
-
-### 3. Job Aggregation
-
-**Adzuna API integration:**
-- Scheduled cron job (daily/hourly)
-- Fetch jobs by role categories
-- Normalize response to jobs table schema
-- Deduplicate by title + company
-- Tag by skills/tech stack
-
-**Search & filter:**
-- Full-text search on title, description
-- Filter by location, company, tags
-- Sort by relevance, date
-
-### 4. Roadmap System
-
-**Structure:**
-- roadmaps: high-level career path
-- roadmap_steps: ordered steps with descriptions
-
-**UI patterns:**
-- Linear step-by-step view
-- Progress indicator
-- Expandable sections
-- Link to related resources
-
-**Future-ready:**
-- JSON field for graph coordinates
-- Support for branching paths
-
-### 5. Interview Question System
-
-**Features:**
-- Multi-filter sidebar (role, company, difficulty, topic)
-- Expandable card UI
-- Answer reveals
-- Bookmark/save functionality
-- Search within questions
-
-### 6. YouTube Resources
-
-**YouTube Data API v3:**
-- Search by topic + role keywords
-- Extract: title, url, thumbnail, channel
-- Cache in database
-- Categorize by difficulty (manual tagging)
-
-**Display:**
-- Grid of video cards
-- Filter by topic, difficulty
-- External links to YouTube
-
-### 7. User Projects
-
-**Fields:**
-- GitHub URL (validate format)
-- Title, description
-- Tech stack (tags)
-- Screenshots (Supabase Storage)
-
-**Future AI features:**
-- Auto-extract README
-- Suggest improvements
-- Match to job requirements
-
-### 8. Assisted Autofill Extension
-
-**Architecture:**
-```
-Extension Components:
-├── manifest.json          Permissions, content scripts
-├── background/worker.ts   Message router, API bridge
-├── content/
-│   ├── detector.ts        Portal detection logic
-│   ├── injector.ts        In-page assist panel
-│   └── adapters/
-│       ├── workday.ts
-│       ├── greenhouse.ts
-│       ├── lever.ts
-│       └── linkedin.ts
-├── popup/                 Settings UI
-└── shared/
-    ├── fieldMapper.ts     Profile → form field mapping
-    └── types.ts           Shared interfaces
-```
-
-**Field mapping:**
-```typescript
-{
-  firstName: profile.first_name,
-  lastName: profile.last_name,
-  email: profile.email,
-  phone: profile.phone,
-  linkedin: profile.linkedin_url,
-  github: profile.github_url,
-  portfolio: profile.portfolio_url,
-  // Resume: flag for manual upload only
-}
-```
-
-**Portal adapters:**
-Each adapter exports:
-- `detect()`: returns true if portal detected
-- `getFields()`: returns array of fillable fields
-- `fillField()`: fills a specific field
-
-### 9. Application Tracking
-
-**Views:**
-- Kanban: columns by status
-- Table: sortable, filterable list
-
-**Statuses:**
-- Saved
-- Applied
-- Interview
-- Rejected
-- Offer
-
-**Features:**
-- Drag-and-drop (kanban)
-- Quick status change
-- Notes field
-- Date tracking
-
-## API Routes
+Package: `extensions/nextzen-orbit-autofill` (MV3, built with esbuild into `build/`).
 
 ```
-/api/jobs/aggregate          POST   Trigger job fetch
-/api/jobs/search             GET    Search jobs
-/api/ai/generate-notes       POST   Generate AI notes
-/api/youtube/search          GET    Search videos
-/api/autofill/profile        GET    Profile data for extension
-/api/applications/[id]       PATCH  Update application
+src/
+  background/index.ts, auth.ts     # message routing; fetch /api/autofill/profile with the session cookie
+  content/index.ts                 # entry: detect portal, scan fields, mount panel
+  content/detectors/               # base + workday, greenhouse, lever, linkedin, microsoft
+  content/handlers/autofill.ts     # fill detected fields on user click
+  content/ui/panel.ts              # in-page assist panel
+  popup/popup.{html,ts}            # settings: app URL, enable toggle, refresh status
+  shared/messages.ts, profile.ts,  # zod message + profile schemas, supported sites,
+         sites.ts, storage.ts      # settings storage (default app URL)
 ```
 
-## Environment Variables
+- **Supported portals:** Workday (`*.myworkdayjobs.com`), Greenhouse, Lever, LinkedIn, Microsoft Careers.
+- **Profile mapping:** full name, email, phone, LinkedIn, GitHub, portfolio, education entries (institution, degree, field, dates, GPA) and experience entries (company, position, dates, bullets).
+- **Never automated:** file inputs (they're flagged for manual upload) and submission.
+- **Telemetry:** field counts per portal go to `POST /api/autofill/telemetry`. On main those rows are dropped; see SECURITY.md.
+- **Default app URL:** `http://localhost:3000` on main and `https://app.nextzenorbit.com` on beta. It can be changed in the popup.
 
-```env
-# Existing
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-GROQ_API_KEY=
+### 9. Application tracking
 
-# New
-ADZUNA_APP_ID=
-ADZUNA_APP_KEY=
-YOUTUBE_API_KEY=
-NEXT_PUBLIC_APP_URL=
-```
+- Kanban (drag and drop, optimistic) and a table (search, status filter).
+- Statuses: `applied`, `screening`, `interview`, `offer`, `rejected`.
+- Fields: company, position, URL, resume, notes, applied and follow-up dates.
 
-## Implementation Phases
+## API routes (career and extension)
 
-### Phase 1: Foundation
-- ✅ Auth, DB, payments (existing)
-- 🔲 Profile system enhancement
-- 🔲 Job aggregation service
-- 🔲 Application tracking (kanban + table)
-- 🔲 Autofill extension MVP
+| Route | Methods | Purpose |
+| --- | --- | --- |
+| `/api/careers`, `/api/careers/[slug]` | GET | Career list and page |
+| `/api/roadmaps`, `/api/roadmaps/[id]` | GET | Roadmaps |
+| `/api/interview-questions` | GET | Questions |
+| `/api/youtube` | GET | Stored resources |
+| `/api/ai/generate-notes` | POST | AI notes |
+| `/api/ai-notes`, `/api/ai-notes/[id]` | CRUD | Notes |
+| `/api/projects`, `/api/projects/[id]` | CRUD | Projects |
+| `/api/jobs` | GET | Catalog for related jobs |
+| `/api/autofill/profile` | GET | Extension profile |
+| `/api/applications`, `/api/applications/[id]` | CRUD | Tracker |
 
-### Phase 2: Career Content
-- 🔲 Careers table & pages
-- 🔲 Roadmap system
-- 🔲 Interview questions
-- 🔲 YouTube integration
+## Not built (from the original plan)
 
-### Phase 3: AI & Intelligence
-- 🔲 AI notes generation
-- 🔲 Project showcase
-- 🔲 Personalized recommendations
-- 🔲 Extension enhancements
-
-## Security Considerations
-
-- RLS on all user-owned data
-- API key rotation for external services
-- Extension communicates via secure origin checks
-- No sensitive data in extension storage
-- Rate limiting on AI generation
-
-## Performance Optimizations
-
-- Cache AI-generated notes
-- Cache YouTube search results
-- Debounce job search
-- Lazy load career page sections
-- Virtual scrolling for large lists
-- ISR for career pages
-
-## Monitoring & Observability
-
-- Track AI API usage (cost management)
-- Monitor job aggregation failures
-- Extension error reporting
-- Application tracking analytics
+Personalized recommendations, roadmap progress tracking, question bookmarks, README extraction for projects, extension error reporting, and Chrome Web Store distribution.

@@ -1,154 +1,115 @@
-# Assumptions — Nextzen Orbit
+# Assumptions and decisions: Nextzen Orbit
 
-This document tracks engineering decisions made where the PRD was unclear or incomplete.
+This file records engineering decisions made where requirements were unclear. Decisions are never deleted. When one is overturned it is marked **Superseded** and points to its replacement, so the history stays readable.
 
----
+Last reviewed: 2026-10-16.
 
-## Authentication
+## Status summary
 
-### A001: Google OAuth Only (Initial Release)
-**Context:** PRD mentions email/password + Google OAuth, but for MVP simplicity.  
-**Decision:** Launch with Google OAuth only. LinkedIn OAuth will be added later.  
-**Rationale:** Reduces complexity, faster onboarding, most users prefer OAuth.  
-**Date:** 2026-03-05
+| Id | Decision | Status |
+| --- | --- | --- |
+| A001 | Google OAuth only | Superseded by A017 |
+| A002 | No email verification | Still holds for Google; email accounts are staff-created |
+| A003 | Groq (LLaMA 3.3 70B) for AI | Superseded by A018 |
+| A004 | AI token limits not enforced | Holds on main; superseded on beta by A024 |
+| A005 | Razorpay primary, Cashfree secondary | Superseded by A019 |
+| A006 | Payment integration deferred | Superseded by A019 |
+| A007 | Export deferred to Phase 3 | Superseded: PDF/DOCX/LaTeX export is live |
+| A008 | Single template initially | Superseded: 6 corporate + 3 C2C templates |
+| A009 | Yeldra B/W design | Superseded by A021 |
+| A010 | Landing page deferred | Superseded: marketing pages are live |
+| A011 | Soft deletes for resumes | Superseded by A022 |
+| A012 | Application statuses | Holds |
+| A013 | Rebrand to Nextzen Orbit | Holds |
+| A014 | Extension deferred to Phase 7 | Superseded by A020 |
+| A015 | Prefill new resumes from profile | Holds |
+| A016 | Groq for resume parsing | Superseded by A018 |
 
-### A002: No Email Verification Required
-**Context:** PRD mentions email verification for password-based auth.  
-**Decision:** Not needed since we're Google OAuth only.  
-**Rationale:** Google already verifies emails.  
-**Date:** 2026-03-05
+## Original decisions (2026-03)
 
----
+### A001: Google OAuth only (initial release). **Superseded by A017**
+**Decision:** Launch with Google OAuth only.
+**Rationale:** Simpler, faster onboarding.
 
-## AI Integration
+### A002: No email verification required
+**Decision:** Not needed for Google accounts. Still true: email/password accounts exist only for staff and SSO clients, and staff create them with `email_confirm: true`.
 
-### A003: Groq API Instead of OpenAI/Anthropic
-**Context:** PRD mentions Claude Opus 4.6, but doesn't specify provider.  
-**Decision:** Use Groq API with LLaMA 3.3 70B Versatile model.  
-**Rationale:** Cost-effective, fast inference, good quality for resume analysis.  
-**Date:** 2026-03-05
+### A003: Groq API instead of OpenAI/Anthropic. **Superseded by A018**
+**Decision:** Groq with LLaMA 3.3 70B, later `openai/gpt-oss-120b`.
 
-### A004: AI Token Limits Not Enforced Yet
-**Context:** PRD specifies token budgets per plan.  
-**Decision:** Token tracking implemented but limits not enforced in Phase 1.  
-**Rationale:** Focus on core features first, enforcement in Phase 2.  
-**Date:** 2026-03-05
+### A004: AI token limits not enforced yet
+**Decision:** Track tokens (`ai_usage`) but don't enforce them. This still holds on main; see A024 for beta.
 
----
+### A005: Razorpay primary, Cashfree secondary. **Superseded by A019**
 
-## Payments
+### A006: Payment integration deferred. **Superseded by A019**
 
-### A005: Razorpay Primary, Cashfree Secondary
-**Context:** PRD mentions both payment gateways.  
-**Decision:** Razorpay as primary implementation, Cashfree infrastructure ready but not active.  
-**Rationale:** Razorpay has better market share in India, simpler integration.  
-**Date:** 2026-03-02
+### A007: PDF/DOCX export deferred. **Superseded**
+Export to PDF, DOCX and LaTeX is live, from one shared layout plan.
 
-### A006: Payment Integration Deferred
-**Context:** Full payment flow requires business entity setup.  
-**Decision:** Payment UI and routes created, actual Razorpay integration pending.  
-**Rationale:** Can't process payments without business verification.  
-**Date:** 2026-03-05
+### A008: Single resume template initially. **Superseded**
+Main has Classic, Modern, Creative, Jake's, Deedy and Awesome CV plus three C2C templates. Beta replaces Classic, Modern and Creative with Harvard, FAANGPath and AltaCV.
 
----
+### A009: Yeldra-inspired B/W design. **Superseded by A021**
 
-## Resume Features
+### A010: Landing page deferred. **Superseded**
+`(marketing)` has the landing page and the legal pages.
 
-### A007: PDF/DOCX Export Deferred to Phase 3
-**Context:** PRD mentions resume export.  
-**Decision:** Resume viewing/editing in Phase 2, export in Phase 3.  
-**Rationale:** Core functionality first, export is enhancement.  
-**Date:** 2026-03-05
+### A011: Soft deletes for resumes only. **Superseded by A022**
 
-### A008: Single Resume Template Initially
-**Context:** PRD mentions multiple ATS-optimized templates.  
-**Decision:** Start with one template, add more in Phase 3.  
-**Rationale:** Faster MVP, template system architecture allows easy addition.  
-**Date:** 2026-03-05
+### A012: Application status values
+**Decision:** `applied`, `screening`, `interview`, `offer`, `rejected`. Still in use.
 
----
+### A013: Rebrand to Nextzen Orbit
+**Decision:** The product was renamed from "JobSearch AI". Still in use.
 
-## UI/UX
+### A014: Chrome extension deferred to Phase 7. **Superseded by A020**
 
-### A009: Yeldra-Inspired Design Over PRD Spec
-**Context:** PRD specified indigo/violet gradient design system.  
-**Decision:** Changed to Yeldra-inspired B/W + 5-color system.  
-**Rationale:** User preference for cleaner, more professional aesthetic.  
-**Date:** 2026-03-02
+### A015: Resume prefill from profile
+**Decision:** New resumes copy contact info from the profile. Still in use.
 
-### A010: Landing Page Deferred
-**Context:** PRD includes marketing pages (landing, pricing, blog).  
-**Decision:** Dashboard-first approach, landing page in later phase.  
-**Rationale:** Focus on core product, marketing pages after feature complete.  
-**Date:** 2026-03-05
+### A016: AI resume parser with Groq. **Superseded by A018**
 
----
+## Later decisions
 
-## Database
+### A017: Gated signup with human review (2026-09)
+**Context:** The service is done-for-you, so every client costs recruiter time.
+**Decision:** Google sign-in creates an account, but access needs a submitted application that a supervisor approves (migration 033). Staff and SSO clients use email/password.
+**Rationale:** Quality control and fraud prevention before payment.
 
-### A011: Soft Deletes for Resumes Only
-**Context:** PRD mentions soft deletes.  
-**Decision:** Implemented for resumes table, hard deletes for others.  
-**Rationale:** Resume history valuable, other data can be hard deleted.  
-**Date:** 2026-03-02
+### A018: Amazon Bedrock with a reviewer model (2026-10-13)
+**Context:** Groq rate limits and quality.
+**Decision:** All AI runs on Bedrock through its OpenAI-compatible endpoint (still called through `groq-sdk`). Kimi K2.5 writes and parses, and DeepSeek V3.2 fact-checks. Every whole-resume rewrite goes through the quality gate.
+**Rationale:** In a blind bake-off, Kimi wrote the best tailored copy and parsed fastest (~14s vs ~41s), and DeepSeek was the most literal reviewer.
 
-### A012: Application Status Values
-**Context:** PRD mentions Kanban but doesn't specify exact statuses.  
-**Decision:** Using: applied, screening, interview, offer, rejected.  
-**Rationale:** Common application tracking workflow.  
-**Date:** 2026-03-05
+### A019: PayU, INR, paid access required (2026-09)
+**Decision:** PayU monthly INR checkout. Trials don't unlock service, and activation is an idempotent RPC (035). USD stays a placeholder until a provider is chosen.
 
----
+### A020: Assisted autofill extension, no auto-apply (2026-06)
+**Decision:** Build the MV3 extension now, and remove the Playwright auto-apply worker. Recruiters apply manually through the apply queue.
+**Rationale:** Auto-apply was unreliable and risky. The user (or recruiter) stays in control of submission.
 
-## Branding
+### A021: Dark-first glass design system
+**Decision:** Red primary (`#FF003D`), cyan accent, Sora / Space Grotesk, dark by default. See [UI_PATTERNS.md](UI_PATTERNS.md).
 
-### A013: Rebranding to Nextzen Orbit
-**Context:** PRD originally named product "JobSearch AI".  
-**Decision:** Rebranded to "Nextzen Orbit" as per user direction.  
-**Rationale:** User preference for unique, memorable brand name.  
-**Date:** 2026-03-05
+### A022: Hard delete resumes with file cleanup
+**Decision:** Deleting a resume removes the row and its stored files (`src/lib/resume/delete.ts`). `deleted_at` remains but isn't used.
+**Rationale:** Privacy. Users expect "delete" to remove their documents.
 
----
+### A023: One deployment, service role plus code checks for staff
+**Decision:** A single Next.js deployment serves every surface. Admin routes use the service role and authorize in code; RLS role checks caused recursion (migrations 005–030).
 
-## Chrome Extension
+### A024: Daily AI allowances (beta, 2026-10)
+**Decision:** Per-day caps by role and plan, reset at 00:00 GMT. Only successful runs are recorded, and admins can request extra from a supervisor (migration 046). See [`../beta/ai-usage-limits.md`](../beta/ai-usage-limits.md).
 
-### A014: Extension Deferred to Phase 7
-**Context:** PRD includes Chrome Extension for auto-fill.  
-**Decision:** Completely deferred until post-PMF validation.  
-**Rationale:** Core web app must be solid first.  
-**Date:** 2026-03-02
-
----
-
-## Phase 2 Completion
-
-### A015: Resume Pre-fill from Profile
-**Context:** PRD doesn't specify how new resumes should be initialized.  
-**Decision:** New resumes auto-populate contact info from user profile.  
-**Rationale:** Better UX - users don't re-enter same data.  
-**Date:** 2026-03-05
-
-### A016: AI Resume Parser with Groq
-**Context:** PRD specifies Claude for AI tasks.  
-**Decision:** Using Groq (LLaMA 3.3 70B) for resume parsing.  
-**Rationale:** Cost-effective, fast inference, sufficient quality for structured extraction.  
-**Date:** 2026-03-05
-
----
+### A025: Region alignment (beta, 2026-10)
+**Decision:** Move the Vercel functions from `bom1` to `hnd1` to sit next to the Tokyo Supabase project, instead of migrating to AWS. See [`../beta/speed.html`](../beta/speed.html) and [performance/performance-audit.md](performance/performance-audit.md).
 
 ## Format
 
-Each assumption follows this template:
-
 ```
-### A[XXX]: [Brief Title]
-**Context:** What the PRD says or doesn't say  
-**Decision:** What we decided to do  
-**Rationale:** Why we made this decision  
-**Date:** When the decision was made
+### A[XXX]: [Brief title]
+**Context:** What was unclear
+**Decision:** What we decided
+**Rationale:** Why
 ```
-
----
-
-*Last updated: 2026-03-05*
-

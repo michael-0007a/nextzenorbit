@@ -1,349 +1,110 @@
-# Project Report - Nextzen Orbit
-
-Date: 2026-05-24
-
-## 1. Executive Summary
-Nextzen Orbit is an AI-assisted job search workspace for the Indian market. The app combines resume creation, AI analysis and tailoring, cover letter generation, application tracking, and job search with an assisted autofill concept. The core app is production-grade in resumes and analysis, while subscription enforcement and autofill reliability are still in-progress.
-
-## 2. Business Context and Goals
-Primary audiences:
-- Job seekers in India who need faster, higher-quality applications.
-- Candidates who want resume and cover letter optimization with AI.
-- Internal stakeholders who plan to monetize through subscriptions.
-
-Core outcomes:
-- Better resume quality and faster iteration cycles.
-- Clear visibility of job applications and status pipelines.
-- A path to paid tiers once enforcement and checkout are finished.
-
-## 3. Tech Stack and Dependencies
-Frontend and framework:
-- Next.js 16 App Router, React 19, TypeScript.
-- Tailwind CSS v4 with custom design tokens and animations.
-- next-themes for theming, sonner for toasts.
-- Lucide React icons.
-- Google Fonts loaded via next/font: Sora and Space Grotesk.
-
-Backend and services:
-- Supabase (Postgres + Auth + Storage).
-- Google OAuth via Supabase Auth.
-- Groq API (LLaMA 3.3 70B) for resume analysis and parsing.
-- Adzuna API for job search.
-- Razorpay (primary) and Cashfree (secondary) for payments.
-
-Other libraries:
-- react-hook-form + Zod for forms and validation.
-- @react-pdf/renderer and docx for export.
-- mammoth and unpdf for resume parsing.
-- Framer Motion for UI animation.
-
-## 4. Project Structure Overview
-Top-level folders:
-- src/app: App Router routes and API endpoints.
-- src/components: UI primitives, layout, and feature components.
-- src/lib: Supabase clients, AI prompts, payments, and validation.
-- src/hooks: Client hooks for user and subscription state.
-- src/services: Career workspace data services.
-- src/types: API and database types.
-- public: Static assets and logos.
-- supabase/migrations: Database schema and policies.
-- scripts: Seed and utility scripts.
-- worker: Legacy Playwright auto-apply worker (deprecated).
-- docs: Product, architecture, and operational documentation.
-
-## 5. Global Layout, SEO, and Performance
-Layout and providers:
-- Root layout defines metadata (title template, description, keywords) and loads fonts via next/font.
-- Providers: next-themes theme provider (default dark, system disabled) and Sonner toasts.
-
-Styling system:
-- globals.css defines light and dark tokens, CSS variables, and animation keyframes.
-- Tailwind v4 theme tokens map to the design system variables.
-
-Images and optimization:
-- next.config.ts allows Google avatar image domains for Supabase/Google OAuth.
-
-Security headers:
-- No custom security headers are configured in next.config.ts; platform defaults apply.
-
-## 6. Architecture and Data Flow Diagrams
-
-System architecture:
-```mermaid
-graph TD
-  U[User Browser] --> A[Next.js App Router]
-  E[Assisted Autofill Extension] --> A
-  A --> S[Supabase Auth + Postgres + Storage]
-  A --> G[Groq AI]
-  A --> J[Adzuna API]
-  A --> P[Razorpay / Cashfree]
-  W[Legacy Worker] --> S
-```
-
-Data flow (resume upload + analysis):
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant App as Next.js App
-  participant DB as Supabase
-  participant AI as Groq LLM
-  U->>App: Upload PDF/DOCX
-  App->>DB: Store raw file (resume-uploads)
-  App->>AI: Parse to structured JSON
-  AI-->>App: Resume JSON
-  App->>DB: Save resumes + ai_usage
-  U->>App: Analyze vs job description
-  App->>AI: Job analyzer prompt
-  AI-->>App: Score + gaps + suggestions
-  App-->>U: Results and actions
-```
-
-## 7. Route Inventory and Behavior
-
-### Public and Auth Routes
-- / (Home)
-  - Landing page with feature highlights, pricing, and CTAs.
-  - Authenticated users redirect to /dashboard.
-
-- /login, /register, /verify
-  - Supabase Google OAuth entry points and verification placeholder.
-
-### Dashboard Routes
-- /dashboard
-  - Overview, metrics, and placeholder widgets.
-
-- /profile
-  - Profile and job preference management.
-
-- /resumes
-  - Resume list, create, upload, delete.
-
-- /resumes/[id]
-  - Resume editor with live preview and AI actions.
-
-- /analyzer
-  - Resume vs job description analyzer.
-
-- /cover-letter
-  - Cover letter generation and export.
-
-- /applications
-  - Application tracker with kanban and table views.
-
-- /job-search
-  - Adzuna job search and legacy queue actions.
-
-- /subscription
-  - Plan and usage view; upgrade UX not finalized.
-
-- /settings
-  - Account settings and security placeholders.
-
-### API Routes (Grouped)
-- Auth: /api/auth/callback
-- Profiles: /api/profile
-- Resumes: /api/resumes, /api/resumes/upload, /api/resumes/[id], /api/resumes/[id]/export
-- Resume AI: /api/resumes/[id]/enhance, /improve, /optimize, /tailor
-- Resume versions: /api/resumes/[id]/versions, /versions/[versionId]/restore
-- Analyzer: /api/analyzer
-- Cover letters: /api/cover-letter/generate, /api/cover-letter/export
-- Applications: /api/applications, /api/applications/[id]
-- Jobs: /api/jobs/search, /api/jobs/queue, /api/jobs/screenshot
-- Payments: /api/payments/create-order
-- Webhooks: /api/webhooks/razorpay, /api/webhooks/cashfree
-- Cron: /api/cron/cleanup
-
-## 8. Component Inventory
-
-Core layout and providers:
-- Providers wrapper with theme and toasts.
-- Sidebar, top nav, and page header layout components.
-
-Resume system:
-- Resume editor with preview, section editors, and action bar.
-- Resume list/grid with upload and delete flows.
-- Template selector and version history controls.
-
-Analyzer and cover letters:
-- Job analyzer form, keyword heatmap, and radar chart.
-- Cover letter generator and export UI.
-
-Applications:
-- Kanban board with drag/drop and modal CRUD.
-- Table view with search and filters.
-
-Subscription:
-- Plan cards and subscription details panel.
-
-UI primitives:
-- Button, card, input, textarea, modal, sheet, badge, skeleton, avatar.
-
-## 9. Data Model (Supabase)
-
-Primary tables:
-- users: app-level identity mirror for auth users.
-- profiles: user profile, job preferences, and subscription tier.
-- subscriptions: plan, billing, and trial state.
-- resumes: structured resume JSON and metadata.
-- resume_versions: snapshot history for rollback.
-- cover_letters: table exists; generation flow does not persist yet.
-- applications: kanban and table tracking.
-- job_queue: legacy auto-apply queue (deprecated).
-- ai_usage: token usage per billing period.
-- webhook_events: payment webhook audit log.
-
-Career workspace (vNext):
-- careers, jobs, youtube_resources, roadmaps, roadmap_steps, interview_questions, ai_notes, projects.
-
-Storage buckets:
-- resumes (private) and resume-uploads (raw uploads).
-- screenshots (legacy worker proof images).
-
-## 10. Supabase Integration Details
-- Server client: src/lib/supabase/server.ts (cookie-aware SSR).
-- Client client: src/lib/supabase/client.ts (browser usage).
-- Admin client: src/lib/supabase/admin.ts (service-role, bypasses RLS).
-- RLS enabled on all tables; service-role used for privileged flows.
-- Auth: Supabase Google OAuth callback at /api/auth/callback.
-
-## 11. Resume and AI Pipeline
-- Upload PDF/DOCX, store raw file, parse text using mammoth/unpdf.
-- Groq prompts normalize resume to structured JSON.
-- Resume editor supports autosave, versioning, and export.
-- AI actions: analyzer, enhance, improve, optimize, and tailor.
-- AI usage tracked in ai_usage.
-
-## 12. Job Search, Applications, and Assisted Autofill
-- Adzuna search populates job listings in /job-search.
-- Applications tracked in kanban/table views.
-- Legacy job_queue remains for historical data.
-- Assisted autofill extension is the target direction; legacy Playwright worker is deprecated.
-
-## 13. Deployment and Hosting
-- Documented deployment: Fly.io (see docs/DEPLOYMENT.md).
-- Hosting target to confirm: Vercel is possible for Next.js; update once confirmed.
-- Build commands: npm run build, npm run start.
-- Ensure environment variables are set for the chosen host.
-
-## 14. Environment Variables (Placeholders)
-
-Public (exposed to client):
-- NEXT_PUBLIC_SUPABASE_URL=
-- NEXT_PUBLIC_SUPABASE_ANON_KEY=
-- NEXT_PUBLIC_APP_URL=
-- NEXT_PUBLIC_EXTENSION_ID= (if extension used)
-
-Server-only:
-- SUPABASE_SERVICE_ROLE_KEY=
-- GROQ_API_KEY=
-- ADZUNA_APP_ID=
-- ADZUNA_APP_KEY=
-- RAZORPAY_KEY_ID=
-- RAZORPAY_KEY_SECRET=
-- RAZORPAY_WEBHOOK_SECRET=
-- CASHFREE_APP_ID=
-- CASHFREE_SECRET_KEY=
-- CRON_SECRET=
-- YOUTUBE_API_KEY=
-- EXTENSION_TOKEN_SECRET=
-
-## 15. Accounts and Passwords (Fill In)
-
-Vercel (if used):
-- Account email:
-- Team name:
-- Project name:
-- Region:
-- 2FA enabled (yes/no):
-
-Fly.io (if used):
-- Account email:
-- App name:
-- Region:
-- 2FA enabled (yes/no):
-
-Supabase:
-- Organization:
-- Project name:
-- Project ref:
-- Admin email:
-- Billing owner:
-
-Google Cloud / OAuth:
-- Project ID:
-- OAuth client ID:
-- OAuth client secret:
-- Consent screen support email:
-
-Groq:
-- Account email:
-- API key:
-
-Adzuna:
-- Account email:
-- App ID:
-- App key:
-
-Razorpay:
-- Account email:
-- Key ID:
-- Key secret:
-- Webhook secret:
-
-Cashfree:
-- Account email:
-- App ID:
-- Secret key:
-
-Chrome Web Store (extension, if used):
-- Publisher email:
-- Extension ID:
-
-Domain / DNS:
-- Registrar:
-- DNS provider:
-- Primary domain:
-- SSL / certificates:
-
-## 16. Scripts and Maintenance Tasks
-
-Scripts:
-- scripts/fix-rls.ts
-  - Prints SQL guidance for RLS recursion fixes.
-- scripts/remove-hero-bg.py
-  - Utility script for asset cleanup.
-- scripts/seed (TypeScript seed runner)
-  - Seeds careers, roadmaps, interview questions, and YouTube resources.
-- npm run seed:career-workspace
-  - Runs the seed script for the career workspace dataset.
-
-Supabase migrations (chronological):
-- 001_initial_schema.sql
-- 002_resume_storage.sql
-- 003_add_avatar_url.sql
-- 004_full_name.sql
-- 005_fix_users_rls_recursion.sql
-- 006_add_deleted_at.sql
-- 007_fix_all_rls_recursion.sql
-- 008_resume_versions_cover_letters.sql
-- 009_applications_table.sql
-- 010_storage_buckets.sql
-- 011_job_preferences.sql
-- 012_job_queue.sql
-- 013_screenshot_columns.sql
-- 014_career_workspace.sql
-
-## 17. Risks and Recommendations
-- Subscription enforcement and plan limits are disabled or inconsistent with UI.
-- Cover letter generation does not persist to the cover_letters table.
-- /api/cover-letter/export does not enforce auth in the route itself.
-- Resume delete behavior and comments are inconsistent (soft vs hard delete).
-- Docs and README are partly out of date versus code.
-
-## 18. Public Assets
-Key public files:
-- SVG assets: globe.svg, file.svg, next.svg, vercel.svg, window.svg.
-- Branding assets referenced by the landing page (e.g., Nextzen Orbit logos).
-
-## 19. Legacy Folder
-The worker/ directory is the deprecated Playwright auto-apply system. It is kept for historical context but is not part of the assisted autofill roadmap.
+# Project report: Nextzen Orbit (main)
+
+Date: 2026-10-16. Branch `main` at `808c909`.
+
+## 1. Executive summary
+
+Nextzen Orbit is a done-for-you job application service with a client workspace. The production app covers the whole loop: gated signup, PayU payment, allocating clients to recruiter teams, job search and the apply queue, and AI-generated resumes and cover letters checked by a second model. It also has client self-serve tools and an assisted autofill extension.
+
+The main open items on production are already fixed on beta: an admin client-assignment gap, client email sign-in, region latency, and AI cost caps. See [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+
+## 2. Business context
+
+- **Audience:** job seekers (India first, plus the US, UK, CA, AU, NZ, SG, ZA and others), the recruiters who apply for them, and supervisors who run the teams.
+- **Revenue:** monthly plans: Silver ₹13,999, Gold ₹18,999, Elite ₹23,999. Each plan sets a monthly application target (300, 400 or 500).
+- **Cost drivers:** recruiter time, then AI (about 7–15¢ per client document set; see `AI_COST_ESTIMATE.md`), then Vercel and Supabase.
+
+## 3. Tech stack
+
+| Area | Choice |
+| --- | --- |
+| Framework | Next.js 16.1 App Router, React 19.2, React Compiler, TypeScript 5.9 strict |
+| UI | Tailwind CSS v4, custom components, next-themes (dark default), sonner, lucide-react, Framer Motion, Sora + Space Grotesk |
+| Forms and validation | react-hook-form, Zod 4 |
+| Data | Supabase Postgres + Auth + Storage (`@supabase/ssr`, `@supabase/supabase-js`) |
+| AI | Amazon Bedrock (Kimi K2.5, DeepSeek V3.2) through `groq-sdk` |
+| Documents | `@react-pdf/renderer`, `docx`, LaTeX source; parsing with `unpdf`, `mammoth`, `jszip` |
+| Payments | PayU |
+| Jobs | Adzuna |
+| Hosting | Vercel (`bom1`); Supabase in Tokyo |
+| Tests | `node:test` scripts with module mocks and PGlite |
+
+## 4. Repository structure
+
+| Folder | Contents |
+| --- | --- |
+| `src/app` | Route groups `(marketing)`, `(auth)`, `(dashboard)`, `(admin-auth)`, `(admin)`, plus `api/**` |
+| `src/components` | `ui/` primitives, layout, forms, resume, admin, applications, analyzer, career |
+| `src/lib` | Supabase clients, access gate, admin guards, AI, resume pipeline, payments, jobs, rate limit, validations |
+| `src/services` | Data services (careers, jobs, notes, projects, roadmaps, interview, youtube, users, subscription, autofill) |
+| `src/types` | `database.ts`, `api.ts`, `domain/*` |
+| `supabase/migrations` | 001–041 for main (042–046 for beta) |
+| `scripts` | `test-*.cjs` suites, `seed/`, benchmarks, admin and maintenance scripts |
+| `extensions/nextzen-orbit-autofill` | Chrome MV3 extension |
+| `docs` | This documentation (`main/`, `beta/`) |
+
+The repo root also holds one-off scripts (`seed-*.js`, `fix-types.js`, `expand-roadmaps.js`) and output dumps (`*-output.txt`); they aren't part of the app. The `worker/` folder (Playwright auto-apply) has been removed.
+
+## 5. Layout, SEO and performance
+
+- The root layout sets the metadata template, loads fonts with `next/font`, and wraps providers (theme, toasts).
+- App and admin pages aren't for search engines. Beta adds `X-Robots-Tag: noindex` on the app and admin hosts.
+- Performance (2026-10): read models, a durable job queue, the signed access envelope, concurrent reads, loading boundaries, and `Server-Timing` headers. Beta adds hover prefetch and a local JWT check in the proxy. See [performance/](performance/).
+
+## 6. Route inventory
+
+See [APP_OVERVIEW.md](APP_OVERVIEW.md#main-ui-areas) for pages and [API_DOCS.md](API_DOCS.md) for all of roughly 80 API routes.
+
+## 7. Data model
+
+About 35 tables in five groups: accounts and access, billing, documents, jobs and queue, and the career workspace. See [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
+
+## 8. Resume and AI pipeline
+
+Upload → parse (Kimi K2.5) → edit → improve/optimize (Kimi) → reviewer (DeepSeek) → line fixes → restore unsupported lines → exact page fit → export (PDF, DOCX, LaTeX from one layout plan). See [resume-generation.md](resume-generation.md).
+
+## 9. Deployment
+
+Vercel builds `main` automatically. Migrations are applied by hand, before the code that needs them. See [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## 10. Environment variables
+
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`, `NEXT_PUBLIC_APP_URL`, `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_PAYU_URL`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`; optional `YOUTUBE_API_KEY` and `CRON_SECRET`. Beta adds `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_ADMIN_URL` and `ORBIT_LEGACY_HOSTS`.
+
+## 11. Accounts checklist (fill in privately; never commit secrets)
+
+Keep the actual values in a password manager. This list is just the inventory of accounts the business depends on.
+
+| Service | What to record |
+| --- | --- |
+| Vercel | Owner account, team, project `nextzenorbit`, 2FA on |
+| Supabase | Organization, project `nextzenorbit` (Tokyo), billing owner, 2FA on |
+| AWS (Bedrock) | Account, region, Bedrock API key owner, model access for Kimi K2.5 and DeepSeek V3.2 |
+| Google Cloud | OAuth client for Supabase sign-in, consent screen owner |
+| PayU | Merchant account (test and live), callback URL |
+| Adzuna | Developer account, app id |
+| YouTube Data API | Only if live search is kept |
+| Domains / DNS | Registrar (GoDaddy), DNS records for the three hosts on beta, mail MX/TXT |
+| GitHub | Repo `michael-0007a/nextzenorbit`, branch protections |
+| Chrome Web Store | Publisher account, if the extension is published |
+
+## 12. Scripts and maintenance
+
+| Command | Purpose |
+| --- | --- |
+| `npx tsc --noEmit` | Typecheck |
+| `npm run test:performance` | Full test suite (no live services) |
+| `npm run test:signup`, `npm run test:resumes` | Focused suites |
+| `npm run seed:career-workspace` | Seed career reference data |
+| `npm run wipe:client-data` | Wipe client data (destructive; non-production only) |
+| `npm run benchmark:performance`, `npm run benchmark:resume` | Benchmarks; outputs go to `docs/main/performance/` |
+| `node scripts/generate-resume-font-widths.cjs` | Regenerate `font-widths.json` after font or template changes |
+| `scripts/create-super-admin.ts`, `seed-admins.js` | Bootstrap staff accounts (real database) |
+
+## 13. Risks and recommendations
+
+1. **Merge beta.** It fixes the admin client-assignment gap (F2/F3) and dropped telemetry (F6), among others.
+2. **Cap AI cost.** Daily allowances exist on beta (046).
+3. **Latency.** Move to `hnd1` (beta).
+4. **USD payments.** Integrate a real provider before selling outside India.
+5. **Docs drift.** Keep `docs/main` in step with main and `docs/beta` with beta; fold beta into main on merge.

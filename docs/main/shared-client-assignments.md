@@ -28,7 +28,7 @@ My Clients shows in-app daily reminders, below-pace warnings and progress. Super
 
 Apply `supabase/migrations/039_shared_client_assignments.sql` after 038, then deploy the corresponding application changes together. The migration installs restricted service-role RPCs, membership/assignment-audit tables, completion attribution and current-month SQL aggregates. Existing `profiles.assigned_admin_id` remains a compatibility projection only. Avoid running old allocation code after applying the new application version; it does not write the membership table.
 
-Do not revert this migration to the single-admin model after shared allocations have been saved without a separate data migration; doing so would lose the shared assignment model. No production migration or deployment was performed as part of the local implementation.
+Do not revert this migration to the single-admin model after shared allocations have been saved without a separate data migration; doing so would lose the shared assignment model. Status 2026-10-16: shipped on main; migration 039 is applied in production.
 
 Verification:
 

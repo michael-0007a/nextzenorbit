@@ -1,5 +1,7 @@
 # Performance implementation — 2026-10-05
 
+> **Status (2026-10-16):** historical record. The code changes shipped to main on 2026-10-05 (migrations 040 and 041 are applied). One premise turned out to be wrong: the Supabase project is in **Tokyo (`ap-northeast-1`)**, not Mumbai. Pinning the functions to `bom1` (P02) therefore kept a cross-region hop. Beta moves the functions to `hnd1` (Tokyo); see [`../../beta/speed.html`](../../beta/speed.html). AI has since moved from Groq to Amazon Bedrock. Benchmark JSON files live next to this file.
+
 Performance code changes for the 21-task plan are present in this checkout. The production build and all 148 regression tests pass. Production migrations and deployment have **not** been performed, so the public website still runs its previous implementation. This report distinguishes implemented changes from acceptance checks that require production access, real accounts, model calls, or representative devices.
 
 ## Task outcomes
@@ -51,7 +53,7 @@ Validation commands: `npm run test:performance`, `npm run build`, and `npx tsc -
 ## Production activation
 
 1. Review the changes and apply **040_performance_read_models.sql**, then **041_document_jobs.sql**, using the normal Supabase migration workflow. Both are transactional and additive. Do not edit migrations 001–039 or replay historical migrations blindly. Verify migration order against the actual migration ledger before running a general `db push`.
-2. Keep the existing Supabase/Groq environment values. The free-tier setup does not schedule a Vercel cron and does not require a new `CRON_SECRET`.
+2. Keep the existing Supabase and AI environment values (now Bedrock: `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`). The free-tier setup does not schedule a Vercel cron and does not require a new `CRON_SECRET`.
 3. Deploy this checkout to Vercel. `regions: ["bom1"]` applies to new function deployments. Inspect function placement separately from middleware/CDN placement. See [Vercel regions](https://vercel.com/docs/functions/configuring-functions/region).
 4. New jobs run immediately through Next's request-managed `after()`; active owner polling recovers ready/expired leases. If the browser closes and a worker is interrupted, the job remains persisted and recovery resumes when its owner reopens progress. There is no unattended scheduled recovery in this configuration. The protected `/api/internal/jobs` endpoint remains an optional manual maintenance hook: only if explicitly used, configure `CRON_SECRET` and send its matching Bearer header. It recovers up to two jobs and removes terminal jobs older than seven days per invocation; cleanup is not automatic without a caller. See [Next `after`](https://nextjs.org/docs/app/api-reference/functions/after).
 5. Exercise regular paid/unpaid/pending/blocked accounts, admin/supervisor/SSO accounts, shared assignments and application credit, search/page/expand behavior, resume editing/import, generation/resume-progress, payment refresh, PDF/Word export, and logout in the deployed preview/production environment. Confirm document saves/charges still occur through their existing explicit flows.
@@ -60,9 +62,9 @@ Validation commands: `npm run test:performance`, `npm run build`, and `npx tsc -
 Read-only benchmark commands:
 
 ```powershell
-npm run benchmark:performance -- https://nextzenorbit.vercel.app docs/performance-after-deploy.json
-npm run benchmark:resume -- docs/performance-resume-recheck.json
-node --env-file=.env.local scripts/inspect-performance-db.cjs docs/performance-database-after-deploy.json
+npm run benchmark:performance -- https://nextzenorbit.vercel.app docs/main/performance/performance-after-deploy.json
+npm run benchmark:resume -- docs/main/performance/performance-resume-recheck.json
+node --env-file=.env.local scripts/inspect-performance-db.cjs docs/main/performance/performance-database-after-deploy.json
 ```
 
 For authenticated benchmark routes, supply a test account's cookie through `ORBIT_BENCH_COOKIE` in the process environment, then remove it. Use an admin cookie for admin routes and a regular paid-user cookie for client routes; a single account may not validly exercise both. The script never writes the cookie or response bodies. Do not commit credential values or turn benchmark scripts into production mutations.

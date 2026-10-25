@@ -35,6 +35,7 @@
   .box { border-radius: 8px; padding: 10px 14px; margin: 14px 0; border-left: 3px solid; }
   .warn { background: var(--warn-soft); border-color: var(--warn); }
   .bad { background: var(--bad-soft); border-color: var(--bad); }
+  .ok { background: var(--accent-soft); border-color: var(--ok); }
   .tasks { list-style: none; padding: 0; margin: 8px 0; }
   .tasks li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 6px 0; display: flex; gap: 10px; align-items: flex-start; }
   .tasks input { margin-top: 5px; flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
@@ -53,6 +54,8 @@
 <main>
   <h1>Orbit build plan: domain split and five features</h1>
   <p class="lede">This is the final plan: the decisions you made, what I found on the live setup, and an ordered checklist. Ticks are saved in this browser only. Tasks tagged <span class="who me">ME</span> are ones I do in code or through Vercel; <span class="who you">YOU</span> means a dashboard or account only you can reach.</p>
+
+  <div class="box ok"><b>Status 2026-10-16: built.</b> Every code task here shipped on the <code>beta</code> branch, and migrations 043–045 are applied (046 for AI limits was added later). Some details changed during the build, and the notes below say where. As-built docs: <a href="domain-separation.md">domain-separation.md</a>, <a href="client-features.md">client-features.md</a>, <a href="BETA_OVERVIEW.md">BETA_OVERVIEW.md</a>. Launch steps: <a href="your-tasks.html">your-tasks.html</a>.</div>
 
   <div class="progress"><span id="count">0 / 0 done</span><div class="bar"><div id="fill"></div></div></div>
 
@@ -182,7 +185,7 @@ export function cookieOptionsFor(host: string) {
   <!-- ============================== M3 ============================== -->
   <h2>M3 · Feature 3: LinkedIn profile optimizer</h2>
   <ul class="tasks">
-    <li><input type="checkbox" id="f3-1"><span><code>POST /api/linkedin/optimize</code> takes <code>{ resumeId, targetRole }</code>, loads the resume (owner check), and calls Groq with <code>GROQ_TEXT_MODEL</code>. The zod output schema: headline (≤ 220 characters), about (≤ 2,600), top skills (≤ 15), and 2–3 rewritten bullets per experience entry. Logs to <code>ai_usage</code> and is rate-limited. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f3-1"><span><code>POST /api/linkedin/optimize</code> takes <code>{ resumeId, targetRole }</code>, loads the resume (owner check), and calls the AI writer model (built on Amazon Bedrock, Kimi K2.5; this plan originally said Groq). The zod output schema: headline (≤ 220 characters), about (≤ 2,600), top skills (≤ 15), and 2–3 rewritten bullets per experience entry. Logs to <code>ai_usage</code>, is rate-limited, and (since migration 046) counts against the daily <code>light</code> AI allowance. <span class="who me">ME</span></span></li>
     <li><input type="checkbox" id="f3-2"><span>Prompt file in <code>src/lib/ai/prompts/</code>, using the same JSON-output pattern as the resume prompts. <span class="who me">ME</span></span></li>
     <li><input type="checkbox" id="f3-3"><span>Page <code>/linkedin</code>: pick a resume and a target role, generate, then sections with copy buttons and character counters, plus a regenerate button for each section. Nothing is saved in v1. <span class="who me">ME</span></span></li>
     <li><input type="checkbox" id="f3-4"><span>Test: the parser rejects output that's too long or malformed. <span class="who me">ME</span></span></li>
@@ -201,8 +204,8 @@ export function cookieOptionsFor(host: string) {
   <h2>M4 · Feature 5: AI mock interviews (basic)</h2>
   <p>Text only. A session is 5 questions: up to 3 from the existing <code>interview_questions</code> bank for the user's career, and the rest generated from a pasted job description or a tracked application.</p>
   <ul class="tasks">
-    <li><input type="checkbox" id="f5-1"><span>Migration <code>045_mock_interviews.sql</code>: <code>mock_interviews(id, user_id, role, source, questions jsonb, answers jsonb, scores jsonb, overall int, created_at, completed_at)</code>, with owner-only RLS. <span class="who me">ME</span></span></li>
-    <li><input type="checkbox" id="f5-2"><span><code>POST /api/mock-interviews</code> creates a session and its questions. <code>POST /api/mock-interviews/[id]/answer</code> scores one answer (zod: score 1–5, strengths, gaps, improved answer). <code>POST …/complete</code> writes the summary. Uses <code>interview-service</code> plus Groq, and is rate-limited. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f5-1"><span>Migration <code>045_mock_interviews.sql</code>: as built: <code>mock_interviews(id, user_id, role, job_description, questions jsonb, answers jsonb, overall int, created_at, completed_at)</code>, server-only (RLS on, no policies). <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f5-2"><span><code>POST /api/mock-interviews</code> creates a session and its questions. <code>POST /api/mock-interviews/[id]/answer</code> scores one answer (zod: score 1–5, strengths, gaps, improved answer). As built, there is no separate <code>/complete</code> call: the last answer writes the overall score and <code>completed_at</code>. Uses the Bedrock writer model and is rate-limited. <span class="who me">ME</span></span></li>
     <li><input type="checkbox" id="f5-3"><span>Page <code>/interviews/mock</code>: setup, one question at a time with an optional timer, feedback after each answer, a final scorecard, and a list of past sessions. <span class="who me">ME</span></span></li>
     <li><input type="checkbox" id="f5-4"><span>Tests: owner-only access, and the scoring parser rejects bad output. <span class="who me">ME</span></span></li>
     <li><input type="checkbox" id="f5-5"><span>Later, not in this plan: voice answers and adaptive follow-up questions. <span class="who me">ME</span></span></li>

@@ -1,32 +1,78 @@
-# Domain separation plan - no infrastructure changes made
+# Domain separation (beta)
 
-## Recommended first move
+Status: **built on beta** (commits `aa0191e`, `127b807`, `3ca571e`). It is off until all three host variables are set, so previews, localhost and the `*.vercel.app` URL keep working as a single site. The rollout steps (DNS, Vercel, Supabase) are in [your-tasks.html](your-tasks.html); the build plan is in [plan.html](plan.html).
 
-Keep one repository, one Next.js deployment and the existing Supabase database initially. Attach the three domains to the same Vercel project and route by an explicit hostname allowlist. This minimizes changes to the shared resume, payment and account logic. Vercel supports attaching custom domains in [project domain settings](https://vercel.com/docs/domains/working-with-domains/add-a-domain).
+## Hosts
 
-| Public host | Purpose | First-stage route behavior |
+One repository, one Next.js deployment, one Supabase database. Each host is a different surface:
+
+| Variable | Example | Surface |
 | --- | --- | --- |
-| nextzenorbit.com | Marketing and public legal pages | Root remains the landing page; login/signup buttons link to the client host |
-| app.nextzenorbit.com | Client application | Root redirects to the appropriate dashboard/onboarding/login page; existing client paths stay intact |
-| admin.nextzenorbit.com | Staff portal | Root redirects to /admin; keep existing /admin/... paths for the initial migration |
+| `NEXT_PUBLIC_SITE_URL` | `https://nextzenorbit.com` | Marketing + legal pages: `/`, `/privacy`, `/terms`, `/refund`, `/compliance` |
+| `NEXT_PUBLIC_APP_URL` | `https://app.nextzenorbit.com` | Client app (all existing client paths) |
+| `NEXT_PUBLIC_ADMIN_URL` | `https://admin.nextzenorbit.com` | Staff console with clean URLs (`/users` instead of `/admin/users`) |
+| `ORBIT_LEGACY_HOSTS` | `nextzenorbit.vercel.app` | Comma-separated old hosts whose pages redirect to the new ones (production only) |
 
-A later migration can remove the visible /admin prefix through consistent rewrites and a shared URL builder. Do not combine that refactor with the first DNS/auth/payment cutover.
+For beta testing the same scheme runs on `beta.`, `app.beta.` and `admin.beta.nextzenorbit.com`, attached to the `beta` branch as Preview domains with branch-specific variables.
 
-## Implementation sequence
+## Routing (`src/lib/hosts.ts`, applied first in `src/middleware.ts`)
 
-1. Introduce explicit marketing, client and admin origin configuration. Inventory hardcoded Vercel URLs, emails, checkout URLs, navigation, metadata, sitemap and canonical links. The current middleware and OAuth callback use the current request URL, so origin-aware behavior needs deliberate tests.
-2. Add host-aware routing before existing auth gates, preserving refreshed auth cookies in redirects. Restrict page surfaces by host. Keep API role/ownership checks on the server: a hostname is not authorization. Keep same-origin API calls on each application host to avoid a new cross-origin session design.
-3. Use host-only sessions initially; staff and client logins stay independent. Make logout available on both hosts and describe it accurately as signing out of that host. If cross-subdomain single sign-on is later wanted, design a dedicated exchange flow instead of broadly sharing session cookies with the marketing site.
-4. Set the primary Supabase Site URL to the client origin. Add exact client/admin OAuth, signup-confirmation and password-recovery redirect URLs. Audit every callback's default destination and role check. Supabase recommends exact production redirect paths in its [redirect URL guidance](https://supabase.com/docs/guides/auth/redirect-urls).
-5. Update payment success/failure URLs, provider dashboard settings, email links and webhook configuration. Keep the existing webhook destination working until in-flight payments finish, or preserve POST methods/body through a tested internal rewrite. Never use a generic marketing redirect for webhooks or OAuth callbacks.
-6. Add domains in Vercel, then use the DNS records Vercel provides for this project. Verify HTTPS and ownership before making them canonical. Redirect www to the chosen marketing apex. Preserve existing mail MX/TXT records.
-7. Test on temporary subdomains first: fresh signup, approval, payment, payment reconciliation, OAuth, password reset, sign-out, staff role restrictions, client switching, resume upload/download/delete and job search. Check cookies, callback origins and redirect loops in fresh browser sessions.
-8. Switch public links and canonical metadata. Redirect legacy Vercel page URLs to the appropriate host with path/query preservation; maintain API/callback compatibility separately. Monitor auth failures, payment callbacks and download errors. Roll back origin configuration and page redirects if needed; no data migration is required.
+`hostKind(host)` returns `site`, `app`, `admin`, `legacy` or `any`. When the three URLs aren't all set, everything is `any` and nothing changes. `routeForHost(kind, path)` is a pure function:
 
-## When to split into separate deployments
+| Request on | Path | Result |
+| --- | --- | --- |
+| any host | `/api/*`, `/_next/*`, files with an extension | **Never moved**. Webhooks, the OAuth callback and the extension keep working on every host |
+| site | Marketing page | Served |
+| site | `/admin/...` | 308 → admin host, without the `/admin` prefix |
+| site | Anything else (`/login`, `/dashboard`, ...) | 308 → same path on the app host |
+| app | `/admin/...` | 308 → admin host |
+| app | Anything else | Served. `/` redirects to `/dashboard` or `/login` |
+| admin | `/admin/...` | 308 → the clean path (one hop, because in-app links still say `/admin/...`) |
+| admin | `/x` | Rewrite to `/admin/x`; `/` → `/admin`. Client pages 404 here |
+| legacy | Marketing page → site; `/admin/...` → admin; else → app | 308, keeping path and query |
 
-Use separate Vercel projects only when marketing release independence or distinct deployment ownership justifies it. Shared packages can hold UI, validation and resume rendering; the same protected data services can remain in Supabase. Splitting immediately would add build configuration, duplicated environment management and cross-deployment coordination before there is a demonstrated need.
+On the app and admin hosts, responses carry `X-Robots-Tag: noindex, nofollow`. `appHref(path)` builds absolute app links (for example, the marketing site's login buttons).
 
-## Acceptance
+**A hostname is never authorization.** Role, approval and payment checks are unchanged and run on every host.
 
-Each hostname opens the intended experience; admin access still requires an authorized staff role; clients cannot access staff APIs; OAuth and payment callbacks return to the correct host; old emailed page links still work; all sessions can be signed out. No DNS, Vercel, Supabase Auth or payment-provider settings are changed by this plan.
+## Sessions (`sessionCookieOptions`)
+
+| Host | Supabase auth cookie |
+| --- | --- |
+| site + app | Shared cookie on the parent domain (`.nextzenorbit.com`), so being signed in on the marketing site carries to the app |
+| admin | A separately **named** cookie (`sb-orbit-admin`) on that host only, so a client session never counts on the staff host and the reverse |
+| any / legacy | Supabase default (host-only) |
+
+Staff and client logins are therefore independent. Signing out signs you out of that side only. The server, browser and middleware Supabase clients all pass `sessionCookieOptions(host)`.
+
+## Sign-in on beta
+
+- **Clients:** Google, or email and password through the `signInWithEmail` server action (rate limited: 30 per IP and 10 per email per 15 minutes). This fixes main's form, which posted to a missing `/api/auth/login`.
+- **Staff:** `admin.<domain>/login` (rewritten to `/admin/login`). Staff sign-in creates the admin-named cookie.
+- **OAuth:** the Google redirect URI stays Supabase's own `…supabase.co/auth/v1/callback`. Supabase → Auth → URL configuration needs the app (and admin) origins in Redirect URLs, with the Site URL set to the app origin. Add the new origins to the Google client's Authorized JavaScript origins if it lists any.
+
+## Payments and webhooks
+
+Payment return URLs follow `NEXT_PUBLIC_APP_URL`. `/api/webhooks/payu` is never redirected, so the old callback address keeps working. Update PayU's dashboard to `https://app.nextzenorbit.com/api/webhooks/payu` when convenient.
+
+## Extension
+
+The extension's default App URL on beta is `https://app.nextzenorbit.com`; main's default is localhost. Its `host_permissions` already include `*.nextzenorbit.com` on both branches. Users sign in on the app host.
+
+## Rollback
+
+Unset `NEXT_PUBLIC_SITE_URL` (or either of the other two). Routing turns off, and the deployment behaves as one site again. No data migration is involved. Sessions on the parent-domain cookie may need one fresh sign-in.
+
+## Tests
+
+`scripts/test-domain-split.cjs` covers:
+
+- routing staying off until all three URLs are set;
+- host classification and per-host routing;
+- the shared site/app session and the separate staff cookie;
+- middleware applying host routing before auth and never redirecting webhooks;
+- unconfigured deployments keeping the old single-host behavior.
+
+## Why one deployment
+
+Separate Vercel projects would add duplicate environment management and coordination across deployments without a demonstrated need. Split later only if marketing needs independent releases or ownership. Shared UI, validation and resume rendering could then move into packages.

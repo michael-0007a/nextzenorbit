@@ -89,13 +89,14 @@ nslookup nextzenorbit.com 8.8.8.8        # expect only 216.198.79.1</code></pre>
 
   <!-- ============ STEP 1 ============ -->
   <h2>1 · Database migrations <small>Supabase, safe for the live app</small></h2>
-  <div class="box ok"><b>042 is already applied</b> on the live project (checked). The three new migrations only <b>add</b> two tables, two read-only functions and three indexes. The current live app never uses them, so applying them now changes nothing for your users. Beta needs them, or its new pages will show errors.</div>
+  <div class="box ok"><b>Done: 042 to 046 are all applied</b> on the live project (checked 2026-10-16 in <code>supabase_migrations.schema_migrations</code>). They only <b>add</b> tables, read-only functions, indexes and tighter policies. The current live app doesn't use the new tables, so nothing changed for your users. If you set up a fresh project, run them in this order.</div>
   <ul class="tasks">
     <li><input type="checkbox" id="b1-1"><div><span class="where">Supabase → nextzenorbit → SQL editor</span>
       <b class="t">Run <code>supabase/migrations/043_client_activity_feed.sql</code></b>
       Paste the whole file and run it. Adds the progress-feed functions and three indexes.</div></li>
     <li><input type="checkbox" id="b1-2"><div><b class="t">Run <code>044_client_messages.sql</code></b> (the messages table).</div></li>
     <li><input type="checkbox" id="b1-3"><div><b class="t">Run <code>045_mock_interviews.sql</code></b> (the mock interview table).</div></li>
+    <li><input type="checkbox" id="b1-5"><div><b class="t">Run <code>046_ai_usage_limits.sql</code></b> (daily AI allowances and supervisor requests). Without it, beta runs with no AI limits.</div></li>
     <li><input type="checkbox" id="b1-4"><div><span class="where">Supabase → Advisors → Security</span>
       <b class="t">Check the advisor</b>
       The new tables will show "RLS enabled, no policies". That's intended: only the server touches them. Or ask me and I'll apply and check all of this through the Supabase tool.</div></li>
@@ -109,7 +110,7 @@ nslookup nextzenorbit.com 8.8.8.8        # expect only 216.198.79.1</code></pre>
       The push already started this build. If it shows <b>Error</b>, open it, copy the build log and send it to me. If there's no <code>beta</code> deployment at all, the project isn't connected to GitHub: Settings → Git → connect <code>michael-0007a/nextzenorbit</code>.</div></li>
     <li><input type="checkbox" id="b2-2"><div><span class="where">Vercel → Settings → Environment Variables</span>
       <b class="t">Make sure the existing secrets are enabled for <b>Preview</b></b>
-      Open each of these and check that the <b>Preview</b> box is ticked: the Supabase URL and keys (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>), <code>GROQ_API_KEY</code> and the payment keys. If they're Production-only, beta will crash or show errors. Redeploy beta after changing any of them.</div></li>
+      Open each of these and check that the <b>Preview</b> box is ticked: the Supabase URL and keys (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>), the AI keys (<code>AWS_BEARER_TOKEN_BEDROCK</code>, <code>AWS_REGION</code>; the old <code>GROQ_API_KEY</code> is no longer used), <code>ADZUNA_APP_ID</code>/<code>ADZUNA_APP_KEY</code> and the PayU keys (<code>PAYU_MERCHANT_KEY</code>, <code>PAYU_MERCHANT_SALT</code>, <code>NEXT_PUBLIC_PAYU_URL</code>). If they're Production-only, beta will crash or show errors. Redeploy beta after changing any of them.</div></li>
     <li><input type="checkbox" id="b2-3"><div><b class="t">Open the preview and click around</b>
       Click <b>Visit</b> on the beta deployment. You get an address like <code>nextzenorbit-git-beta-….vercel.app</code>. It behaves like today's app plus the new menu items (Messages, LinkedIn, Offer Compare, Mock Interview). If you see a Vercel login page first, that's Vercel's preview protection; you're logged in, so just continue. Logging in on this address may not work until step 5, which is fine.</div></li>
   </ul>
@@ -257,8 +258,14 @@ https://admin.nextzenorbit.com/**</code></pre>
     <tr><th>Commit</th><th>What</th></tr>
     <tr><td><code>aacec9d</code></td><td>Your security fixes (unchanged)</td></tr>
     <tr><td><code>aa0191e</code></td><td>Domain split + the five features + migrations 043–045 + tests</td></tr>
-    <tr><td>next commits</td><td>CLAUDE.md, the plan pages and this checklist</td></tr>
+    <tr><td><code>0cf2508</code>, <code>a23a0c4</code></td><td>CLAUDE.md, the plan pages and this checklist</td></tr>
+    <tr><td><code>127b807</code>, <code>3ca571e</code>, <code>34c6366</code></td><td>Clean admin URLs, client email sign-in fix, restyled feature pages</td></tr>
+    <tr><td><code>b4ca50f</code>, <code>15867c0</code>, <code>b00c09d</code></td><td>Speed: Tokyo region, local login check, no card blur, hover prefetch (<a href="speed.html">speed.html</a>)</td></tr>
+    <tr><td><code>00391ec</code> … <code>3aa1fec</code></td><td>Bedrock AI, quality gate, page fit, AI progress, tailoring strength (already copied to main)</td></tr>
+    <tr><td><code>e033669</code></td><td>Harvard, FAANGPath and AltaCV templates</td></tr>
+    <tr><td><code>a36b706</code></td><td>Daily AI allowances with supervisor approval (migration 046)</td></tr>
   </table></div>
+  <p>Full write-up: <a href="BETA_OVERVIEW.md">BETA_OVERVIEW.md</a>.</p>
   <div class="tbl" style="margin-top:12px"><table>
     <tr><th>Feature</th><th>Main files</th><th>Tests</th></tr>
     <tr><td>Domain split, shared and admin-only logins</td><td><code>src/lib/hosts.ts</code>, <code>src/middleware.ts</code>, <code>src/lib/supabase/*</code></td><td><code>scripts/test-domain-split.cjs</code></td></tr>
@@ -267,6 +274,8 @@ https://admin.nextzenorbit.com/**</code></pre>
     <tr><td>LinkedIn optimizer</td><td><code>/api/linkedin/optimize</code>, <code>/linkedin</code></td><td rowspan="2"><code>scripts/test-ai-features.cjs</code></td></tr>
     <tr><td>AI mock interviews</td><td><code>045_…sql</code>, <code>/api/mock-interviews/*</code>, <code>/interviews/mock</code></td></tr>
     <tr><td>CTC and offer comparison</td><td><code>src/lib/salary/ctc.ts</code>, <code>/offers</code></td><td><code>scripts/test-salary.cjs</code></td></tr>
+    <tr><td>Daily AI allowances</td><td><code>046_…sql</code>, <code>src/lib/ai/quota.ts</code>, <code>/api/ai-quota</code>, <code>/admin/ai-limits</code></td><td><code>scripts/test-ai-quota.cjs</code></td></tr>
+    <tr><td>Security fixes</td><td><code>042_…sql</code>, <code>src/lib/admin/assignments.ts</code></td><td><code>scripts/test-security-hardening.cjs</code></td></tr>
   </table></div>
 </main>
 <script>

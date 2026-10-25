@@ -1,6 +1,8 @@
 # Performance task list — Vercel + Supabase
 
-Created: 2026-10-05. Updated after implementation and local verification. Checked items have code and local verification completed; deployment and production acceptance remain separate. See `performance-implementation.md` for all 21 outcomes and outstanding measurements. Keep the existing hosting and backend. Based on `docs/performance-audit.md` and a spot-check of the current source. The public regional baseline was reconfirmed on October 5; post-deployment function placement remains to be verified. Priorities reflect likely impact and effort, not guaranteed speedups.
+> **Status (2026-10-16):** historical record. The code changes shipped to main on 2026-10-05 (migrations 040 and 041 are applied). One premise turned out to be wrong: the Supabase project is in **Tokyo (`ap-northeast-1`)**, not Mumbai. Pinning the functions to `bom1` (P02) therefore kept a cross-region hop. Beta moves the functions to `hnd1` (Tokyo); see [`../../beta/speed.html`](../../beta/speed.html). AI has since moved from Groq to Amazon Bedrock. Benchmark JSON files live next to this file.
+
+Created: 2026-10-05. Updated after implementation and local verification. Checked items have code and local verification completed; deployment and production acceptance remain separate. See `performance-implementation.md` for all 21 outcomes and outstanding measurements. Keep the existing hosting and backend. Based on `performance-audit.md` and a spot-check of the current source. The public regional baseline was reconfirmed on October 5; post-deployment function placement remains to be verified. Priorities reflect likely impact and effort, not guaranteed speedups.
 
 ## First batch: quickest improvements
 

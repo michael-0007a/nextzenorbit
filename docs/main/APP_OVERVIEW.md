@@ -1,112 +1,71 @@
-# Nextzen Orbit - App Overview
+# Nextzen Orbit: app overview (main)
 
-Last updated: 2026-05-23
+Last reviewed from code: 2026-10-16. For what beta adds, see [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
 
 ## Purpose
 
-Nextzen Orbit is an AI-assisted job search workspace for the Indian job market. It helps users build strong resumes, generate tailored content, track applications, and accelerate the job search process with assisted autofill (no auto-submit).
+Nextzen Orbit is a done-for-you job search service. Clients apply and are reviewed. After paying for a plan, a team of recruiters applies to jobs for them each month with tailored resumes and cover letters. Clients also get self-serve AI tools to build resumes, check them against job descriptions, write cover letters, learn about careers and track applications. A Chrome extension helps fill application forms; the user always submits.
 
 ## What the product does
 
-- Google OAuth sign-in and account setup
-- Profile and job preference management
-- Resume creation, upload, editing, and export
-- AI analysis, improvement, and tailoring of resumes
-- Cover letter generation and export
-- Application tracking (kanban and table)
-- Job search via external APIs
-- Assisted autofill Chrome extension (user-controlled)
-- Subscription tiers and payment groundwork
+**For clients:**
 
-## Primary user journeys
+- Sign in with Google, then apply with a profile and resume.
+- After approval, pay for a plan: Silver, Gold or Elite.
+- Build, upload, AI-improve, tailor and export resumes, using six templates plus three contract (C2C) templates, at an exact page count.
+- Analyze a resume against a job description; generate cover letters.
+- Track applications on a Kanban board or table.
+- Search jobs (Adzuna, many countries) and save searches.
+- Use career pages: roadmaps, interview questions, videos, AI notes, projects.
+- Use the assisted autofill extension.
 
-1. Sign in with Google and create a profile.
-2. Create or upload a resume, then edit and export it.
-3. Analyze a resume against a job description and apply AI suggestions.
-4. Generate a cover letter for a specific role.
-5. Track applications in kanban or table view.
-6. Search jobs, open listings, and use the extension to autofill forms before submitting manually.
+**For staff:**
 
-## System architecture (high level)
+- Review signup applications (supervisors).
+- Allocate clients to admin teams, with monthly application targets per plan.
+- Search jobs for a client, queue them, claim them, apply, and mark them applied (with credit).
+- Generate tailored resumes and cover letters per client, or in the standalone workspace.
+- See analytics, manage the team, SSO users and notifications.
 
-- Next.js App Router provides all pages and API routes.
-- Supabase handles auth, PostgreSQL data, and storage.
-- Groq AI runs resume parsing and analysis prompts.
-- Adzuna provides job search results for the Indian market.
-- A Chrome extension assists with autofill on supported portals.
+## Primary journeys
+
+1. **Client onboarding:** Google sign-in → onboarding form + resume → pending → approved → pay → dashboard.
+2. **Done-for-you loop:** supervisor allocates → admin searches → queues → tailors documents → applies → marks applied → target progress.
+3. **Self-serve resume:** upload → AI parse → edit → improve or optimize against a JD (quality-checked) → export PDF/DOCX/LaTeX.
+
+## Architecture at a glance
 
 ```mermaid
 graph TD
-  A[Browser] --> B[Next.js App Router]
-  A --> F[Autofill Extension]
-  F --> B
-  B --> C[Supabase Auth + DB + Storage]
-  B --> D[Groq AI]
-  B --> E[Adzuna API]
+  A[Client / staff browser] --> B[Next.js 16 on Vercel bom1<br/>proxy: session, approval 403, payment 402]
+  X[Chrome extension] --> B
+  B --> C[Supabase Tokyo<br/>Auth, Postgres + RLS, Storage]
+  B --> D[Amazon Bedrock<br/>Kimi K2.5 writer, DeepSeek V3.2 reviewer]
+  B --> E[PayU INR]
+  B --> F[Adzuna jobs]
 ```
 
-## Major UI areas
+## Main UI areas
 
-- Public marketing: / (landing page)
-- Auth: /login, /register, /verify
-- Dashboard: /dashboard
-- Profile: /profile
-- Resumes: /resumes
-- Analyzer: /analyzer
-- Cover letter: /cover-letter
-- Applications: /applications
-- Job search + assisted apply: /job-search
-- Subscription: /subscription
-- Settings: /settings
+| Area | Paths |
+| --- | --- |
+| Marketing | `/`, `/compliance`, `/privacy`, `/refund`, `/terms` |
+| Auth and onboarding | `/login`, `/register`, `/verify`, `/onboarding`, `/onboarding/terms` |
+| Client app | `/dashboard`, `/profile`, `/resumes`, `/resumes/[id]`, `/analyzer`, `/cover-letter`, `/applications`, `/job-search`, `/career`, `/career/[slug]`, `/subscription`, `/settings` |
+| Staff | `/admin/login`, `/admin`, `/admin/users`, `/admin/apply-queue`, `/admin/job-search`, `/admin/create-resume`, `/admin/create-cover-letter`, `/admin/signup-applications`, `/admin/team`, `/admin/analytics`, `/admin/sso-users`, `/admin/settings` |
 
-## Data model (conceptual)
+## Data at a glance
 
-Core tables include:
-- users, profiles, subscriptions
-- resumes, resume_versions
-- applications
-- job_queue (legacy; deprecated)
-- ai_usage
-- cover_letters (table exists even if persistence is not fully wired in all flows)
+Accounts (`users`, `profiles`, `signup_applications`, `subscriptions`, `payment_orders`), documents (`resumes`, `resume_versions`, `admin_resumes`, `admin_cover_letters`, `admin_documents`, `document_jobs`), jobs (`jobs`, `job_queue`, `saved_job_searches`, `client_admin_assignments`, `applications`), and the career workspace. Full detail: [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
 
-See docs/DATABASE_SCHEMA.md for full schema and RLS details.
+## Status and known gaps (main)
 
-## Assisted autofill extension
+- Client email/password sign-in is broken (fixed on beta).
+- Some admin routes don't check client assignment (fixed on beta). See [SECURITY.md](SECURITY.md).
+- No daily AI allowances (on beta).
+- Slow requests from the Mumbai functions talking to the Tokyo database (fixed on beta).
+- USD checkout is a placeholder. Client cover letters aren't saved.
 
-The Chrome extension detects common fields on job portals and suggests autofill values from the user's profile. The user reviews and triggers fill actions manually; final submission is always user-controlled.
+## Where to read next
 
-## Payments and subscriptions
-
-The app supports tiered subscriptions with Razorpay (primary) and Cashfree (secondary). The data model and webhooks exist, but the full upgrade and enforcement flow is still being completed.
-
-## UI system and theming
-
-- Tailwind CSS v4 with design tokens in globals.css
-- Custom UI components in src/components/ui
-- Default theme is dark, with a user toggle (system preference is disabled)
-
-## Documentation map
-
-- docs/TEAM_CONTEXT_BRIEF.md - non-technical leadership brief
-- docs/APP_DOCUMENTATION.md - detailed, code-grounded product and flow map
-- docs/ARCHITECTURE.md - system design and data flow diagrams
-- docs/DATABASE_SCHEMA.md - PostgreSQL schema and RLS
-- docs/API_DOCS.md - API endpoint documentation
-- docs/SECURITY.md - security architecture
-- docs/DEPLOYMENT.md - deployment and environments
-- docs/PAYMENTS.md - payment integrations
-- docs/UI_PATTERNS.md - UI patterns and design system guidance
-- docs/ASSUMPTIONS.md - engineering decisions and tradeoffs
-
-## Status and known gaps
-
-From the codebase review and team brief:
-- Subscription enforcement and checkout UX are incomplete.
-- Assisted autofill coverage varies across job portals.
-- Some analytics, notifications, and search tooling are not fully implemented.
-
-For more detail, start with docs/APP_DOCUMENTATION.md and docs/ARCHITECTURE.md.
-
-## Local development (quick start)
-
-See README.md for prerequisites, environment variables, and setup steps.
+[APP_DOCUMENTATION.md](APP_DOCUMENTATION.md) for every flow and file, [ARCHITECTURE.md](ARCHITECTURE.md) for design, and [`../README.md`](../README.md) for the full map.

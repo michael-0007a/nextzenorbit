@@ -1,5 +1,7 @@
 # Expanded onboarding
 
+> Status (2026-10-16): shipped on main; migration 036 is applied in production.
+
 US: basic/professional details, the requested conditional immigration questions, then voluntary self-identification. India: basic/professional details and voluntary self-identification; the immigration step is omitted. UK, Canada, Australia, New Zealand, Singapore, South Africa and other countries: basic details, neutral work authorization/sponsorship questions with optional permit restrictions/expiry, then voluntary self-identification.
 
 Other-country questions are product intake questions, not a claim that every government mandates these fields. Country-specific document verification remains the employer's responsibility. A three-letter currency code is required when a candidate enters a salary for an unlisted country.

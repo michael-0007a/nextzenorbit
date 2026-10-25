@@ -1,269 +1,83 @@
-# Nextzen Orbit - Career Workspace Architecture (vNext)
+# Career workspace architecture (main)
 
-Last updated: 2026-05-23
+Last reviewed from code: 2026-10-16. This describes what is **built**. The original vNext proposal from 2026-05 (folder sketch, Groq, extension tokens) has been replaced by this as-built version.
 
-## Scope and constraints
+## Scope
 
-- Build an AI-powered career workspace for the Indian job market.
-- Assisted autofill only. No autonomous auto-apply or full browser automation.
-- Next.js App Router, TypeScript, Tailwind CSS v4, Supabase, Groq API.
-- Modular services, RLS-safe data access, reusable UI components.
+The career workspace gives clients self-serve learning for a target role:
 
-## Proposed folder structure
+- a career list and a page per career;
+- roadmaps, interview questions and YouTube resources;
+- AI notes per topic;
+- a portfolio of their own projects;
+- related jobs.
 
-```
-nextzenorbit/
-  extensions/
-    nextzen-orbit-autofill/
-      manifest.json
-      src/
-        background/
-          index.ts
-          auth.ts
-        content/
-          index.ts
-          detectors/
-            base.ts
-            workday.ts
-            greenhouse.ts
-            lever.ts
-            linkedin.ts
-          mappers/
-            profile-mapper.ts
-            resume-mapper.ts
-          ui/
-            assist-panel.tsx
-        shared/
-          messages.ts
-          storage.ts
-      ui/
-        popup/
-          index.html
-          popup.tsx
-        options/
-          index.html
-          options.tsx
-      build/
-  src/
-    app/
-      career/
-        [slug]/
-          page.tsx
-      api/
-        careers/
-        jobs/
-        youtube/
-        roadmaps/
-        interview-questions/
-        ai-notes/
-        projects/
-        applications/
-        autofill/
-          session/
-          profile/
-    actions/
-      profile-actions.ts
-      ai-notes-actions.ts
-      applications-actions.ts
-      projects-actions.ts
-    components/
-      career/
-      jobs/
-      interview/
-      notes/
-      projects/
-      resources/
-      ui/
-    hooks/
-      use-career.ts
-      use-jobs.ts
-      use-notes.ts
-    lib/
-      api/
-        errors.ts
-        response.ts
-        validate.ts
-      supabase/
-        client.ts
-        server.ts
-        admin.ts
-        queries/
-          careers.ts
-          jobs.ts
-          youtube.ts
-          roadmaps.ts
-          interview-questions.ts
-          ai-notes.ts
-          projects.ts
-          applications.ts
-      ai/
-        groq.ts
-        prompts/
-          ai-notes.ts
-      jobs/
-        adzuna.ts
-      youtube/
-        youtube-client.ts
-      utils/
-    services/
-      careers-service.ts
-      jobs-service.ts
-      youtube-service.ts
-      roadmaps-service.ts
-      interview-service.ts
-      notes-service.ts
-      projects-service.ts
-      applications-service.ts
-      autofill-service.ts
-    types/
-      domain/
-        careers.ts
-        jobs.ts
-        roadmaps.ts
-        interview.ts
-        notes.ts
-        projects.ts
-        applications.ts
-      api/
-        responses.ts
-  supabase/
-    migrations/
-      014_career_workspace.sql
-```
+It sits beside the done-for-you application service and doesn't depend on it.
 
-## Data model and relationships
-
-- Careers are the top-level role entities for the career pages.
-- Roadmaps belong to a career and contain ordered steps.
-- Interview questions and YouTube resources attach to a career or role.
-- AI notes are user-owned and cached by topic.
-- Projects are user-owned with GitHub links and screenshots.
-- Jobs are aggregated from external sources and cached for search.
-- Applications remain user-owned and can reference jobs by URL.
-
-## Database schema SQL
-
-- New tables and RLS policies are defined in supabase/migrations/014_career_workspace.sql.
-
-## Service layer responsibilities
-
-- CareerService: career listing and career page aggregation.
-- JobsService: search, filtering, ingestion, and job card data shaping.
-- YouTubeService: API search + caching rules.
-- RoadmapService: roadmap retrieval and step ordering.
-- InterviewService: filtering by role, company, difficulty, topic.
-- NotesService: generate notes with Groq and cache results per topic.
-- ProjectsService: CRUD for user projects and screenshots.
-- ApplicationsService: CRUD and status transitions.
-- AutofillService: profile fetch + mapping schema for the extension.
-
-## Supabase query layer
-
-- Use server client for user-scoped queries and admin client for ingestion.
-- Keep query functions in lib/supabase/queries with small, composable methods.
-- Enforce RLS at the table level for user-owned data.
-
-## API utility functions
-
-- response.ts: ok(), fail(), and consistent error shape.
-- validate.ts: zod parsing for body and query params.
-- errors.ts: ApiError, mapDbError, and status normalization.
-
-## TypeScript interfaces (example)
-
-```ts
-export interface Career {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  icon: string | null;
-}
-
-export interface Job {
-  id: string;
-  company: string;
-  title: string;
-  description: string | null;
-  location: string | null;
-  applyUrl: string | null;
-  source: string;
-  tags: string[];
-  createdAt: string;
-}
-```
-
-## Extension architecture
-
-- Content scripts detect fields and build a normalized field map.
-- The assist panel presents suggestions and fills on user action.
-- Background script manages auth and message routing.
-- No auto-submit. The user always clicks submit.
+## Layout in the repo
 
 ```
-page DOM -> content script -> field detector -> mapping -> assist panel
-                                 |                           |
-                                 +-> background -> app API <-+
+src/
+  app/(dashboard)/career/page.tsx            # career list (CareerExplorer)
+  app/(dashboard)/career/[slug]/page.tsx     # career page: sections loaded concurrently
+  app/api/careers/, careers/[slug]/          # career list / page data
+  app/api/roadmaps/, roadmaps/[id]/          # roadmaps + ordered steps
+  app/api/interview-questions/               # filter by career/role/company/difficulty/topic
+  app/api/youtube/                           # stored resources (youtube/search: live API, removed on beta)
+  app/api/ai-notes/, ai-notes/[id]/          # user notes CRUD
+  app/api/ai/generate-notes/                 # AI notes (Bedrock, AI_WRITER_MODEL)
+  app/api/projects/, projects/[id]/          # user projects CRUD
+  app/api/jobs/                              # catalog listing for "related jobs"
+  components/career/*                        # hero, explorer, card, roadmap, interview, resources,
+                                             # ai-notes panel, projects, related jobs
+  features/career/{metadata,icons,index}.ts  # display metadata per career
+  hooks/use-ai-notes.ts, use-career-filter.ts, use-interview-filter.ts
+  lib/api/career-workspace.ts, request.ts    # typed client fetch helpers
+  lib/validations/{careers,roadmaps,interview,youtube,jobs,projects}.ts
+  services/{careers,roadmaps,interview,youtube,notes,projects,jobs}-service.ts
+  types/domain/*.ts
+scripts/seed/                                # seed data + runner (npm run seed:career-workspace)
+supabase/migrations/014_career_workspace.sql (+ 018 RLS fix)
 ```
 
-### Message flow
+## Data model
 
-```mermaid
-graph TD
-  A[Content Script] --> B[Field Detector]
-  B --> C[Assist Panel UI]
-  C --> D[Background Service Worker]
-  D --> E[App API /api/autofill/profile]
-  E --> D
-  D --> C
-  C --> A
-```
+| Table | Owner | Notes |
+| --- | --- | --- |
+| `careers` | Reference | `title`, `slug`, `description`, `icon` |
+| `roadmaps`, `roadmap_steps` | Reference | Steps ordered by `order_index`, with a `level` |
+| `interview_questions` | Reference | `role`, `company`, `difficulty`, `topic`, `question`, `answer` |
+| `youtube_resources` | Reference | `career_id`, `role`, `url`, `channel`, `topic`, `difficulty` |
+| `jobs` | Catalog | Shared with job search (037) |
+| `ai_notes` | User | `role`, `topic`, `generated_content` |
+| `projects` | User | `title`, `github_url`, `description`, `tech_stack`, `screenshots` |
 
-## Environment variables
+Reference tables are readable by everyone (`*_select_all` policies). They're written by the seed script (service role) or by admins (`*_admin_all`). User tables use owner RLS plus the paid-access policy.
 
-```
-# App
-NEXT_PUBLIC_APP_URL=
+## Services
 
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+Route handlers stay thin and call `src/services/*`:
 
-# AI
-GROQ_API_KEY=
+| Service | Responsibility |
+| --- | --- |
+| `careers-service` | List careers; assemble a career page |
+| `roadmaps-service` | Roadmap and steps, fetched concurrently (P04) |
+| `interview-service` | Filtered questions |
+| `youtube-service` | Stored resources |
+| `notes-service` | Notes CRUD; generation calls Bedrock |
+| `projects-service` | Projects CRUD |
+| `jobs-service` | `listJobs` with filters for related jobs |
 
-# Jobs
-ADZUNA_APP_ID=
-ADZUNA_APP_KEY=
+Reference reads are cached under the `career-reference` tag. A super admin can clear the cache with `POST /api/admin/reference-cache` (P15).
 
-# YouTube
-YOUTUBE_API_KEY=
+## Seeding
 
-# Extension auth
-EXTENSION_TOKEN_SECRET=
-NEXT_PUBLIC_EXTENSION_ID=
-```
+`npm run seed:career-workspace` runs `scripts/seed/index.ts` with `tsx`. It upserts careers, roadmaps, steps, interview questions and YouTube resources from `scripts/seed/data`, using stable ids (`seedId`), so it can be run again safely. It needs the Supabase service-role variables.
 
-## Implementation roadmap
+## Environment
 
-Phase 1
-- Profile system hardening and autofill-ready data mapping.
-- Assisted autofill extension (Workday, Greenhouse, Lever, LinkedIn Easy Apply).
-- Job aggregation ingest + job card UI + search/filter.
-- Application tracking polish (kanban + table parity).
+Only the shared app variables (Supabase and Bedrock). `YOUTUBE_API_KEY` is used only by the live search route, which beta removes. No extension token secret exists: the extension uses the normal session cookie.
 
-Phase 2
-- Dynamic career pages with roadmap, interview questions, and resources.
-- YouTube resource ingestion and caching.
-- Roadmap progress UI with sectioned steps.
+## Relationship to the autofill extension
 
-Phase 3
-- AI notes generation with Groq and DB caching.
-- Personalized recommendations for roles, jobs, and resources.
-- Preference-based ranking and saved items.
-
-## Migration notes
-
-- Existing auto-apply worker and queue are superseded by assisted autofill.
-- Keep job_queue data read-only or deprecate once extension is live.
+The extension is a separate package. It reads `GET /api/autofill/profile` and doesn't use the career services. See [ENHANCED_ARCHITECTURE.md](ENHANCED_ARCHITECTURE.md#8-assisted-autofill-extension) and [AUTOFILL_EXTENSION_TESTING.md](AUTOFILL_EXTENSION_TESTING.md).
