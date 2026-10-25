@@ -1,135 +1,57 @@
 # Nextzen Orbit
 
-> AI-powered resume optimization, job description analysis, and application tracking for the Indian job market.
+> A done-for-you job application service with a client workspace. Recruiters apply to jobs for each client using AI-tailored, fact-checked resumes and cover letters. Clients get a resume builder, JD analyzer, career pages, a tracker and an autofill extension.
 
 ## Features
 
-- 🔐 **Google OAuth** — One-click sign in with Google
-- 📝 **Resume Builder** — Create and manage multiple resumes
-- 🤖 **AI Analyzer** — Match your resume against job descriptions using Groq AI
-- 📊 **Application Tracker** — Track job applications with status filters
-- 💳 **Subscription Plans** — Free, Pro, and Elite tiers with Razorpay
-- 🌙 **Dark Mode** — System preference + manual toggle
+- **Gated signup:** Google sign-in, an application with a resume, supervisor approval, then a paid plan (PayU, INR).
+- **Done-for-you applications:** client teams, monthly targets (300/400/500 by plan), job search, the apply queue and completion credit.
+- **AI documents:** resumes and cover letters written by Kimi K2.5 and fact-checked by DeepSeek V3.2 (Amazon Bedrock), at an exact page count, exported as PDF, DOCX or LaTeX.
+- **Client tools:** resume builder, JD analyzer, cover letters, application tracker, job search, career pages (roadmaps, interview questions, AI notes).
+- **Admin console:** client management, signup review, the document workspace, analytics, team and SSO users.
+- **Assisted autofill:** a Chrome extension for Workday, Greenhouse, Lever, LinkedIn and Microsoft Careers. It never submits forms.
+- **On beta:** site/app/admin domains, a progress feed, messaging, the LinkedIn optimizer, offer comparison, mock interviews and daily AI allowances.
 
-## Tech Stack
+## Tech stack
 
-- **Framework:** Next.js 16 (App Router, TypeScript strict)
-- **Database:** Supabase (PostgreSQL + Auth + Storage)
-- **AI:** Groq API (LLaMA 3.3 70B Versatile)
-- **Payments:** Razorpay (primary), Cashfree (secondary)
-- **Styling:** TailwindCSS v4 + custom design tokens
-- **Animations:** Framer Motion
-- **Forms:** react-hook-form + Zod
+Next.js 16 (App Router, React 19, React Compiler) · TypeScript strict · Tailwind CSS v4 · Supabase (Postgres, Auth, Storage) · Amazon Bedrock · PayU · Adzuna · Vercel
 
-## Getting Started
+## Getting started
 
-### Prerequisites
-
-- Node.js 20+
-- npm or pnpm
-- Supabase account
-- Groq API key
-
-### Environment Variables
+Prerequisites: Node.js 20+, a Supabase project, a Bedrock API key, Adzuna keys, and PayU test credentials.
 
 ```env
-# Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-
-# AI
-GROQ_API_KEY=
-
-# Payments (optional for dev)
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-
-# App
+AWS_BEARER_TOKEN_BEDROCK=
+AWS_REGION=
+ADZUNA_APP_ID=
+ADZUNA_APP_KEY=
+PAYU_MERCHANT_KEY=
+PAYU_MERCHANT_SALT=
+NEXT_PUBLIC_PAYU_URL=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### Installation
-
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd nextzenorbit
-
-# Install dependencies
 npm install
-
-# Run database migrations
-# (copy SQL from supabase/migrations/ to Supabase SQL editor)
-
-# Start development server
+# apply supabase/migrations/*.sql in order (npx supabase db push, or the SQL editor)
 npm run dev
+npx tsc --noEmit && npm run test:performance   # typecheck + full test suite
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── (auth)/             # Login, Register pages
-│   ├── (dashboard)/        # Protected dashboard pages
-│   │   ├── dashboard/      # Main dashboard
-│   │   ├── profile/        # User profile
-│   │   ├── resumes/        # Resume management
-│   │   ├── applications/   # Application tracker
-│   │   ├── analyzer/       # AI job analyzer
-│   │   ├── subscription/   # Subscription management
-│   │   └── settings/       # Account settings
-│   └── api/                # API routes
-├── components/
-│   ├── ui/                 # Base UI components
-│   ├── forms/              # Form components
-│   ├── layout/             # Layout components
-│   └── dashboard/          # Dashboard components
-├── lib/
-│   ├── supabase/           # Supabase client helpers
-│   ├── payments/           # Payment gateway abstraction
-│   ├── ai/                 # AI prompts and parsers
-│   └── validations/        # Zod schemas
-├── types/                  # TypeScript types
-└── hooks/                  # React hooks
-```
+The full variable list and setup steps are in [docs/main/DEPLOYMENT.md](docs/main/DEPLOYMENT.md).
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [TEAM_CONTEXT_BRIEF.md](docs/TEAM_CONTEXT_BRIEF.md) | Non-technical context for leadership and cross-functional team members |
-| [APP_DOCUMENTATION.md](docs/APP_DOCUMENTATION.md) | Code-grounded whole-app documentation (scope, implementation, file map, and gaps) |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and data flow |
-| [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Database schema and RLS |
-| [API_DOCS.md](docs/API_DOCS.md) | API endpoint documentation |
-| [SECURITY.md](docs/SECURITY.md) | Security architecture |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment guide |
-| [PAYMENTS.md](docs/PAYMENTS.md) | Payment integration |
-| [UI_PATTERNS.md](docs/UI_PATTERNS.md) | Design system patterns |
-| [CHANGELOG.md](docs/CHANGELOG.md) | Version history |
-| [ASSUMPTIONS.md](docs/ASSUMPTIONS.md) | Engineering decisions |
+All docs live in [`docs/`](docs/README.md) and are split by branch:
 
-## Phase Status
+- [`docs/main/`](docs/main/): production. Start with [APP_OVERVIEW](docs/main/APP_OVERVIEW.md), [APP_DOCUMENTATION](docs/main/APP_DOCUMENTATION.md), [ARCHITECTURE](docs/main/ARCHITECTURE.md), [API_DOCS](docs/main/API_DOCS.md), [DATABASE_SCHEMA](docs/main/DATABASE_SCHEMA.md), [SECURITY](docs/main/SECURITY.md), [PAYMENTS](docs/main/PAYMENTS.md) and [DEPLOYMENT](docs/main/DEPLOYMENT.md).
+- [`docs/beta/`](docs/beta/): what beta adds before it is merged. Start with [BETA_OVERVIEW](docs/beta/BETA_OVERVIEW.md).
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| 0 | ✅ Complete | Design system setup |
-| 1 | ✅ Complete | Auth, DB, payments infrastructure |
-| 2 | ✅ Complete | Profile, resume CRUD, AI analyzer |
-| 3 | 🔲 Pending | Resume templates, PDF export |
-| 4 | 🔲 Pending | JD analysis, keyword matching |
-| 5 | 🔲 Pending | Smart resume tailoring |
-| 6 | 🔲 Pending | Application tracker enhancements |
-| 7 | 🔲 Pending | Chrome extension |
+For leadership: [TEAM_CONTEXT_BRIEF](docs/main/TEAM_CONTEXT_BRIEF.md). AI running costs: [AI_COST_ESTIMATE.md](AI_COST_ESTIMATE.md).
 
 ## License
 
-Private — All rights reserved.
-
----
-
-*Built for the Indian job market 🇮🇳*
+Private. All rights reserved.

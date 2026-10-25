@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { extractJson } from "@/lib/ai/extract-json";
 import { createAIClient } from "@/lib/ai/model";
 /**
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check AI token limits
+    const quotaLimited = await checkAiQuota(user.id, "light");
+    if (quotaLimited) return quotaLimited;
     const tokenCheck = await checkAiTokenUsage(user.id);
     if (!tokenCheck.allowed) {
       return NextResponse.json(
@@ -99,6 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Track AI usage
     await trackAIUsage(admin, user.id, completion.usage?.total_tokens || 0);
+    await recordAiUse(user.id, "light", completion.usage?.total_tokens || 0);
 
     // Return enhanced analysis
     return NextResponse.json({

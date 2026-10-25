@@ -13,6 +13,7 @@ import { unsupportedPdfCharacters } from "@/lib/resume/layout";
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { generateLatex } from "@/lib/resume/latex-templates";
 import { getTemplate } from "@/lib/resume/templates";
 import { parseExportContent } from "@/lib/resume/export-content";
@@ -72,6 +73,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     const typedResume = resume as unknown as AdminResumeRow;
+    if (isAdmin && typedResume.user_id !== user.id) {
+      const denied = await denyUnassignedClient({ userId: user.id, role: userData?.role || "" }, typedResume.user_id);
+      if (denied) return denied;
+    }
 
     // Parse and validate content
     const contentResult = parseExportContent(typedResume.content);

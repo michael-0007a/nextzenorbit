@@ -135,6 +135,7 @@ test('Admin upload parses and saves a selected source without a client subscript
     storage: { from(bucket){assert.equal(bucket,'resume-uploads');return { async upload(){stored++;return {error:null}} }} },
   };
   const mocks = {
+    '@/lib/ai/quota': { checkAiQuota: async () => null, recordAiUse: async () => {} },
     '@/lib/admin/guards': { requireAdmin: async()=>({userId:'admin',role:'admin'}),isAuthError:r=>r instanceof Response },
     '@/lib/rate-limit': {rateLimit:async()=>null},
     '@/lib/supabase/admin': {createAdminClient:()=>admin},
@@ -182,7 +183,7 @@ test('Reconciliation uses the owning account, exact reference and captured amoun
 });
 test('Admin recovery cannot manually activate a plan without a verified payment',async()=>{
   const route=loadSource('src/app/api/admin/subscription/activate/route.ts',{
-    '@/lib/admin/guards':{requireAdmin:async()=>({userId:'admin'}),isAuthError:()=>false},
+    '@/lib/admin/guards':{requireAdmin:async()=>({userId:'admin',role:'super_admin'}),isAuthError:()=>false},
     '@/lib/rate-limit':{rateLimit:async()=>null},
     '@/lib/onboarding':{requireApprovedAccount:async()=>null},
     '@/lib/payments/reconcile':{reconcileUserPayments:async()=>0},

@@ -7,14 +7,13 @@
  */
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { signOut } from "@/app/(auth)/actions";
 import { LogOut, Shield, Mail, Key, Trash2, AlertTriangle } from "lucide-react";
-import type { Database } from "@/types/database";
 
 interface SettingsFormProps {
   userEmail: string;
@@ -29,10 +28,7 @@ export function SettingsForm({ userEmail, userId, provider }: SettingsFormProps)
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient();
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();

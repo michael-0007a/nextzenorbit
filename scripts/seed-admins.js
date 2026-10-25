@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
+const SEED_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+if (!SEED_PASSWORD || SEED_PASSWORD.length < 12) { console.error('Set SEED_ADMIN_PASSWORD (12+ chars).'); process.exit(1); }
 
 
 const supabase = createClient(
@@ -15,19 +17,19 @@ const supabase = createClient(
 const usersToCreate = [
   {
     email: 'superadmin@nextzenorbit.com',
-    password: 'password123',
+    password: SEED_PASSWORD,
     full_name: 'Super Admin',
     role: 'super_admin'
   },
   {
     email: 'supervisor@nextzenorbit.com',
-    password: 'password123',
+    password: SEED_PASSWORD,
     full_name: 'Supervisor Admin',
     role: 'supervisor_admin'
   },
   {
     email: 'admin@nextzenorbit.com',
-    password: 'password123',
+    password: SEED_PASSWORD,
     full_name: 'Normal Admin',
     role: 'admin'
   }

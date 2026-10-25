@@ -112,6 +112,7 @@ export async function DELETE(request: NextRequest): Promise<Response> {
     const id = searchParams.get("id");
 
     if (!id) return apiError(ERROR_CODES.VALIDATION_ERROR, "ID is required.");
+    if (id === auth.userId) return apiError(ERROR_CODES.VALIDATION_ERROR, "You cannot deactivate your own account.", 400);
 
     const admin = createAdminClient();
     
@@ -119,7 +120,7 @@ export async function DELETE(request: NextRequest): Promise<Response> {
     // However, to completely stop SSO login, we should probably delete the auth user or disable it.
     // For now, we'll just set role to 'user' which removes their free access and subjects them to billing.
     
-    const { error } = await admin.from("users").update({ role: "user" }).eq("id", id);
+    const { error } = await admin.from("users").update({ role: "user" }).eq("id", id).eq("role", "sso_user");
 
     if (error) throw error;
 

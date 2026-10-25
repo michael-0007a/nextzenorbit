@@ -41,6 +41,7 @@ import { createEmptyResumeContent, type ResumeContent } from "@/lib/validations/
 import Link from "next/link";
 import { ResumeFileUpload } from "@/components/forms/resume-file-upload";
 import { hasResumeBody } from "@/lib/resume/export-content";
+import { AiQuotaNote } from "@/components/ai/ai-quota-note";
 
 interface AdminResumeGeneratorClientProps {
   userId: string;
@@ -256,6 +257,7 @@ export function AdminResumeGeneratorClient({
                 {uploading ? "Uploading and parsing…" : "Use uploaded resume"}
               </Button>
               {uploading && <AiProgress plan={AI_PLANS.resumeUpload} />}
+              <AiQuotaNote bucket="light" refresh={uploading} />
             </div>}
             {(uploadWarning || baseResume?.content.custom_sections.some(section => section.id.startsWith("uploaded-text"))) &&
               <p role="status" className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-text-secondary">
@@ -310,6 +312,7 @@ export function AdminResumeGeneratorClient({
               {optimizing ? "Generating draft…" : generated ? "Regenerate draft" : "Generate draft"}
             </Button>
             {optimizing && <AiProgress className="mt-4" plan={resumeRewritePlan(content.layout?.target_pages)} stage={stage} />}
+            <AiQuotaNote bucket="rewrite" refresh={optimizing} className="mt-3 text-center" />
             <p className="mt-3 text-center text-xs text-text-secondary">Review the draft, then save it to the client.</p>
           </section>
         </div>

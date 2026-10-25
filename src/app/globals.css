@@ -294,10 +294,9 @@ body {
 }
 
 .glass-card {
-  background: var(--glass-strong);
+  /* Solid surface instead of backdrop-filter: blurring behind every card made scrolling janky. */
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
   border: 1px solid var(--border);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
   box-shadow: var(--glass-card-shadow);
 }
 

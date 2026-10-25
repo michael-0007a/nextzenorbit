@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { createAIClient } from "@/lib/ai/model";
 /**
  * Admin API: Generate Cover Letter
@@ -11,6 +12,7 @@ import { createAIClient } from "@/lib/ai/model";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { z } from "zod";
 import { COVER_LETTER_PROMPT_V1 } from "@/lib/ai/prompts/resume-enhancer";
 import { resumeContentSchema } from "@/lib/validations/resume";
@@ -35,6 +37,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (isAuthError(adminAuth)) return adminAuth;
     const limited = await rateLimit("admin-cover-letter", adminAuth.userId, 10, 60);
     if (limited) return limited;
+    const quotaLimited = await checkAiQuota(adminAuth.userId, "cover_letter");
+    if (quotaLimited) return quotaLimited;
 
     const body = await request.json();
     const parsed = adminGenerateSchema.safeParse(body);
@@ -50,6 +54,8 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const { userId, resumeId, jobDescription, companyName, jobTitle, hiringManager } = parsed.data;
 
+    const denied = await denyUnassignedClient(adminAuth, userId);
+    if (denied) return denied;
     const admin = createAdminClient();
 
     // Fetch resume (must belong to the user)
@@ -108,6 +114,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError(ERROR_CODES.INTERNAL_ERROR, "Failed to generate cover letter.", 500);
     }
 
+    await recordAiUse(adminAuth.userId, "cover_letter", completion.usage?.total_tokens || 0);
     return NextResponse.json({
       success: true,
       data: {

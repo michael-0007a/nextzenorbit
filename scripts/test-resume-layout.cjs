@@ -40,7 +40,9 @@ for (const template of RESUME_TEMPLATES) {
     const heights = plan.pages.map(page => height(columns(page)[0]));
     const capacity = PAPER.height - template.layout.margins.top - template.layout.margins.bottom;
     assert.ok(plan.pages.every(page => columns(page).every(c => height(c) <= capacity)));
-    assert.ok(Math.max(...heights) - Math.min(...heights) < 100, `Unbalanced pages: ${heights}`);
+    // One column balances pages; two columns fill page 1 first so it never looks unfinished beside the sidebar.
+    if (template.layout.sidebar) assert.ok(heights.slice(0, -1).every(h => h >= capacity * 0.85), `Page not filled before the next: ${heights}`);
+    else assert.ok(Math.max(...heights) - Math.min(...heights) < 100, `Unbalanced pages: ${heights}`);
     assert.ok(plan.pages.every(page => columns(page).every(c => c.at(-1).kind !== 'section')));
     const pdf = await renderToBuffer(ResumePDF({ content, template }));
     const extracted = await extractText(new Uint8Array(pdf), { mergePages: true });
@@ -76,7 +78,8 @@ test('one page for short content; arbitrary page counts for long content without
 });
 
 test('legacy IDs resolve and templates produce distinct plans', () => {
-  assert.equal(getTemplate('software-engineer').id, 'modern');
+  // Retired designs keep rendering through their closest current template.
+  assert.deepEqual(['classic', 'modern', 'creative', 'software-engineer', 'academic-cv'].map(id => getTemplate(id).id), ['harvard', 'faangpath', 'awesome', 'faangpath', 'harvard']);
   const plans = RESUME_TEMPLATES.map(t => JSON.stringify(layoutResume(fixture(), t)));
   assert.equal(new Set(plans).size, RESUME_TEMPLATES.length);
 });
@@ -101,9 +104,9 @@ for (const adminGenerated of [false, true]) {
       '@/lib/resume/pdf-document': { ResumePDF: props => { selected = props.template.id; return ResumePDF(props); } },
     } });
     for (const format of ['pdf', 'docx']) {
-      const response = await handler(new Request(`http://localhost/export?id=resume-id&format=${format}&template=modern`), { params: Promise.resolve({ id: 'resume-id' }) });
+      const response = await handler(new Request(`http://localhost/export?id=resume-id&format=${format}&template=faangpath`), { params: Promise.resolve({ id: 'resume-id' }) });
       assert.equal(response.status, 200);
-      assert.equal(selected, 'modern', 'Query layout must override saved classic template');
+      assert.equal(selected, 'faangpath', 'Query layout must override saved classic template');
       assert.ok(response.headers.get('content-disposition').endsWith(`.${format}"`));
     }
     const invalid = await handler(new Request('http://localhost/export?id=resume-id&format=exe'), { params: Promise.resolve({ id: 'resume-id' }) });

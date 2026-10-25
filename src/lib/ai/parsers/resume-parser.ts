@@ -61,10 +61,15 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
 export async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
   try {
+    const archive = await JSZip.loadAsync(buffer);
+    // Zip-bomb guard: a tiny upload can inflate to hundreds of MB.
+    // shortcut: relies on declared sizes (JSZip rejects entries whose real size differs), upgrade to streamed limits if needed.
+    const entries = Object.values(archive.files);
+    const declared = entries.reduce((sum, f) => sum + ((f as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize || 0), 0);
+    if (entries.length > 500 || declared > 50 * 1024 * 1024) throw new Error("DOCX archive is too large to parse safely.");
     const result = await mammoth.extractRawText({ buffer });
     // Mammoth omits headers/footers, where uploaded resumes often keep contact
     // information. Keep those details in the extraction input, once per part.
-    const archive = await JSZip.loadAsync(buffer);
     const parts: string[] = [];
     for (const name of Object.keys(archive.files).filter(name => /^word\/(header|footer)\d+\.xml$/.test(name)).sort()) {
       const xml = await archive.file(name)!.async("string");

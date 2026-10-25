@@ -1,5 +1,6 @@
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
 import { deleteSavedResume } from "@/lib/resume/delete";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin();
@@ -12,5 +13,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!/^[0-9a-f-]{36}$/i.test(id) || !/^[0-9a-f-]{36}$/i.test(resumeId) || !["saved", "generated"].includes(kind) || body?.confirmation !== "DELETE") {
     return Response.json({ error: { message: "A valid resume and final deletion confirmation are required." } }, { status: 400 });
   }
+  const denied = await denyUnassignedClient(auth, id);
+  if (denied) return denied;
   return deleteSavedResume(resumeId, id, kind === "generated");
 }

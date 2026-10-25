@@ -347,6 +347,27 @@ function paginate(lines: LayoutLine[], capacity: number, targetPages?: number): 
 const used = (lines: LayoutLine[]) => lines.reduce((sum, line) => sum + line.height + line.before, 0);
 
 /** Two-column templates: the header spans both columns, then each column paginates on its own. */
+/**
+ * Fill each page before starting the next, breaking only where keep-with-next allows.
+ * Two-column pages look unfinished when the main column is balanced across pages beside a full sidebar.
+ */
+function fillPages(lines: LayoutLine[], capacity: number): LayoutLine[][] {
+  const pages: LayoutLine[][] = [];
+  for (let i = 0; i < lines.length;) {
+    let height = 0, end = i, lastBreak = -1;
+    while (end < lines.length && height + lines[end].height + (end === i ? 0 : lines[end].before) <= capacity) {
+      height += lines[end].height + (end === i ? 0 : lines[end].before);
+      if (end === lines.length - 1 || !lines[end].keepNext) lastBreak = end + 1;
+      end++;
+    }
+    // No allowed break fits (a long keep-together chain): break where the page is full rather than lose lines.
+    const next = lastBreak > i ? lastBreak : Math.max(i + 1, end);
+    pages.push(lines.slice(i, next).map((line, index) => ({ ...line, before: index ? line.before : 0 })));
+    i = next;
+  }
+  return pages.length ? pages : [[]];
+}
+
 function paginateColumns(lines: LayoutLine[], capacity: number, targetPages?: number): LayoutLine[][] {
   const main = lines.filter(line => line.column !== "side");
   const side = lines.filter(line => line.column === "side");
@@ -354,8 +375,9 @@ function paginateColumns(lines: LayoutLine[], capacity: number, targetPages?: nu
   const headerHeight = used(main.slice(0, header < 0 ? main.length : header));
   // The sidebar starts below the header: reserve that height with a spacer the renderers skip.
   const spacer: LayoutLine = { text: "", kind: "spacer", column: "side", font: "Helvetica", size: 0, height: headerHeight, before: 0, indent: 0, align: "left", color: "#000000", keepNext: true };
-  const mainPages = paginate(main, capacity, targetPages);
-  const sidePages = side.length ? paginate([spacer, ...side], capacity) : [];
+  // A user-selected page count still uses the balancing paginator; otherwise fill pages in order.
+  const mainPages = targetPages && targetPages > 1 ? paginate(main, capacity, targetPages) : fillPages(main, capacity);
+  const sidePages = side.length ? fillPages([spacer, ...side], capacity) : [];
   return Array.from({ length: Math.max(mainPages.length, sidePages.length) }, (_, i) => [...(mainPages[i] || []), ...(sidePages[i] || [])]);
 }
 

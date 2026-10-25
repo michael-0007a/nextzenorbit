@@ -62,7 +62,7 @@ export function AIEnhanceBullets({
       }
     } catch (error) {
       console.error("AI enhance error:", error);
-      toast.error("Failed to enhance bullets. Try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to enhance bullets. Try again.");
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function AIGenerateSummary({
       }
     } catch (error) {
       console.error("AI generate error:", error);
-      toast.error("Failed to generate summary. Try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to generate summary. Try again.");
     } finally {
       setLoading(false);
     }

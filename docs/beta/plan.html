@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Build Plan</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1c1c1a; --muted: #5f5f5a; --line: #e4e4df;
+    --accent: #4f46e5; --accent-soft: #eef0ff; --warn: #b45309; --warn-soft: #fff7e6;
+    --bad: #b91c1c; --bad-soft: #fdecec; --ok: #0f766e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --surface: #1c1c1e; --text: #ececea; --muted: #a1a19c; --line: #2e2e30;
+      --accent: #a5b4fc; --accent-soft: #23243a; --warn: #fbbf24; --warn-soft: #2b2416;
+      --bad: #fca5a5; --bad-soft: #2d1a1a; --ok: #5eead4;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 940px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 21px; margin: 48px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 22px 0 6px; }
+  p, li { max-width: 78ch; }
+  .lede { color: var(--muted); }
+  code { font: 13px ui-monospace, Consolas, monospace; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font: 13px/1.5 ui-monospace, Consolas, monospace; }
+  pre code { background: none; padding: 0; }
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .box { border-radius: 8px; padding: 10px 14px; margin: 14px 0; border-left: 3px solid; }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .bad { background: var(--bad-soft); border-color: var(--bad); }
+  .ok { background: var(--accent-soft); border-color: var(--ok); }
+  .tasks { list-style: none; padding: 0; margin: 8px 0; }
+  .tasks li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 6px 0; display: flex; gap: 10px; align-items: flex-start; }
+  .tasks input { margin-top: 5px; flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
+  .tasks li.done span { color: var(--muted); text-decoration: line-through; }
+  .who { font-size: 11px; font-weight: 700; border: 1px solid currentColor; border-radius: 99px; padding: 0 7px; margin-left: 6px; white-space: nowrap; }
+  .you { color: var(--warn); } .me { color: var(--accent); }
+  .progress { position: sticky; top: 0; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--muted); z-index: 1; }
+  .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .bar div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .milestones { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .ms { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+  .ms b { display: block; color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Orbit build plan: domain split and five features</h1>
+  <p class="lede">This is the final plan: the decisions you made, what I found on the live setup, and an ordered checklist. Ticks are saved in this browser only. Tasks tagged <span class="who me">ME</span> are ones I do in code or through Vercel; <span class="who you">YOU</span> means a dashboard or account only you can reach.</p>
+
+  <div class="box ok"><b>Status 2026-10-16: built.</b> Every code task here shipped on the <code>beta</code> branch, and migrations 043–045 are applied (046 for AI limits was added later). Some details changed during the build, and the notes below say where. As-built docs: <a href="domain-separation.md">domain-separation.md</a>, <a href="client-features.md">client-features.md</a>, <a href="BETA_OVERVIEW.md">BETA_OVERVIEW.md</a>. Launch steps: <a href="your-tasks.html">your-tasks.html</a>.</div>
+
+  <div class="progress"><span id="count">0 / 0 done</span><div class="bar"><div id="fill"></div></div></div>
+
+  <h2>Decisions locked</h2>
+  <div class="tbl"><table>
+    <tr><th>Question</th><th>Decision</th></tr>
+    <tr><td>Apex or www</td><td><b>Both domains stay attached</b> (they already are). Vercel lets you mark one as primary and 308-redirect the other to it. Primary: <code>nextzenorbit.com</code>; <code>www</code> redirects to it.</td></tr>
+    <tr><td>Admin URLs</td><td><b>Both forms work.</b> <code>admin.nextzenorbit.com/users</code> (clean) and <code>admin.nextzenorbit.com/admin/users</code> both open the page. Any <code>/admin/*</code> on the app, marketing or old Vercel host 308-redirects to the admin host with the path kept.</td></tr>
+    <tr><td>Logins</td><td><b>Marketing and app share one login</b> (cookie on <code>.nextzenorbit.com</code>), so the homepage can show "Go to dashboard". <b>Admin has its own login</b>: a separately named, host-only cookie, so a client session can never count as a staff session and the reverse.</td></tr>
+    <tr><td>Old URL</td><td><code>nextzenorbit.vercel.app</code> (the current Supabase Site URL). Its pages redirect to the new hosts. Its API, PayU webhook and OAuth callback keep working, without redirects, for at least 30 days.</td></tr>
+    <tr><td>Architecture</td><td>One repo, one Vercel project (<code>michael-0007as-projects/nextzenorbit</code>), one Supabase project. The middleware routes by hostname.</td></tr>
+    <tr><td>Features, in order</td><td>1 Client progress feed · 2 Client ↔ team messaging · 3 LinkedIn optimizer · 4 CTC and offer comparison · 5 AI mock interviews (basic)</td></tr>
+  </table></div>
+
+  <h2>What I found on the live setup</h2>
+  <div class="box bad"><b>The apex domain is half-broken right now.</b> <code>nextzenorbit.com</code> has three A records: <code>216.198.79.1</code> (Vercel), plus <code>3.33.130.190</code> and <code>15.197.148.33</code>, which belong to GoDaddy's parking/forwarding service. Visitors get one at random, so some reach GoDaddy instead of your site. <b>Delete the two non-Vercel A records in GoDaddy.</b> This is worth doing today, independent of everything else.</div>
+  <div class="box warn">
+    <ul style="margin:0;padding-left:18px">
+      <li><code>www</code> CNAMEs to Vercel correctly, but it serves the site at 200 instead of redirecting to the apex. The primary/redirect setting isn't set yet.</li>
+      <li><code>app.</code> and <code>admin.</code> have no DNS records yet.</li>
+      <li>Mail runs through <b>ImprovMX</b> (MX <code>mx1/mx2.improvmx.com</code>). Don't touch MX or SPF TXT records in GoDaddy.</li>
+      <li>The <code>/api/cron</code> folder is empty, <code>vercel.json</code> has no crons, and the app has <b>no email-sending provider</b>. ImprovMX only forwards mail. So the weekly-summary email is out of v1; the feed shows "this week" counts in the app instead.</li>
+      <li><code>src/components/dashboard/activity-feed.tsx</code> is a placeholder (<code>// TODO: Replace with real activity data</code>). Feature 1 fills it in.</li>
+      <li>You have uncommitted security-hardening work (<code>042_security_hardening.sql</code> and edits across admin routes). New migrations start at <b>043</b>. Commit or land 042 first so they don't collide.</li>
+    </ul>
+  </div>
+
+  <h2>Milestones</h2>
+  <div class="milestones">
+    <div class="ms"><b>M0 · Today</b>Fix the apex DNS and set www → apex. About 10 minutes, mostly your part.</div>
+    <div class="ms"><b>M1 · Domain split</b>Code, staging test, cutover. About 3–4 days.</div>
+    <div class="ms"><b>M2 · Feed and messaging</b>Features 1 and 2, both on the client ↔ team axis. About 1.5 weeks.</div>
+    <div class="ms"><b>M3 · Tools</b>LinkedIn optimizer and the CTC calculator. About 4–5 days.</div>
+    <div class="ms"><b>M4 · Mock interviews</b>Basic, text only. About 1 week.</div>
+  </div>
+
+  <!-- ============================== M0 ============================== -->
+  <h2>M0 · DNS cleanup (today)</h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="m0-1"><span>In GoDaddy DNS for nextzenorbit.com: delete the A records <code>3.33.130.190</code> and <code>15.197.148.33</code>, and keep <code>A @ 216.198.79.1</code>. Also turn off any GoDaddy "Forwarding" set for the domain. <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m0-2"><span>Set <code>www.nextzenorbit.com</code> to 308-redirect to <code>nextzenorbit.com</code> in the Vercel project domains, then confirm with <code>curl -I</code>. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m0-3"><span>Re-check DNS from outside: the apex should resolve only to Vercel. <span class="who me">ME</span></span></li>
+  </ul>
+
+  <!-- ============================== M1 ============================== -->
+  <h2>M1 · Domain split</h2>
+
+  <h3>How each host behaves</h3>
+  <div class="tbl"><table>
+    <tr><th>Host</th><th>Serves</th><th>Redirects away (308, path and query kept)</th></tr>
+    <tr><td><code>nextzenorbit.com</code></td><td><code>/</code>, <code>/privacy /terms /refund /compliance</code>, static assets</td><td>Login, register, dashboard and other client pages → app host. <code>/admin*</code> → admin host.</td></tr>
+    <tr><td><code>app.nextzenorbit.com</code></td><td>All <code>(auth)</code> and <code>(dashboard)</code> pages, client <code>/api/*</code>, PayU webhook, OAuth callback. <code>/</code> → dashboard, onboarding or login.</td><td><code>/admin*</code> and <code>/api/admin*</code> → admin host.</td></tr>
+    <tr><td><code>admin.nextzenorbit.com</code></td><td><code>/admin/*</code>, <code>/api/admin/*</code>, the shared APIs the admin UI calls. Clean paths are rewritten internally: <code>/users</code> → <code>/admin/users</code>, <code>/login</code> → <code>/admin/login</code>. <code>/</code> → <code>/admin</code>.</td><td>Client-only pages → app host.</td></tr>
+    <tr><td><code>nextzenorbit.vercel.app</code></td><td><code>/api/*</code> (webhooks, callback, and the extension during the transition)</td><td>Pages → the matching new host.</td></tr>
+    <tr><td><code>localhost</code>, preview URLs</td><td>Everything, unchanged; treated as the app host plus admin paths</td><td>None, so local development and previews keep working.</td></tr>
+  </table></div>
+
+  <h3>Session cookies</h3>
+<pre><code>// src/lib/supabase/cookies.ts (new, tiny)
+export function cookieOptionsFor(host: string) {
+  const kind = hostKind(host);
+  if (kind === "admin") return { name: "sb-orbit-admin" };              // host-only, separate session
+  if (isProdDomain(host)) return { domain: ".nextzenorbit.com" };      // shared by apex + app
+  return {};                                                            // localhost, previews: default
+}</code></pre>
+  <p>This is passed as <code>cookieOptions</code> to every Supabase SSR client: <code>src/lib/supabase/middleware.ts</code>, <code>server.ts</code>, <code>client.ts</code> (using <code>location.host</code>), and the inline client in <code>src/middleware.ts</code>. The admin host also receives the shared client cookie, but it only ever reads its own cookie name, so a client session never counts there.</p>
+  <p>The hostname is still not a security boundary. <code>requireAdmin</code> in <code>src/lib/admin/guards.ts</code> and the RLS policies stay unchanged.</p>
+
+  <h3>Tasks: code (one branch)</h3>
+  <ul class="tasks">
+    <li><input type="checkbox" id="m1-1"><span>Add <code>NEXT_PUBLIC_SITE_URL</code> and <code>NEXT_PUBLIC_ADMIN_URL</code>, and repoint <code>NEXT_PUBLIC_APP_URL</code>. Set them in Vercel for Production and Preview. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-2"><span><code>src/lib/hosts.ts</code>: <code>hostKind()</code>, the path allowlists for each host, and a redirect helper that copies refreshed auth cookies onto the redirect response. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-3"><span><code>src/middleware.ts</code>: add the host gate before the existing access gates. Exempt webhooks and <code>/api/auth/callback</code> from all redirects. Add the admin-host clean-path rewrite. On the site host, stop auto-redirecting <code>/</code> to <code>/dashboard</code>. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-4"><span>Session cookie options (above), used in all four Supabase clients. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-5"><span>Login: client login builds the OAuth <code>redirectTo</code> from the app URL (<code>src/app/(auth)/actions.ts:34</code>); admin login in <code>(admin-auth)/actions.ts</code> uses the admin URL. The callback (<code>src/app/api/auth/callback/route.ts</code>) sends staff to the admin host and clients to the app host. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-6"><span>Marketing page: switch the CTAs to absolute app-host links and show "Go to dashboard" when a session exists. Add canonical metadata for each host, plus a sitemap and robots file for the apex only, with <code>noindex</code> on app and admin. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-7"><span>PayU <code>surl</code>/<code>furl</code> (<code>src/lib/payments/payu.ts</code>) follow <code>NEXT_PUBLIC_APP_URL</code> automatically. Add a test that asserts the webhook route is never redirected. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-8"><span>Extension: change the default <code>apiBaseUrl</code> to <code>https://app.nextzenorbit.com</code> (<code>extensions/nextzen-orbit-autofill/src/shared/storage.ts:8</code>) and bump the version. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-9"><span>Tests in <code>scripts/test-domain-split.cjs</code> (using the <code>loadSource</code> pattern): <code>hostKind</code>, each redirect rule, cookie options for each host, and callback/webhook passthrough. Then lint, typecheck and build. <span class="who me">ME</span></span></li>
+  </ul>
+
+  <h3>Tasks: staging and cutover</h3>
+  <ul class="tasks">
+    <li><input type="checkbox" id="m1-10"><span>GoDaddy: add <code>CNAME app → cname.vercel-dns.com</code> and <code>CNAME admin → cname.vercel-dns.com</code> (use the exact value Vercel shows when I add the domains). <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m1-11"><span>Add <code>app.nextzenorbit.com</code> and <code>admin.nextzenorbit.com</code> to the Vercel project and wait for SSL. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-12"><span>Supabase dashboard → Auth → URL Configuration: add these redirect URLs: <code>https://app.nextzenorbit.com/**</code>, <code>https://admin.nextzenorbit.com/**</code>, <code>https://nextzenorbit.com/**</code>. <b>Keep</b> <code>https://nextzenorbit.vercel.app/**</code> and the localhost entries. Leave the Site URL alone for now. <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m1-13"><span>Deploy the branch as a preview and point the env vars at the new hosts for that preview. Walk through: signup → approval → PayU test payment → reconcile; Google OAuth on app and on admin; password reset; logout on each host; staff opening client pages and clients opening <code>/admin</code> and <code>/api/admin/*</code>; resume upload, download and delete; job search; extension. <span class="who me">ME</span> + <span class="who you">YOU</span> for the payment</span></li>
+    <li><input type="checkbox" id="m1-14"><span>PayU merchant dashboard: if a webhook or notification URL is configured, change it to <code>https://app.nextzenorbit.com/api/webhooks/payu</code>. The old URL keeps working regardless. <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m1-15"><span>Merge to main and deploy to production. Smoke-test all three hosts and the old vercel.app links. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-16"><span>Supabase: set the Site URL to <code>https://app.nextzenorbit.com</code>. Check that the email templates use <code>{{ .SiteURL }}</code> or <code>{{ .RedirectTo }}</code>; paste them to me if unsure. <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m1-17"><span>Google Cloud Console → OAuth client: add the new hosts to <b>Authorized JavaScript origins</b> only if origins are listed there today. The redirect URI (Supabase's own callback) doesn't change. <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m1-18"><span>Chrome Web Store: upload the new extension build. <span class="who you">YOU</span></span></li>
+    <li><input type="checkbox" id="m1-19"><span>Watch Vercel runtime logs and Supabase auth logs for a week: 404s, redirect loops, callback errors, PayU webhook failures. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="m1-20"><span>After 30 days: remove <code>nextzenorbit.vercel.app</code> from the Supabase redirect list. <span class="who you">YOU</span></span></li>
+  </ul>
+  <p><b>Rollback:</b> revert the middleware and cookie commit, and restore the old env values. The Site URL change is a single field. No data changes, so nothing to migrate back.</p>
+
+  <!-- ============================== M2 ============================== -->
+  <h2>M2 · Feature 1: client progress feed</h2>
+  <p>The client dashboard shows what the team did for them, built from data that already exists, so the admin routes don't need to change.</p>
+  <div class="tbl"><table>
+    <tr><th>Event</th><th>Source (existing)</th></tr>
+    <tr><td>"Team applied to <i>Role</i> at <i>Company</i>"</td><td><code>job_queue</code> rows with <code>status='applied'</code>, <code>applied_at</code>, <code>applied_by</code></td></tr>
+    <tr><td>"Tailored resume ready"</td><td><code>admin_resumes</code> (<code>admin_id</code>, <code>user_id</code>)</td></tr>
+    <tr><td>"Cover letter ready"</td><td><code>admin_cover_letters</code></td></tr>
+    <tr><td>"Moved to interview / offer"</td><td><code>applications</code> status and timestamps</td></tr>
+  </table></div>
+  <p>The header shows this week's totals. Admin names are shown as "your team", or by first name; your call, but the default is first name.</p>
+  <ul class="tasks">
+    <li><input type="checkbox" id="f1-1"><span>Migration <code>043_client_activity_feed.sql</code>: a <code>client_activity(p_user uuid, p_before timestamptz, p_limit int)</code> SQL function that UNIONs the sources above, plus the indexes needed on <code>(user_id, created_at)</code>. Execute is granted to <code>service_role</code> only. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f1-2"><span><code>GET /api/activity?before=</code>: uses the signed-in user's own id only (never a query param) and cursor pagination. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f1-3"><span>Replace the placeholder <code>src/components/dashboard/activity-feed.tsx</code> with the real feed: week summary, event list, "load more", and the existing empty state kept for new clients. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f1-4"><span>Test: run the function on PGlite (same pattern as <code>test-performance.cjs</code>), checking it returns only that client's rows, in order. <span class="who me">ME</span></span></li>
+  </ul>
+
+  <h2>M2 · Feature 2: client ↔ team messaging</h2>
+  <p>One thread per client. The client writes from the app host; any admin assigned to that client (through <code>client_admin_assignments</code>) replies from the admin host.</p>
+  <ul class="tasks">
+    <li><input type="checkbox" id="f2-1"><span>Migration <code>044_client_messages.sql</code>: <code>client_messages(id, client_id, sender_id, sender_role, body text ≤ 4000, created_at, read_at)</code>. RLS: a client can select and insert only where <code>client_id = auth.uid()</code> and <code>sender_id = auth.uid()</code>. Admin access goes through API routes that check the assignment. Index on <code>(client_id, created_at)</code>. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f2-2"><span>Client API <code>GET/POST /api/messages</code>, with <code>rateLimit()</code> from <code>src/lib/rate-limit.ts</code>. Admin API <code>GET/POST /api/admin/users/[id]/messages</code> guarded by <code>requireAdmin</code> plus the assignment check in <code>src/lib/admin/assignments.ts</code>. Super admins can see every thread. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f2-3"><span>When a message is sent, insert a row into the existing <code>notifications</code> table for the other side, so it shows up in the current notification UI. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f2-4"><span>Client UI: a "Messages" page in the dashboard nav with an unread badge. Admin UI: a "Messages" tab on the client detail page, plus an "unread threads" list on the admin home page. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f2-5"><span>Live updates: poll every 10 seconds while the thread is open (<code>shortcut:</code> comment noting it). Upgrade to Supabase Realtime if message volume grows. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f2-6"><span>Tests: a client can't read another client's thread; an unassigned admin is refused; an assigned admin can reply; body length is capped. Use the RLS test against a Supabase branch or PGlite. <span class="who me">ME</span></span></li>
+  </ul>
+
+  <!-- ============================== M3 ============================== -->
+  <h2>M3 · Feature 3: LinkedIn profile optimizer</h2>
+  <ul class="tasks">
+    <li><input type="checkbox" id="f3-1"><span><code>POST /api/linkedin/optimize</code> takes <code>{ resumeId, targetRole }</code>, loads the resume (owner check), and calls the AI writer model (built on Amazon Bedrock, Kimi K2.5; this plan originally said Groq). The zod output schema: headline (≤ 220 characters), about (≤ 2,600), top skills (≤ 15), and 2–3 rewritten bullets per experience entry. Logs to <code>ai_usage</code>, is rate-limited, and (since migration 046) counts against the daily <code>light</code> AI allowance. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f3-2"><span>Prompt file in <code>src/lib/ai/prompts/</code>, using the same JSON-output pattern as the resume prompts. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f3-3"><span>Page <code>/linkedin</code>: pick a resume and a target role, generate, then sections with copy buttons and character counters, plus a regenerate button for each section. Nothing is saved in v1. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f3-4"><span>Test: the parser rejects output that's too long or malformed. <span class="who me">ME</span></span></li>
+  </ul>
+
+  <h2>M3 · Feature 4: CTC to in-hand and offer comparison</h2>
+  <p>Runs entirely in the browser, with no AI cost and no new tables. Offers are saved in localStorage in v1.</p>
+  <ul class="tasks">
+    <li><input type="checkbox" id="f4-1"><span><code>src/lib/salary/ctc.ts</code>, pure functions that work out: basic (as a % of CTC), HRA, employer and employee PF (12%, with an optional ₹15,000 wage cap), gratuity (4.81% of basic), professional tax (state picker, default ₹2,400 a year), variable pay, and new and old regime tax with 4% cess, the 87A rebate and surcharge. The output is monthly in-hand pay and a yearly breakdown. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f4-2"><span>Tax slabs live in one constant table labelled with the financial year. <b>Check the current year's slabs and rebate limit against the Income Tax Department site before launch.</b> <span class="who me">ME</span> to draft, <span class="who you">YOU</span> or a CA to sign off</span></li>
+    <li><input type="checkbox" id="f4-3"><span>Page <code>/offers</code>: 1–3 offer cards (CTC, basic %, variable, joining bonus, notice buyout, regime) side by side, with "best in-hand", "best first-year" and differences highlighted. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f4-4"><span>Tests: assert-based cases for known salaries (zero tax under the rebate limit, a high earner with surcharge, the PF cap on and off). <span class="who me">ME</span></span></li>
+  </ul>
+
+  <!-- ============================== M4 ============================== -->
+  <h2>M4 · Feature 5: AI mock interviews (basic)</h2>
+  <p>Text only. A session is 5 questions: up to 3 from the existing <code>interview_questions</code> bank for the user's career, and the rest generated from a pasted job description or a tracked application.</p>
+  <ul class="tasks">
+    <li><input type="checkbox" id="f5-1"><span>Migration <code>045_mock_interviews.sql</code>: as built: <code>mock_interviews(id, user_id, role, job_description, questions jsonb, answers jsonb, overall int, created_at, completed_at)</code>, server-only (RLS on, no policies). <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f5-2"><span><code>POST /api/mock-interviews</code> creates a session and its questions. <code>POST /api/mock-interviews/[id]/answer</code> scores one answer (zod: score 1–5, strengths, gaps, improved answer). As built, there is no separate <code>/complete</code> call: the last answer writes the overall score and <code>completed_at</code>. Uses the Bedrock writer model and is rate-limited. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f5-3"><span>Page <code>/interviews/mock</code>: setup, one question at a time with an optional timer, feedback after each answer, a final scorecard, and a list of past sessions. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f5-4"><span>Tests: owner-only access, and the scoring parser rejects bad output. <span class="who me">ME</span></span></li>
+    <li><input type="checkbox" id="f5-5"><span>Later, not in this plan: voice answers and adaptive follow-up questions. <span class="who me">ME</span></span></li>
+  </ul>
+
+  <h2>Still open (small)</h2>
+  <ul>
+    <li>Should the feed show admin first names or just "your team"? The default is first names.</li>
+    <li>Should features 3–5 be available on every paid plan, or only higher tiers? The default is every paid plan. The middleware already blocks unpaid users from all APIs.</li>
+  </ul>
+</main>
+<script>
+  const boxes = [...document.querySelectorAll('.tasks input')];
+  const KEY = 'orbit-plan-ticks';
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+  function render() {
+    const done = boxes.filter(b => b.checked).length;
+    document.getElementById('count').textContent = `${done} / ${boxes.length} tasks done`;
+    document.getElementById('fill').style.width = `${(done / boxes.length) * 100}%`;
+    boxes.forEach(b => b.closest('li').classList.toggle('done', b.checked));
+  }
+  boxes.forEach(b => {
+    b.checked = !!saved[b.id];
+    b.addEventListener('change', () => {
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {}
+      render();
+    });
+  });
+  render();
+</script>
+</body>
+</html>

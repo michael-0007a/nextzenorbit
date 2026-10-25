@@ -92,7 +92,7 @@ export function ResumeTailorPanel({
       }
     } catch (err) {
       console.error("Tailor error:", err);
-      toast.error("Failed to generate suggestions. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to generate suggestions. Please try again.");
     } finally {
       setLoading(false);
     }

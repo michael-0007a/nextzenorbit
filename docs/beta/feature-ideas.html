@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Feature Ideas</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1c1c1a; --muted: #5f5f5a; --line: #e4e4df;
+    --accent: #4f46e5; --accent-soft: #eef0ff;
+    --s: #0f766e; --m: #b45309; --l: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --surface: #1c1c1e; --text: #ececea; --muted: #a1a19c; --line: #2e2e30;
+      --accent: #a5b4fc; --accent-soft: #23243a; --s: #5eead4; --m: #fbbf24; --l: #fca5a5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 19px; margin: 44px 0 4px; }
+  .lede { color: var(--muted); margin: 0 0 8px; max-width: 70ch; }
+  .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+  .card h3 { margin: 0; font-size: 16px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .card p { margin: 0; font-size: 14px; }
+  .why { color: var(--muted); }
+  .reuse { font-size: 13px; background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; }
+  .reuse b { color: var(--accent); font-weight: 600; }
+  code { font: 12.5px ui-monospace, Consolas, monospace; }
+  .tag { font-size: 11px; font-weight: 700; border: 1px solid currentColor; border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
+  .S { color: var(--s); } .M { color: var(--m); } .L { color: var(--l); }
+  .top { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .star { color: var(--accent); font-size: 12px; font-weight: 600; }
+  ol.pick { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 16px 36px; margin: 12px 0 0; }
+  ol.pick li { margin: 4px 0; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>New feature ideas for Nextzen Orbit</h1>
+  <p class="lede">Every idea here serves the app's goal: helping job seekers in India get hired faster with AI tools plus a done-for-you team that applies for them. None of them repeat what the app already does (resumes, analyzer, cover letters, tracker, job search, autofill, career roadmaps, interview question bank, admin apply queue). Instead, each one builds on those pieces.</p>
+  <div class="legend">
+    <span><span class="tag S">S</span> about 1–3 days</span>
+    <span><span class="tag M">M</span> about 1–2 weeks</span>
+    <span><span class="tag L">L</span> 3+ weeks</span>
+    <span class="star">★ recommended first</span>
+  </div>
+
+  <h2>Start here: the top 5</h2>
+  <p class="sub">These are the most useful for the least effort, given what's already built.</p>
+  <ol class="pick">
+    <li><b>Client progress feed</b>: paying clients can see the work the team does for them.</li>
+    <li><b>Saved searches and job alerts</b>: gives people a reason to come back every day.</li>
+    <li><b>AI mock interviews</b>: puts the interview question bank to active use.</li>
+    <li><b>Which resume gets callbacks</b>: ties tracker outcomes to resume versions.</li>
+    <li><b>CTC to in-hand salary and offer comparison</b>: a common, India-specific pain point that's cheap to build.</li>
+  </ol>
+
+  <h2>1 · Done-for-you service transparency</h2>
+  <p class="sub">Admins already apply on clients' behalf, but clients can't see that work. Showing it is what justifies the subscription.</p>
+  <div class="grid">
+    <div class="card top">
+      <h3>Client progress feed <span class="tag S">S</span></h3>
+      <span class="star">★ top pick</span>
+      <p>A dashboard timeline: "Your team applied to 14 roles this week, tailored 3 resumes, and 2 are in interview." Plus a weekly email summary.</p>
+      <p class="why">Why: it cuts churn and support questions like "what am I paying for?"</p>
+      <p class="reuse"><b>Reuse:</b> admin apply queue, <code>applications</code>, admin document workspace jobs, <code>/api/notifications</code></p>
+    </div>
+    <div class="card">
+      <h3>Client ↔ team messaging <span class="tag M">M</span></h3>
+      <p>Threaded chat for each client with their assigned admins. Clients can approve or reject a target job before it's applied to, and share preferences like "no service companies".</p>
+      <p class="why">Why: replaces WhatsApp side channels and keeps context with the account.</p>
+      <p class="reuse"><b>Reuse:</b> shared client assignments (migration 039), Supabase Realtime</p>
+    </div>
+    <div class="card">
+      <h3>Approve-before-apply targets <span class="tag S">S</span></h3>
+      <p>A client gets a daily shortlist of roles the team plans to apply to and can swipe yes or no on each.</p>
+      <p class="why">Why: fewer wasted applications and higher client trust.</p>
+      <p class="reuse"><b>Reuse:</b> <code>/api/admin/targets</code>, application targets</p>
+    </div>
+    <div class="card">
+      <h3>WhatsApp notifications <span class="tag M">M</span></h3>
+      <p>Opt-in WhatsApp messages for interview calls, status changes and weekly summaries. Email is often ignored in India; WhatsApp isn't.</p>
+      <p class="why">Why: much higher open rates than email.</p>
+      <p class="reuse"><b>Reuse:</b> notifications pipeline; needs a WhatsApp Business provider</p>
+    </div>
+  </div>
+
+  <h2>2 · Getting more callbacks</h2>
+  <div class="grid">
+    <div class="card top">
+      <h3>Saved searches and job alerts <span class="tag M">M</span></h3>
+      <span class="star">★ top pick</span>
+      <p>Save a search (role, city, experience, salary) and get a daily digest of new matches, each with a fit score from the analyzer.</p>
+      <p class="why">Why: a daily reason to return, which the app currently lacks.</p>
+      <p class="reuse"><b>Reuse:</b> <code>jobs-service</code>, Adzuna search, analyzer, a Vercel cron route</p>
+    </div>
+    <div class="card top">
+      <h3>Which resume gets callbacks <span class="tag S">S</span></h3>
+      <span class="star">★ top pick</span>
+      <p>Records which resume version each application used, then shows the response rate per version. A simple form of A/B testing for resumes.</p>
+      <p class="why">Why: turns the tracker from a log into a feedback loop.</p>
+      <p class="reuse"><b>Reuse:</b> <code>resume_versions</code>, <code>applications</code></p>
+    </div>
+    <div class="card">
+      <h3>LinkedIn profile optimizer <span class="tag S">S</span></h3>
+      <p>Generates a headline, About section and skills list from the master resume and target role, with copy buttons for each.</p>
+      <p class="why">Why: recruiters in India source heavily from LinkedIn.</p>
+      <p class="reuse"><b>Reuse:</b> AI prompts in <code>src/lib/ai</code> (now Bedrock), resume data</p>
+    </div>
+    <div class="card">
+      <h3>Referral and networking CRM <span class="tag M">M</span></h3>
+      <p>Store contacts per company (alumni, ex-colleagues), generate outreach messages and referral requests, and set follow-up reminders.</p>
+      <p class="why">Why: referrals convert far better than cold applications.</p>
+      <p class="reuse"><b>Reuse:</b> applications (link a contact to a company), notes</p>
+    </div>
+    <div class="card">
+      <h3>Follow-up reminders <span class="tag S">S</span></h3>
+      <p>"Applied 7 days ago, no response": prompts the user with a ready-made follow-up email to the recruiter.</p>
+      <p class="reuse"><b>Reuse:</b> application dates, cover letter generator</p>
+    </div>
+    <div class="card">
+      <h3>Skill-gap to roadmap link <span class="tag S">S</span></h3>
+      <p>When the analyzer finds missing skills, offer one click to add the matching career-roadmap steps and YouTube lessons.</p>
+      <p class="reuse"><b>Reuse:</b> analyzer, <code>roadmaps-service</code>, <code>youtube-service</code></p>
+    </div>
+  </div>
+
+  <h2>3 · Interviews and offers</h2>
+  <div class="grid">
+    <div class="card top">
+      <h3>AI mock interviews <span class="tag M">M</span></h3>
+      <span class="star">★ top pick</span>
+      <p>Timed practice rounds for a specific job description, answered by text or voice. The AI scores each answer (structure, STAR method, relevance) and suggests a stronger version.</p>
+      <p class="reuse"><b>Reuse:</b> <code>interview-service</code>, interview question bank, Bedrock AI</p>
+    </div>
+    <div class="card">
+      <h3>Company prep brief <span class="tag S">S</span></h3>
+      <p>A one-page brief for each interview: what the company does, the likely interview rounds, questions to ask, and how to frame your experience for this role.</p>
+      <p class="reuse"><b>Reuse:</b> applications, AI notes</p>
+    </div>
+    <div class="card top">
+      <h3>CTC to in-hand and offer comparison <span class="tag S">S</span></h3>
+      <span class="star">★ top pick</span>
+      <p>Breaks a CTC into fixed pay, variable pay, PF, gratuity, tax regime and monthly in-hand. Compares 2–3 offers side by side, including joining bonus and notice-period buyout.</p>
+      <p class="why">Why: a common confusion point in India; it's pure calculation, so there's no AI cost.</p>
+    </div>
+    <div class="card">
+      <h3>Negotiation and notice-period helper <span class="tag S">S</span></h3>
+      <p>Counter-offer scripts, early-release requests and resignation letter templates, all personalised.</p>
+      <p class="reuse"><b>Reuse:</b> cover letter generator and export</p>
+    </div>
+    <div class="card">
+      <h3>Interview calendar sync <span class="tag M">M</span></h3>
+      <p>Interview dates from the tracker sync to Google Calendar, with reminders and the prep brief attached.</p>
+      <p class="reuse"><b>Reuse:</b> Google sign-in already exists; needs the calendar scope</p>
+    </div>
+  </div>
+
+  <h2>4 · Growth and retention</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Public profile page <span class="tag M">M</span></h3>
+      <p><code>nextzenorbit.com/u/name</code>: a shareable portfolio built from the resume and projects. Each page also works as free SEO for the marketing site.</p>
+      <p class="reuse"><b>Reuse:</b> <code>projects-service</code>, resume templates; works well with the domain split</p>
+    </div>
+    <div class="card">
+      <h3>Refer-a-friend credits <span class="tag S">S</span></h3>
+      <p>An invite link that gives both people a discount or extra days on their plan.</p>
+      <p class="reuse"><b>Reuse:</b> subscriptions, PayU checkout</p>
+    </div>
+    <div class="card">
+      <h3>Document vault for background checks <span class="tag S">S</span></h3>
+      <p>Secure storage for offer letters, relieving letters, payslips and certificates, ready to share during BGV (background verification).</p>
+      <p class="reuse"><b>Reuse:</b> Supabase Storage plus the existing file routes and RLS</p>
+    </div>
+    <div class="card">
+      <h3>Fresher and campus mode <span class="tag M">M</span></h3>
+      <p>Onboarding, resume templates and roadmaps tuned for graduates with no experience: projects and internships first, plus aptitude-prep links.</p>
+      <p class="reuse"><b>Reuse:</b> onboarding, templates, careers</p>
+    </div>
+  </div>
+
+  <h2>5 · Admin and team efficiency</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Workload and SLA board <span class="tag S">S</span></h3>
+      <p>Shows applications per admin per day, clients with no activity in 3+ days, and approvals waiting on review.</p>
+      <p class="reuse"><b>Reuse:</b> admin analytics, assignments</p>
+    </div>
+    <div class="card">
+      <h3>Quality review queue <span class="tag M">M</span></h3>
+      <p>A supervisor admin samples generated resumes and cover letters before they're sent, with a checklist and a score for each admin.</p>
+      <p class="reuse"><b>Reuse:</b> <code>supervisor_admin</code> role, document workspace</p>
+    </div>
+    <div class="card">
+      <h3>Bulk tailor and apply <span class="tag L">L</span></h3>
+      <p>Select 10 target jobs, generate tailored resumes for all of them as background jobs, review them, then work through the queue with the autofill extension.</p>
+      <p class="reuse"><b>Reuse:</b> document jobs (migration 041), autofill extension</p>
+    </div>
+  </div>
+
+  <footer>Built from a read of the current routes, services and migrations. Effort sizes are rough and assume one developer.</footer>
+</main>
+</body>
+</html>

@@ -24,6 +24,10 @@ import {
   Crown,
   Mail,
   Rocket,
+  MessageSquare,
+  Linkedin,
+  Calculator,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +48,10 @@ const mainNavItems: NavItem[] = [
   { label: "Job Analyzer", href: "/analyzer", icon: Search, badge: "AI" },
   { label: "Job Search", href: "/job-search", icon: Rocket, badge: "NEW", isNew: true },
   { label: "Applications", href: "/applications", icon: Briefcase },
+  { label: "Messages", href: "/messages", icon: MessageSquare },
+  { label: "LinkedIn", href: "/linkedin", icon: Linkedin, badge: "AI", isNew: true },
+  { label: "Offer Compare", href: "/offers", icon: Calculator, isNew: true },
+  { label: "Mock Interview", href: "/interviews/mock", icon: Mic, badge: "AI", isNew: true },
   { label: "Careers", href: "/career", icon: Sparkles, badge: "NEW", isNew: true },
 ];
 
@@ -186,7 +194,7 @@ export function Sidebar({ className, isProfileComplete = true }: SidebarProps) {
             {isSubActive ? (
               <>
                 <div className={cn(
-                  "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl animate-pulse",
+                  "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl",
                   isElite ? "bg-amber-500/10" : "bg-primary/10"
                 )} style={{ animationDuration: "6s" }} />
                 <div className="relative">

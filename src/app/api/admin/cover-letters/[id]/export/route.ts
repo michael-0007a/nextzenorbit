@@ -1,5 +1,5 @@
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
-import { isAssignedToClient } from "@/lib/admin/assignments";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderCoverLetter } from "@/lib/resume/cover-letter-export";
 import { unsupportedPdfCharacters } from "@/lib/resume/layout";
@@ -17,7 +17,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { data: letter, error } = await createAdminClient().from("admin_cover_letters").select("user_id, title, content").eq("id", id).maybeSingle();
   if (error) return Response.json({ error: { message: "Cover letter is temporarily unavailable." } }, { status: 503 });
   if (!letter) return Response.json({ error: { message: "Cover letter not found." } }, { status: 404 });
-  if (auth.role === "admin" && !await isAssignedToClient(auth.userId, letter.user_id)) return Response.json({ error: { message: "This client is not assigned to you." } }, { status: 403 });
+  const denied = await denyUnassignedClient(auth, letter.user_id);
+  if (denied) return denied;
   if (format === "pdf" && unsupportedPdfCharacters({ ...createEmptyResumeContent(), summary: { text: letter.content } }, getTemplate("modern")).length)
     return Response.json({ error: { message: "Some characters need Word export to preserve them. Download Word instead." } }, { status: 422 });
   try {

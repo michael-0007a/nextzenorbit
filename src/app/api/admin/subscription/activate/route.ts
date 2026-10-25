@@ -1,4 +1,5 @@
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireApprovedAccount } from "@/lib/onboarding";
 import { reconcileUserPayments } from "@/lib/payments/reconcile";
@@ -15,6 +16,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const parsed = z.object({ user_id: z.string().uuid(), txnid: z.string().trim().regex(/^[a-zA-Z0-9_-]{1,100}$/).optional() }).safeParse(await request.json());
     if (!parsed.success) return Response.json({ error: { message: "Provide a valid client and transaction reference." } }, { status: 400 });
+    const denied = await denyUnassignedClient(auth, parsed.data.user_id);
+    if (denied) return denied;
     const blocked = await requireApprovedAccount(parsed.data.user_id);
     if (blocked) return blocked;
     const confirmed = await reconcileUserPayments(parsed.data.user_id, parsed.data.txnid);

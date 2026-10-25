@@ -26,6 +26,7 @@ import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/compon
 import Link from "next/link";
 import { AiProgress } from "@/components/ui/ai-progress";
 import { AI_PLANS } from "@/lib/ai/progress";
+import { AiQuotaNote } from "@/components/ai/ai-quota-note";
 
 interface AdminCoverLetterGeneratorClientProps {
   userId: string;
@@ -293,6 +294,7 @@ export function AdminCoverLetterGeneratorClient({
                 {generating ? "Generating via AI..." : "Generate Cover Letter"}
               </Button>
               {generating && <AiProgress className="mt-4" plan={AI_PLANS.coverLetter} />}
+              <AiQuotaNote bucket="cover_letter" refresh={generating} className="mt-3" />
             </CardBody>
           </Card>
         </div>

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
 
 const VALID_TYPES = ["resume_request", "profile_update", "admin_message"];
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       );
     }
 
+    const denied = await denyUnassignedClient(adminAuth, String(user_id));
+    if (denied) return denied;
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("notifications")

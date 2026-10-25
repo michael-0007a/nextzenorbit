@@ -42,8 +42,8 @@ export const ResumePreview = memo(function ResumePreview({ content, templateId =
             const header = main.filter(line => line.kind === "name" || line.kind === "contact");
             return <>
               {header.map((line, index) => <Line key={`h${index}`} line={line} template={template} />)}
-              <div style={{ display: "flex" }}>
-                <div style={{ width: template.layout.sidebar.width, marginRight: template.layout.sidebar.gap }}>
+              <div style={{ display: "flex", flexDirection: template.layout.sidebar.position === "right" ? "row-reverse" : "row" }}>
+                <div style={template.layout.sidebar.position === "right" ? { width: template.layout.sidebar.width, marginLeft: template.layout.sidebar.gap } : { width: template.layout.sidebar.width, marginRight: template.layout.sidebar.gap }}>
                   {lines.filter(line => line.column === "side" && line.kind !== "spacer").map((line, index) => <Line key={index} line={line} template={template} />)}
                 </div>
                 <div style={{ width: mainWidth(template) }}>

@@ -54,7 +54,7 @@ for (const profile of [{ full_name: 'Test Client' }, [{ full_name: 'Test Client'
     };
     const page = loadSource('src/app/(admin)/admin/users/[id]/generate-resume/page.tsx', {
       '@/lib/supabase/admin': { createAdminClient: () => database },
-      '@/lib/admin/guards': { requireAdmin: async () => ({ role: 'admin' }), isAuthError: () => false },
+      '@/lib/admin/guards': { requireAdmin: async () => ({ role: 'super_admin' }), isAuthError: () => false },
       'next/navigation': { redirect: (url) => { throw new Error(`Unexpected redirect: ${url}`); } },
       './client': { AdminResumeGeneratorClient: () => null },
     }).default;

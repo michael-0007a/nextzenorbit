@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { AiProgress } from "@/components/ui/ai-progress";
 import { resumeRewritePlan, type AiStage } from "@/lib/ai/progress";
 import { fetchWithProgress } from "@/lib/ai/fetch-progress";
+import { AiQuotaNote } from "@/components/ai/ai-quota-note";
 
 // Common template interface for both LaTeX and React-PDF templates
 interface BaseTemplate {
@@ -234,7 +235,7 @@ export function ResumeActions({
       }
     } catch (error) {
       console.error("Improve error:", error);
-      toast.error("Failed to improve resume. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to improve resume. Please try again.");
     } finally {
       setImproving(false);
     }
@@ -283,7 +284,7 @@ export function ResumeActions({
       }
     } catch (error) {
       console.error("Optimize error:", error);
-      toast.error("Failed to optimize resume. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to optimize resume. Please try again.");
     } finally {
       setOptimizing(false);
     }
@@ -651,6 +652,7 @@ export function ResumeActions({
           )}
 
           {optimizing && <AiProgress plan={resumeRewritePlan(targetPages)} stage={stage} />}
+          <AiQuotaNote bucket="rewrite" refresh={optimizing || improving} />
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2">

@@ -26,8 +26,8 @@ export function ResumePDF({ content, template }: { content: ResumeContent; templ
           paddingLeft: template.layout.margins.left, paddingRight: template.layout.margins.right }}>
         {sidebar ? <>
           {header.map((line, index) => <Line key={`h${index}`} line={line} template={template} />)}
-          <View style={{ flexDirection: "row" }}>
-            <View style={{ width: sidebar.width, marginRight: sidebar.gap }}>
+          <View style={{ flexDirection: sidebar.position === "right" ? "row-reverse" : "row" }}>
+            <View style={sidebar.position === "right" ? { width: sidebar.width, marginLeft: sidebar.gap } : { width: sidebar.width, marginRight: sidebar.gap }}>
               {lines.filter(line => line.column === "side" && line.kind !== "spacer").map((line, index) => <Line key={index} line={line} template={template} />)}
             </View>
             <View style={{ width: mainWidth(template) }}>

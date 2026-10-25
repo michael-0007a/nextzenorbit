@@ -1,3 +1,4 @@
+import { checkAiQuota,recordAiUse } from '@/lib/ai/quota';
 import { after } from 'next/server';
 import { z } from 'zod';
 import { enqueueDocumentJob,runDocumentJob } from '@/lib/admin/documents/jobs';
@@ -12,6 +13,7 @@ export const maxDuration=120;
 export async function POST(request:Request){
  const auth=await requireAdmin();if(isAuthError(auth))return auth;
  const limited=await rateLimit('admin-draft-upload',auth.userId,10,60);if(limited)return limited;
+ const quotaLimited=await checkAiQuota(auth.userId,'light');if(quotaLimited)return quotaLimited;
  try{
   const form=await request.formData();const file=form.get('file');
   // Multipart stays below Vercel's function payload limit. Nothing is uploaded to storage.
@@ -27,6 +29,7 @@ export async function POST(request:Request){
    const job=await enqueueDocumentJob(auth.userId,id,'parse_resume',{text,title});
    if(job){after(()=>runDocumentJob(job.id).catch(()=>console.error('Document processing failed')));return Response.json({data:{jobId:job.id}},{status:202,headers:{'Cache-Control':'private, no-store'}});}
   }
-  return Response.json({data:await parseDocument(text,title)},{headers:{'Cache-Control':'private, no-store'}});
+  const parsedDocument=await parseDocument(text,title);await recordAiUse(auth.userId,'light');
+  return Response.json({data:parsedDocument},{headers:{'Cache-Control':'private, no-store'}});
  }catch{return Response.json({error:{message:'Unable to read this document. Your current draft is unchanged.'}},{status:503});}
 }

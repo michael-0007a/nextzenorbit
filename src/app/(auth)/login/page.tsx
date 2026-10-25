@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithGoogle } from "../actions";
+import { signInWithEmail, signInWithGoogle } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Lock } from "lucide-react";
@@ -38,24 +38,14 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error?.message || "Invalid credentials");
-      }
-      
-      // Force a full reload to apply auth state
-      window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message);
+    const result = await signInWithEmail(email, password);
+    if (result.error) {
+      setError(result.error);
       setLoading(false);
+      return;
     }
+    // Full reload so the server sees the new session cookie
+    window.location.href = "/dashboard";
   }
 
   return (

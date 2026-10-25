@@ -17,7 +17,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 async function main() {
   const email = "admin@nextzenorbit.com";
-  const password = "SuperSecretPassword123!";
+  const password = process.env.SUPER_ADMIN_PASSWORD;
+  if (!password || password.length < 12) throw new Error("Set SUPER_ADMIN_PASSWORD (12+ chars).");
   
   console.log(`Creating Super Admin account for ${email}...`);
 
@@ -73,7 +74,7 @@ async function updateUserRole(userId: string) {
 
   console.log("✅ Successfully created Super Admin account!");
   console.log("Email:", "admin@nextzenorbit.com");
-  console.log("Password:", "SuperSecretPassword123!");
+  console.log("Password: (from SUPER_ADMIN_PASSWORD)");
   console.log("You can log in at /admin/login");
 }
 

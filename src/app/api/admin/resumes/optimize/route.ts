@@ -1,3 +1,4 @@
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { withStageStream } from "@/lib/ai/progress-stream";
 import type { AiStage } from "@/lib/ai/progress";
 import { isUnparsedUpload } from "@/lib/resume/text-fallback";
@@ -20,6 +21,7 @@ import { structureUploadedResume, UNPARSED_RESUME_MESSAGE } from "@/lib/ai/parse
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, isAuthError } from "@/lib/admin/guards";
+import { denyUnassignedClient } from "@/lib/admin/assignments";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import {
@@ -54,6 +56,8 @@ async function handle(request: NextRequest, onStage: (stage: AiStage) => void): 
     if (isAuthError(adminAuth)) return adminAuth;
     const limited = await rateLimit("admin-resume-optimize", adminAuth.userId, 10, 60);
     if (limited) return limited;
+    const quotaLimited = await checkAiQuota(adminAuth.userId, "rewrite");
+    if (quotaLimited) return quotaLimited;
 
     const body = await request.json();
     const parsed = adminOptimizeSchema.safeParse(body);
@@ -69,6 +73,8 @@ async function handle(request: NextRequest, onStage: (stage: AiStage) => void): 
 
     const { userId, resumeId, jobDescription, embellishmentLevel, targetPages } = parsed.data;
 
+    const denied = await denyUnassignedClient(adminAuth, userId);
+    if (denied) return denied;
     const admin = createAdminClient();
 
     // Fetch resume (must belong to the target user)
@@ -158,6 +164,7 @@ async function handle(request: NextRequest, onStage: (stage: AiStage) => void): 
     const fitted = await timings.measure('revision',()=>fitGeneratedResume(groq, validatedContent.data, typedResume.content, requestedPages, parsed.data.templateId || typedResume.template_id,{signal,jobDescription,onStage,level:embellishmentLevel}));
 
     // Return optimized content WITHOUT mutating the original resume
+    await recordAiUse(adminAuth.userId, "rewrite", (completion.usage?.total_tokens || 0) + fitted.tokensUsed);
     return NextResponse.json({
       success: true,
       data: {

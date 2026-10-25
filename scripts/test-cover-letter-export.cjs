@@ -8,7 +8,7 @@ function route({ assigned = true, letter = { user_id: clientId, title: 'Acme let
   const query = { select() { return query; }, eq() { return query; }, maybeSingle: async () => ({ data: letter, error: null }) };
   return loadSource('src/app/api/admin/cover-letters/[id]/export/route.ts', {
     '@/lib/admin/guards': { requireAdmin: async () => ({ userId: 'admin', role: 'admin' }), isAuthError: v => v instanceof Response },
-    '@/lib/admin/assignments': { isAssignedToClient: async () => assigned },
+    '@/lib/admin/assignments': { denyUnassignedClient: async () => assigned ? null : Response.json({ error: { message: 'This client is not assigned to you.' } }, { status: 403 }) },
     '@/lib/supabase/admin': { createAdminClient: () => ({ from: () => query }) },
   });
 }

@@ -10,8 +10,9 @@
     "test:signup": "node --test --test-isolation=none scripts/test-onboarding.cjs scripts/test-signup-migration.cjs scripts/test-resume-upload.cjs scripts/test-payment-access.cjs",
     "seed:career-workspace": "npx tsx scripts/seed/index.ts",
     "wipe:client-data": "node scripts/wipe-client-data.js",
+    "test:features": "node --test --test-isolation=none scripts/test-domain-split.cjs scripts/test-client-feed-messages.cjs scripts/test-salary.cjs scripts/test-ai-features.cjs",
     "test:resumes": "node --test --test-isolation=none scripts/test-resume-layout.cjs scripts/test-quality-gate.cjs",
-    "test:performance": "node --test --test-isolation=none scripts/test-onboarding.cjs scripts/test-signup-migration.cjs scripts/test-resume-upload.cjs scripts/test-payment-access.cjs scripts/test-resume-layout.cjs scripts/test-quality-gate.cjs scripts/test-extract-json.cjs scripts/test-ai-progress.cjs scripts/test-tailoring-intensity.cjs scripts/test-cover-letter-export.cjs scripts/test-shared-client-assignments.cjs scripts/test-session-logout.cjs scripts/test-expanded-workflows.cjs scripts/test-admin-job-search.cjs scripts/test-admin-document-workspace.cjs scripts/test-resume-deletion.cjs scripts/test-performance.cjs",
+    "test:performance": "node --test --test-isolation=none scripts/test-onboarding.cjs scripts/test-signup-migration.cjs scripts/test-resume-upload.cjs scripts/test-payment-access.cjs scripts/test-resume-layout.cjs scripts/test-quality-gate.cjs scripts/test-extract-json.cjs scripts/test-ai-progress.cjs scripts/test-tailoring-intensity.cjs scripts/test-ai-quota.cjs scripts/test-cover-letter-export.cjs scripts/test-shared-client-assignments.cjs scripts/test-session-logout.cjs scripts/test-expanded-workflows.cjs scripts/test-admin-job-search.cjs scripts/test-admin-document-workspace.cjs scripts/test-resume-deletion.cjs scripts/test-domain-split.cjs scripts/test-client-feed-messages.cjs scripts/test-salary.cjs scripts/test-ai-features.cjs scripts/test-performance.cjs",
     "benchmark:performance": "node scripts/benchmark-performance.cjs",
     "benchmark:resume": "node scripts/benchmark-resume.cjs"
   },

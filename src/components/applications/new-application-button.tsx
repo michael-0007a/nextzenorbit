@@ -8,12 +8,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/use-toast";
 import { Plus } from "lucide-react";
-import type { Database, ApplicationStatus } from "@/types/database";
+import type { ApplicationStatus } from "@/types/database";
 
 export function NewApplicationButton() {
   const router = useRouter();
@@ -25,10 +25,7 @@ export function NewApplicationButton() {
   const [status, setStatus] = useState<ApplicationStatus>("applied");
   const [notes, setNotes] = useState("");
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

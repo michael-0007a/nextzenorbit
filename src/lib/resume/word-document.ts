@@ -36,17 +36,19 @@ export async function generateWordDocument(content: ResumeContent, options: { te
     const header = main.filter(line => line.kind === "name" || line.kind === "contact");
     const side = lines.filter(line => line.column === "side" && line.kind !== "spacer");
     const body = main.filter(line => !header.includes(line));
+    const right = sidebar.position === "right";
+    // The gap sits between the columns: right of a left sidebar, left of a right one.
     const cell = (cellLines: LayoutLine[], width: number, margin = 0) => new TableCell({
       width: { size: twips(width + margin), type: WidthType.DXA }, borders: { top: none, bottom: none, left: none, right: none },
-      margins: { top: 0, bottom: 0, left: 0, right: twips(margin) },
+      margins: { top: 0, bottom: 0, left: right ? twips(margin) : 0, right: right ? 0 : twips(margin) },
       children: cellLines.length ? cellLines.map(line => paragraph(line, template, width)) : [new Paragraph("")],
     });
     return [
       ...header.map(line => paragraph(line, template, fullWidth)),
       new Paragraph({ pageBreakBefore: pageIndex > 0, spacing: { before: 0, after: 0, line: 20, lineRule: LineRuleType.EXACT }, children: [] }),
-      new Table({ width: { size: twips(fullWidth), type: WidthType.DXA }, columnWidths: [twips(sidebar.width + sidebar.gap), twips(mainWidth(template))],
+      new Table({ width: { size: twips(fullWidth), type: WidthType.DXA }, columnWidths: right ? [twips(mainWidth(template)), twips(sidebar.width + sidebar.gap)] : [twips(sidebar.width + sidebar.gap), twips(mainWidth(template))],
         borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
-        rows: [new TableRow({ cantSplit: true, children: [cell(side, sidebar.width, sidebar.gap), cell(body, mainWidth(template))] })] }),
+        rows: [new TableRow({ cantSplit: true, children: right ? [cell(body, mainWidth(template)), cell(side, sidebar.width, sidebar.gap)] : [cell(side, sidebar.width, sidebar.gap), cell(body, mainWidth(template))] })] }),
     ];
   });
   const doc = new Document({
