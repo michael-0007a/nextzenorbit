@@ -9,6 +9,7 @@ import { getCachedUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { checkAiTokenUsage } from "@/lib/subscription-server";
+import { checkAiQuota, recordAiUse } from "@/lib/ai/quota";
 import { AiOutputError, generateJson, trackAiUsage } from "@/lib/ai/json";
 import { MOCK_FEEDBACK_SYSTEM, mockFeedbackPrompt, mockFeedbackSchema, overallScore } from "@/lib/ai/prompts/mock-interview";
 import { apiError, apiSuccess, ERROR_CODES } from "@/types/api";
@@ -39,12 +40,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const limited = await rateLimit("mock-interview-answer", user.id, 60, 3600);
   if (limited) return limited;
+  const quotaLimited = await checkAiQuota(user.id, "light");
+  if (quotaLimited) return quotaLimited;
   const usage = await checkAiTokenUsage(user.id);
   if (!usage.allowed) return apiError(ERROR_CODES.SUBSCRIPTION_REQUIRED, usage.error || "Monthly AI limit reached.", 403);
 
   try {
     const { data: feedback, tokens } = await generateJson(mockFeedbackSchema, MOCK_FEEDBACK_SYSTEM, mockFeedbackPrompt(interview.role, question, parsed.data.answer), 1500);
     await trackAiUsage(user.id, tokens).catch((err) => console.error("AI usage tracking failed:", err));
+    await recordAiUse(user.id, "light", tokens);
 
     // shortcut: read-modify-write of the answers array; fine for one user answering in order, use jsonb_set in an RPC if answers become concurrent.
     const answers: (MockInterviewAnswer | null)[] = interview.questions.map((_, i) => interview.answers?.[i] ?? null);

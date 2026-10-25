@@ -17,7 +17,8 @@ const content = {
   skills: [{ id: 's1', category: 'Tools', items: ['SQL', 'Python', 'Tableau'] }],
 };
 
-function routes({ replies, user = { id: me }, usage = { allowed: true } }) {
+function routes({ replies, user = { id: me }, usage = { allowed: true }, quotaLeft = Infinity }) {
+  const aiUses = [];
   const db = fakeDb({
     resumes: [{ id: resumeId, user_id: me, deleted_at: null, content }, { id: otherResume, user_id: someoneElse, deleted_at: null, content }],
     ai_usage: [], mock_interviews: [],
@@ -29,9 +30,13 @@ function routes({ replies, user = { id: me }, usage = { allowed: true } }) {
     '@/lib/supabase/server': { getCachedUser: async () => ({ user }) },
     '@/lib/rate-limit': { rateLimit: async () => null },
     '@/lib/subscription-server': { checkAiTokenUsage: async () => usage },
+    '@/lib/ai/quota': {
+      checkAiQuota: async () => (aiUses.length >= quotaLeft ? new Response(null, { status: 429 }) : null),
+      recordAiUse: async (userId, bucket) => { aiUses.push(bucket); },
+    },
   };
   return {
-    db, groq,
+    db, groq, aiUses,
     linkedin: loadSource('src/app/api/linkedin/optimize/route.ts', mocks),
     sessions: loadSource('src/app/api/mock-interviews/route.ts', mocks),
     session: loadSource('src/app/api/mock-interviews/[id]/route.ts', mocks),
@@ -95,6 +100,16 @@ test('Mock interview: start, answer every question, finish with an overall score
 
   const list = await (await r.sessions.GET()).json();
   assert.deepEqual(list.data.map(s => s.overall), [80]);
+  assert.equal(r.aiUses.length, 6, 'start + 5 scored answers each count as one light AI use');
+});
+
+test('Mock interview answers stop at the daily AI allowance', async () => {
+  const r = routes({ replies: [JSON.stringify({ questions }), feedback(5)], quotaLeft: 2 });
+  const session = (await (await r.sessions.POST(post({ role: 'Analyst' }))).json()).data;
+  assert.equal((await r.answer.POST(post({ index: 0, answer: 'one' }), params(session.id))).status, 200);
+  assert.equal((await r.answer.POST(post({ index: 1, answer: 'two' }), params(session.id))).status, 429);
+  assert.equal(r.groq.calls.length, 2, 'no model call once the allowance is used up');
+  assert.deepEqual(r.aiUses, ['light', 'light']);
 });
 
 test('Mock interview sessions are private and inputs are validated', async () => {
