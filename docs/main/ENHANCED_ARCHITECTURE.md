@@ -1,4 +1,4 @@
-# Enhanced architecture: feature guide (main)
+# Enhanced architecture: feature guide
 
 Last reviewed from code: 2026-10-16. This was the 2026 planning doc for the career workspace and the extension. It now describes what was built. The repo layout and services are in [CAREER_WORKSPACE_ARCHITECTURE.md](CAREER_WORKSPACE_ARCHITECTURE.md).
 
@@ -39,7 +39,7 @@ Filter by role, company, difficulty and topic (`use-interview-filter`), on expan
 
 ### 6. YouTube resources
 
-Seeded rows in `youtube_resources`, filterable by topic and difficulty. The live `GET /api/youtube/search` route (YouTube Data API v3) exists on main but nothing in the UI calls it, and beta removes it.
+Seeded rows in `youtube_resources`, filterable by topic and difficulty. The unused live `GET /api/youtube/search` route was removed (audit N6).
 
 ### 7. User projects
 
@@ -64,8 +64,8 @@ src/
 - **Supported portals:** Workday (`*.myworkdayjobs.com`), Greenhouse, Lever, LinkedIn, Microsoft Careers.
 - **Profile mapping:** full name, email, phone, LinkedIn, GitHub, portfolio, education entries (institution, degree, field, dates, GPA) and experience entries (company, position, dates, bullets).
 - **Never automated:** file inputs (they're flagged for manual upload) and submission.
-- **Telemetry:** field counts per portal go to `POST /api/autofill/telemetry`. On main those rows are dropped; see SECURITY.md.
-- **Default app URL:** `http://localhost:3000` on main and `https://app.nextzenorbit.com` on beta. It can be changed in the popup.
+- **Telemetry:** field counts per portal go to `POST /api/autofill/telemetry`. The route writes them with the service role.
+- **Default app URL:** `https://app.nextzenorbit.com`, changeable in the popup. It only resolves once the domain split is live.
 
 ### 9. Application tracking
 

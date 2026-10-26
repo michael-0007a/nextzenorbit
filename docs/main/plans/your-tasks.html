@@ -53,7 +53,7 @@
 <body>
 <main>
   <h1>Beta, then launch</h1>
-  <p class="lede">The code is on the <code>beta</code> branch on GitHub: your security commit <code>aacec9d</code>, then the domain split and the five features on top of it. <code>main</code> and production are untouched. Below is everything only you can do, in order. Ticks are saved in this browser.</p>
+  <p class="lede">The code is on the <code>beta</code> branch on GitHub: your security commit <code>aacec9d</code>, then the domain split and the five features on top of it. <b>Update 2026-10-26:</b> beta is merged into <code>main</code> (<code>b9b0678</code>) and live in production with the domain split <b>off</b>. The domain steps below still apply when you switch it on. Below is everything only you can do, in order. Ticks are saved in this browser.</p>
 
   <div class="progress"><span id="count">0 / 0 done</span><div class="bar"><div id="fill"></div></div></div>
 
@@ -265,7 +265,7 @@ https://admin.nextzenorbit.com/**</code></pre>
     <tr><td><code>e033669</code></td><td>Harvard, FAANGPath and AltaCV templates</td></tr>
     <tr><td><code>a36b706</code></td><td>Daily AI allowances with supervisor approval (migration 046)</td></tr>
   </table></div>
-  <p>Full write-up: <a href="BETA_OVERVIEW.md">BETA_OVERVIEW.md</a>.</p>
+  <p>Full write-up: <a href="../CHANGELOG.md">CHANGELOG.md</a>.</p>
   <div class="tbl" style="margin-top:12px"><table>
     <tr><th>Feature</th><th>Main files</th><th>Tests</th></tr>
     <tr><td>Domain split, shared and admin-only logins</td><td><code>src/lib/hosts.ts</code>, <code>src/middleware.ts</code>, <code>src/lib/supabase/*</code></td><td><code>scripts/test-domain-split.cjs</code></td></tr>

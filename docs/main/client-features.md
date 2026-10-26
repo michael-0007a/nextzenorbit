@@ -1,6 +1,6 @@
-# Five client features (beta)
+# Five client features
 
-Status: on `beta` (commit `aa0191e`, restyled in `34c6366`). Migrations 043–045 are **applied** to the shared database. The original plan is in [plan.html](plan.html); the ideas they came from are in [feature-ideas.html](feature-ideas.html).
+Status: **live on main** since the beta merge (`b9b0678`, 2026-10-26; built in `aa0191e`, restyled in `34c6366`). Migrations 043–045 are applied. The original plan is in [plans/plan.html](plans/plan.html); the ideas they came from are in [plans/feature-ideas.html](plans/feature-ideas.html).
 
 All five sit behind the normal gate (approved and paid). Client user ids always come from the server session and are never taken from the request.
 
@@ -74,7 +74,7 @@ Improved answers keep to facts the candidate gave and mark any missing detail as
 
 ## Navigation
 
-The client sidebar on beta adds **Messages**, **LinkedIn**, **Offer Compare** and **Mock Interview**. The admin sidebar adds **Messages** and **AI Limits**.
+The client sidebar has **Messages**, **LinkedIn**, **Offer Compare** and **Mock Interview**. The admin sidebar has **Messages** and **AI Limits**.
 
 ## Tests
 

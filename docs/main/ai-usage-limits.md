@@ -1,6 +1,6 @@
-# Daily AI usage limits (beta)
+# Daily AI usage limits
 
-Status: on `beta` (commit `a36b706`). Migration 046 is **applied** to the shared database. Main doesn't use these tables. Code: `src/lib/ai/quota.ts`, `src/app/api/ai-quota/`, `src/app/api/admin/ai-quota/requests/`, `src/app/(admin)/admin/ai-limits/`, `src/components/ai/`.
+Status: **live on main** since the beta merge (`b9b0678`, 2026-10-26; built in `a36b706`, mock interview answers counted from `1d95703`). Migration 046 is applied. Code: `src/lib/ai/quota.ts`, `src/app/api/ai-quota/`, `src/app/api/admin/ai-quota/requests/`, `src/app/(admin)/admin/ai-limits/`, `src/components/ai/`.
 
 ## What it does
 
@@ -75,4 +75,4 @@ See `AI_COST_ESTIMATE.md` in the repo root. At about 3–7¢ per rewrite, an Eli
 
 ## Tests
 
-`scripts/test-ai-quota.cjs` (beta) covers the limits by role and plan, recording only on success, the 429 shape, and the request/decision rules.
+`scripts/test-ai-quota.cjs` covers the limits by role and plan, recording only on success, the 429 shape, and the request/decision rules.

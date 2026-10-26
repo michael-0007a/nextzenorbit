@@ -1,6 +1,6 @@
-# Architecture: Nextzen Orbit (main)
+# Architecture: Nextzen Orbit
 
-Last reviewed from code: 2026-10-16, branch `main`. Beta changes the hosting region and adds host routing; see [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+Last reviewed from code: 2026-10-26, branch `main` (beta merged).
 
 ## System overview
 
@@ -12,9 +12,10 @@ One Next.js deployment serves the marketing pages, the client app, the admin con
                        └──────────┬─────────────┘                            │
                                   ▼                                          │ /api/autofill/*
 ┌─────────────────────────────────────────────────────────────────────────────┴───┐
-│ Vercel (region bom1) — Next.js 16 App Router, React 19                           │
+│ Vercel (region hnd1) — Next.js 16 App Router, React 19                           │
 │                                                                                  │
 │  src/middleware.ts (proxy)                                                       │
+│   0. route by host (site / app / admin) when the domain split is on              │
 │   1. refresh Supabase session                                                    │
 │   2. gate /api/* and dashboard pages on approval (403) and payment (402)         │
 │   3. compute AccountAccess once → signed 30s path-bound header                   │
@@ -34,7 +35,7 @@ One Next.js deployment serves the marketing pages, the client app, the admin con
 
 | Layer | Technology | Where |
 | --- | --- | --- |
-| Framework | Next.js 16.1 App Router, React 19.2, React Compiler | `next.config.ts` (`reactCompiler`; beta adds hover prefetch) |
+| Framework | Next.js 16.1 App Router, React 19.2, React Compiler | `next.config.ts` (`reactCompiler`, hover prefetch with `dynamicOnHover`) |
 | Language | TypeScript 5.9, strict | `tsconfig.json`, alias `@/` → `src/` |
 | Styling | Tailwind CSS v4, CSS tokens, next-themes (dark default) | `src/app/globals.css`, `src/components/ui` |
 | Auth | Supabase Auth: Google OAuth for clients, email/password for staff and SSO accounts | `src/app/(auth)`, `src/app/(admin-auth)` |
@@ -45,13 +46,14 @@ One Next.js deployment serves the marketing pages, the client app, the admin con
 | Payments | PayU (INR); USD gateway placeholder | `src/lib/payments` |
 | Jobs | Adzuna API with a normalized catalog | `src/lib/jobs` |
 | Extension | Chrome MV3, esbuild, zod message schemas | `extensions/nextzen-orbit-autofill` |
-| Hosting | Vercel, functions pinned to `bom1` (Mumbai) | `vercel.json` |
+| Hosting | Vercel, functions pinned to `hnd1` (Tokyo, same region as the database) | `vercel.json` |
 
 ## Request gate (the core cross-cutting concern)
 
 `src/middleware.ts` exports `proxy` (the Next 16 convention). Every page and API request goes through it:
 
-1. **Session:** `updateSession` refreshes the Supabase cookies, and every redirect keeps them.
+0. **Host routing:** when the three host variables are set, `src/lib/hosts.ts` sends each host its own pages (site, client app, admin with clean URLs). Off otherwise. See [domain-separation.md](domain-separation.md).
+1. **Session:** `updateSession` refreshes the Supabase cookies, and every redirect keeps them. The JWT is verified locally with `auth.getClaims()`, so the per-request check needs no Supabase round trip.
 2. **API gate:** for a signed-in user, any `/api/*` call outside `/api/auth`, `/api/webhooks`, `/api/onboarding`, `/api/performance` and `/api/internal/jobs` needs:
    - an approved signup application, or it gets `403 APPROVAL_REQUIRED`;
    - active service, or it gets `402 PAYMENT_REQUIRED`. The checkout routes are exempt (`/api/subscription`, `/api/subscription/create`, `/api/payments/create-order`, `/api/payments/reconcile`).
@@ -63,7 +65,7 @@ Privileged roles (`admin`, `supervisor_admin`, `super_admin`, `sso_user`) count 
 ## Authorization model
 
 - **Client data:** client routes use the cookie-bound client (RLS applies) or the service role with an explicit `user_id = session user` filter.
-- **Admin routes:** they call `requireAdmin` / `requireSuperAdmin` (`src/lib/admin/guards.ts`) and then use `createAdminClient()`, which **bypasses RLS**. Authorization therefore has to be enforced in code. Client access is checked against `client_admin_assignments` (`src/lib/admin/assignments.ts`), and supervisors and super admins see all clients. On main, several client-scoped admin routes skip the assignment check (see [SECURITY.md](SECURITY.md#open-on-main-fixed-on-beta)).
+- **Admin routes:** they call `requireAdmin` / `requireSuperAdmin` (`src/lib/admin/guards.ts`) and then use `createAdminClient()`, which **bypasses RLS**. Authorization therefore has to be enforced in code. Client access is checked against `client_admin_assignments` (`src/lib/admin/assignments.ts`), and supervisors and super admins see all clients. Per-client admin routes call `denyUnassignedClient`, which fails closed for unknown roles.
 - **Paid tables:** restrictive RLS policies call `has_paid_service_access()` (migration 035), so a direct PostgREST call can't bypass payment either.
 - **RPCs:** the sensitive writes are `SECURITY DEFINER` functions granted only to `service_role`. They include signup submit/review, PayU activation, client assignment, document save, queue updates and document job claims.
 
@@ -113,7 +115,7 @@ Client opens a supported portal ─► content script detects fields
 
 ## Key design decisions
 
-1. **One deployment, one database.** Splitting into separate apps would add coordination before any need is proven. Beta keeps one deployment even with three domains.
+1. **One deployment, one database.** Splitting into separate apps would add coordination before any need is proven. The domain split keeps one deployment for all three domains.
 2. **The service role plus code checks for staff.** This avoids RLS recursion on role checks, which caused migrations 005–030. Every admin route must authorize explicitly.
 3. **Atomic RPCs for anything money- or credit-related.** This covers payment activation, signup review, assignments, completion credit and document saves.
 4. **AI output is checked, not trusted.** A second model reviews the writer's output, and anything unsupported is restored to the original.

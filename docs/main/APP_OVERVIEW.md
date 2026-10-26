@@ -1,6 +1,6 @@
-# Nextzen Orbit: app overview (main)
+# Nextzen Orbit: app overview
 
-Last reviewed from code: 2026-10-16. For what beta adds, see [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+Last reviewed from code: 2026-10-26 (beta merged; see [CHANGELOG.md](CHANGELOG.md)).
 
 ## Purpose
 
@@ -10,13 +10,15 @@ Nextzen Orbit is a done-for-you job search service. Clients apply and are review
 
 **For clients:**
 
-- Sign in with Google, then apply with a profile and resume.
+- Sign in with Google (or email/password for SSO accounts), then apply with a profile and resume.
 - After approval, pay for a plan: Silver, Gold or Elite.
-- Build, upload, AI-improve, tailor and export resumes, using six templates plus three contract (C2C) templates, at an exact page count.
+- Build, upload, AI-improve, tailor and export resumes, using six templates (Harvard, Jake's, Deedy, Awesome CV, FAANGPath, AltaCV) plus three contract (C2C) templates, at an exact page count.
 - Analyze a resume against a job description; generate cover letters.
 - Track applications on a Kanban board or table.
 - Search jobs (Adzuna, many countries) and save searches.
 - Use career pages: roadmaps, interview questions, videos, AI notes, projects.
+- See what the team did for them (progress feed) and message the team.
+- Optimize their LinkedIn profile, compare job offers (CTC → in-hand), and practise AI mock interviews.
 - Use the assisted autofill extension.
 
 **For staff:**
@@ -25,7 +27,8 @@ Nextzen Orbit is a done-for-you job search service. Clients apply and are review
 - Allocate clients to admin teams, with monthly application targets per plan.
 - Search jobs for a client, queue them, claim them, apply, and mark them applied (with credit).
 - Generate tailored resumes and cover letters per client, or in the standalone workspace.
-- See analytics, manage the team, SSO users and notifications.
+- Reply to client messages.
+- See analytics, manage the team, SSO users and notifications. Supervisors approve extra daily AI allowance.
 
 ## Primary journeys
 
@@ -37,7 +40,7 @@ Nextzen Orbit is a done-for-you job search service. Clients apply and are review
 
 ```mermaid
 graph TD
-  A[Client / staff browser] --> B[Next.js 16 on Vercel bom1<br/>proxy: session, approval 403, payment 402]
+  A[Client / staff browser] --> B[Next.js 16 on Vercel hnd1 Tokyo<br/>proxy: session, approval 403, payment 402]
   X[Chrome extension] --> B
   B --> C[Supabase Tokyo<br/>Auth, Postgres + RLS, Storage]
   B --> D[Amazon Bedrock<br/>Kimi K2.5 writer, DeepSeek V3.2 reviewer]
@@ -51,20 +54,17 @@ graph TD
 | --- | --- |
 | Marketing | `/`, `/compliance`, `/privacy`, `/refund`, `/terms` |
 | Auth and onboarding | `/login`, `/register`, `/verify`, `/onboarding`, `/onboarding/terms` |
-| Client app | `/dashboard`, `/profile`, `/resumes`, `/resumes/[id]`, `/analyzer`, `/cover-letter`, `/applications`, `/job-search`, `/career`, `/career/[slug]`, `/subscription`, `/settings` |
-| Staff | `/admin/login`, `/admin`, `/admin/users`, `/admin/apply-queue`, `/admin/job-search`, `/admin/create-resume`, `/admin/create-cover-letter`, `/admin/signup-applications`, `/admin/team`, `/admin/analytics`, `/admin/sso-users`, `/admin/settings` |
+| Client app | `/dashboard`, `/profile`, `/resumes`, `/resumes/[id]`, `/analyzer`, `/cover-letter`, `/applications`, `/job-search`, `/career`, `/career/[slug]`, `/messages`, `/linkedin`, `/offers`, `/interviews/mock`, `/subscription`, `/settings` |
+| Staff | `/admin/login`, `/admin`, `/admin/users`, `/admin/apply-queue`, `/admin/job-search`, `/admin/create-resume`, `/admin/create-cover-letter`, `/admin/signup-applications`, `/admin/team`, `/admin/analytics`, `/admin/messages`, `/admin/ai-limits`, `/admin/sso-users`, `/admin/settings` |
 
 ## Data at a glance
 
-Accounts (`users`, `profiles`, `signup_applications`, `subscriptions`, `payment_orders`), documents (`resumes`, `resume_versions`, `admin_resumes`, `admin_cover_letters`, `admin_documents`, `document_jobs`), jobs (`jobs`, `job_queue`, `saved_job_searches`, `client_admin_assignments`, `applications`), and the career workspace. Full detail: [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
+Accounts (`users`, `profiles`, `signup_applications`, `subscriptions`, `payment_orders`), documents (`resumes`, `resume_versions`, `admin_resumes`, `admin_cover_letters`, `admin_documents`, `document_jobs`), jobs (`jobs`, `job_queue`, `saved_job_searches`, `client_admin_assignments`, `applications`), client features (`client_messages`, `mock_interviews`), AI limits (`ai_usage_events`, `ai_quota_requests`), and the career workspace. Full detail: [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
 
-## Status and known gaps (main)
+## Status and known gaps
 
-- Client email/password sign-in is broken (fixed on beta).
-- Some admin routes don't check client assignment (fixed on beta). See [SECURITY.md](SECURITY.md).
-- No daily AI allowances (on beta).
-- Slow requests from the Mumbai functions talking to the Tokyo database (fixed on beta).
 - USD checkout is a placeholder. Client cover letters aren't saved.
+- The site/app/admin domain split is built but off in production until it's configured ([domain-separation.md](domain-separation.md)).
 
 ## Where to read next
 

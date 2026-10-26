@@ -2,7 +2,7 @@
 
 Two resume categories are available in the client editor, the existing client-specific admin generator, and the standalone admin resume workspace:
 
-- **Corporate / Full-time** uses the corporate templates and full-resume tailoring. On main those are Classic, Modern, Creative, Jake's, Deedy and Awesome CV. On beta they're Harvard, Jake's, Deedy, Awesome CV, FAANGPath and AltaCV.
+- **Corporate / Full-time** uses the corporate templates and full-resume tailoring. Those are Harvard, Jake's, Deedy, Awesome CV, FAANGPath and AltaCV.
 - **C-to-C / Contract** adds Contract Consultant, Contract Classic, and Contract Modern. The supplied Anirudh Word document informed the detailed bulleted summary, grouped skills before experience, uppercase headings, and complete employment history. Its personal details and appended job advertisement are not template defaults. Layouts are reference-inspired rather than exact Word replicas; PDF-safe Arial/Times equivalents are used consistently across previews and exports.
 
 C-to-C AI improvement and optimization replace only `summary`. Contact details, experience, skills, education, projects, certifications and other sections come from the original structured source. The fitting stage cannot condense contract history to force a page count. Manual edits remain possible. Existing resumes without `resume_type` retain corporate behavior.

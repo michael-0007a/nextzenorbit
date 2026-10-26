@@ -1,17 +1,15 @@
 # Nextzen Orbit documentation
 
-Last reviewed against the code: 2026-10-16.
+Last reviewed against the code: 2026-10-26.
 
 The docs are split by git branch:
 
 | Folder | Describes | Branch state |
 | --- | --- | --- |
-| [`main/`](main/) | The production app: what is live today | `origin/main` at `808c909` (2026-10-15) |
-| [`beta/`](beta/) | Everything on `beta` that is **not yet on main** | `beta` at `a36b706` (17 commits ahead) |
+| [`main/`](main/) | The production app: what is live today | `main` at `b9b0678` (2026-10-26, beta merged) |
+| [`beta/`](beta/README.md) | Work on `beta` that is **not yet on main** | Empty: `beta` matches `main` |
 
-Beta is a superset of main, so read the main docs first and then the beta notes on top. When beta is merged into main, fold the beta notes into the matching main docs and empty `beta/` again.
-
-Both branches share **one Supabase project** (`nextzenorbit`, Tokyo `ap-northeast-1`). Every migration up to 046 is already applied there, including the beta-only ones (042–046). The live main app doesn't use the beta tables yet.
+Both branches share **one Supabase project** (`nextzenorbit`, Tokyo `ap-northeast-1`). Every migration up to 046 is applied.
 
 ## main/: production
 
@@ -48,17 +46,18 @@ Feature design notes (read the relevant one before changing that area):
 - [shared-client-assignments.md](main/shared-client-assignments.md): team allocation, targets, completion credit (039)
 - [resume-generation.md](main/resume-generation.md): the AI pipeline, quality gate, layout, templates and page fitting
 - [performance/](main/performance/): the 2026-10 performance audit, task list, implementation report and benchmark JSON (040, 041)
+- [domain-separation.md](main/domain-separation.md): the site / app / admin domain split (built, off until configured)
+- [client-features.md](main/client-features.md): progress feed, messaging, LinkedIn optimizer, offer comparison, mock interviews (043–045)
+- [ai-usage-limits.md](main/ai-usage-limits.md): daily AI allowances and supervisor approval for extra (046)
+
+Planning pages (open in a browser), in [main/plans/](main/plans/): [your-tasks.html](main/plans/your-tasks.html) (launch checklist, including the domain-split steps), [plan.html](main/plans/plan.html) (build plan for the client features), [speed.html](main/plans/speed.html) (speed fixes and the Tokyo move), [feature-ideas.html](main/plans/feature-ideas.html) (idea backlog).
 
 ## beta/: not yet on main
 
-- [BETA_OVERVIEW.md](beta/BETA_OVERVIEW.md): **start here**. Everything beta changes compared to main, migration status, and what to check before merging.
-- [domain-separation.md](beta/domain-separation.md): the site / app / admin domain split as built.
-- [client-features.md](beta/client-features.md): progress feed, messaging, LinkedIn optimizer, offer comparison, mock interviews.
-- [ai-usage-limits.md](beta/ai-usage-limits.md): daily AI allowances and supervisor approval for extra.
-- Planning pages (open in a browser): [plan.html](beta/plan.html) (build plan), [your-tasks.html](beta/your-tasks.html) (beta and launch checklist), [speed.html](beta/speed.html) (speed fixes and the Tokyo move), [feature-ideas.html](beta/feature-ideas.html) (idea backlog).
+[beta/README.md](beta/README.md) explains how to document beta-only work. It's empty right now.
 
 ## Ground rules
 
 - Code is the source of truth. If a doc disagrees with the code, fix the doc.
-- New database changes go in the next numbered file in `supabase/migrations/` (next is 047), and get noted in `main/DATABASE_SCHEMA.md` (or `beta/BETA_OVERVIEW.md` while they're beta-only).
+- New database changes go in the next numbered file in `supabase/migrations/` (next is 047), and get noted in `main/DATABASE_SCHEMA.md` (or a note in `beta/` while they're beta-only).
 - `README.md` in the repo root is a short entry point; it links here.

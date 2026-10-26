@@ -1,6 +1,6 @@
 # Job search implementation and rollout
 
-> Status (2026-10-16): shipped on main; migrations 036 and 037 are applied in production. Beta adds a hardening policy on `saved_job_searches` (042).
+> Status (2026-10-16): shipped on main; migrations 036 and 037 are applied in production. Migration 042 adds a hardening policy on `saved_job_searches` (paid access, 4,000-character `filters`).
 
 Implemented in the shared client and admin workspace:
 

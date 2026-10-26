@@ -1,6 +1,6 @@
 # Performance audit and AWS decision
 
-> **Status (2026-10-16):** historical record. The code changes shipped to main on 2026-10-05 (migrations 040 and 041 are applied). One premise turned out to be wrong: the Supabase project is in **Tokyo (`ap-northeast-1`)**, not Mumbai. Pinning the functions to `bom1` (P02) therefore kept a cross-region hop. Beta moves the functions to `hnd1` (Tokyo); see [`../../beta/speed.html`](../../beta/speed.html). AI has since moved from Groq to Amazon Bedrock. Benchmark JSON files live next to this file.
+> **Status (2026-10-16):** historical record. The code changes shipped to main on 2026-10-05 (migrations 040 and 041 are applied). One premise turned out to be wrong: the Supabase project is in **Tokyo (`ap-northeast-1`)**, not Mumbai. Pinning the functions to `bom1` (P02) therefore kept a cross-region hop. Since 2026-10-26 the functions run in `hnd1` (Tokyo); see [../plans/speed.html](../plans/speed.html). AI has since moved from Groq to Amazon Bedrock. Benchmark JSON files live next to this file.
 
 Date: 2026-09-29. Scope: source review across routing, shared authentication, representative admin and client pages, API queries, SQL migrations, resume generation/export, assets, and hosting. Inventory: 38 page files, 72 API route files, 2 loading boundaries. This is not an authenticated benchmark of every route. Runtime behavior may differ from this local checkout.
 

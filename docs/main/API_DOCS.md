@@ -1,6 +1,6 @@
-# API reference: Nextzen Orbit (main)
+# API reference: Nextzen Orbit
 
-Last reviewed from code: 2026-10-16, branch `main`. Beta adds routes for messaging, mock interviews, the LinkedIn optimizer and AI quotas; see [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+Last reviewed from code: 2026-10-26, branch `main` (beta merged).
 
 All routes live under `src/app/api/**/route.ts`. Authentication is the Supabase session cookie. The extension sends it with `credentials: "include"`.
 
@@ -25,7 +25,7 @@ Most routes use the helpers in `src/types/api.ts`:
 { "success": false, "error": { "code": "VALIDATION_ERROR", "message": "Human-readable text", "details": { } } }
 ```
 
-`ERROR_CODES` are `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `RATE_LIMITED`, `INTERNAL_ERROR`, `PAYMENT_FAILED`, `SUBSCRIPTION_REQUIRED`, `TRIAL_EXPIRED` and `AI_QUOTA_EXCEEDED` (the last one is only returned on beta). A few older routes return `{ success: false, error: { message } }` without a code. Rate-limited calls return 429.
+`ERROR_CODES` are `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `RATE_LIMITED`, `INTERNAL_ERROR`, `PAYMENT_FAILED`, `SUBSCRIPTION_REQUIRED`, `TRIAL_EXPIRED` and `AI_QUOTA_EXCEEDED` (429, when a daily AI allowance is used up; see [ai-usage-limits.md](ai-usage-limits.md)). A few older routes return `{ success: false, error: { message } }` without a code. Rate-limited calls return 429.
 
 ## Client routes
 
@@ -65,27 +65,24 @@ Most routes use the helpers in `src/types/api.ts`:
 | `/api/roadmaps`, `/api/roadmaps/[id]` | GET | Roadmaps and steps |
 | `/api/interview-questions` | GET | Filter by career, company, difficulty, topic |
 | `/api/youtube` | GET | Stored resources |
-| `/api/youtube/search` | GET | Live YouTube Data API search (`YOUTUBE_API_KEY`). Unused by the UI and removed on beta (audit finding N6) |
 | `/api/ai-notes`, `/api/ai-notes/[id]` | GET, POST / GET, PATCH, DELETE | User notes |
 | `/api/ai/generate-notes` | POST | AI-generated topic notes |
 | `/api/projects`, `/api/projects/[id]` | GET, POST / GET, PATCH, DELETE | User projects |
 | `/api/autofill/profile` | GET | Profile, education and experience for the extension |
-| `/api/autofill/telemetry` | POST | Field-coverage telemetry. On main it inserts with the user's client, which migration 042 now forbids, so rows are silently dropped. Beta writes with the service role |
+| `/api/autofill/telemetry` | POST | Field-coverage telemetry, written with the service role with size caps (042 forbids client inserts) |
 | `/api/geo` | GET | Visitor country from Vercel geo headers (currency display) |
+| `/api/ai-quota` | GET | Today's AI allowance for all three buckets (`rewrite`, `cover_letter`, `light`) |
+| `/api/messages` | GET, POST | The client's thread with their team. 30 messages per 10 minutes |
+| `/api/linkedin/optimize` | POST | `{ resumeId, targetRole }`: LinkedIn headline, About, top skills and rewritten bullets from an owned resume. 10 per hour, `light` bucket |
+| `/api/mock-interviews` | GET, POST | List sessions / start one `{ role, jobDescription? }`. 10 per hour, `light` bucket |
+| `/api/mock-interviews/[id]` | GET | One session |
+| `/api/mock-interviews/[id]/answer` | POST | `{ index, answer }`: score one answer; the last one sets `overall` and `completed_at`. 60 per hour, `light` bucket |
 
 ## Admin routes (`/api/admin/*`)
 
 All of these call `requireAdmin` (or `requireSuperAdmin` where noted) and then use the service-role client. Supervisors and super admins can act on every client. Ordinary admins are supposed to be limited to their assigned clients.
 
-**On main this check is incomplete.** These routes don't verify that the admin is assigned to the client:
-
-- admin files, admin resumes and resume upload
-- cover-letter generate and list, resume optimize
-- notifications, subscription activate
-- client resume export and `export-admin`
-- the per-client generator pages
-
-The fix (`denyUnassignedClient`, audit findings F2/F3) is on beta; see [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+Per-client routes enforce that with `denyUnassignedClient` (`src/lib/admin/assignments.ts`, audit fix F2/F3), which also fails closed for unknown roles. That covers files, resumes, upload, optimize, cover letters, notifications, subscription activate, resume export, `export-admin`, messages and the per-client generator pages.
 
 | Route | Methods | Notes |
 | --- | --- | --- |
@@ -119,6 +116,10 @@ The fix (`denyUnassignedClient`, audit findings F2/F3) is on beta; see [`../beta
 | `/api/admin/notifications` | POST | Send a notification to one user: `{ user_id, type, title, message?, metadata? }` |
 | `/api/admin/sso-users` | GET, POST, DELETE | SSO client accounts (super admin) |
 | `/api/admin/reference-cache` | POST | Invalidate reference-data caches (super admin) |
+| `/api/admin/messages` | GET | Threads with unread client messages (assigned clients for an admin, all for supervisors) |
+| `/api/admin/users/[id]/messages` | GET, POST | One client's thread. 120 per 10 minutes, assignment checked |
+| `/api/admin/ai-quota/requests` | GET, POST | Admin asks for extra allowance `{ bucket, reason }`; supervisors list pending requests |
+| `/api/admin/ai-quota/requests/[id]` | POST | Supervisor decision `{ decision: "approved" \| "denied", extra }` |
 
 ## Webhooks and internal
 

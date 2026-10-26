@@ -1,4 +1,4 @@
-# UI patterns: Nextzen Orbit design system (main)
+# UI patterns: Nextzen Orbit design system
 
 Last reviewed from code: 2026-10-16. Source of truth: `src/app/globals.css` (tokens), `src/components/ui/*` (primitives) and `src/components/providers/providers.tsx` (theme).
 
@@ -36,7 +36,7 @@ Use tokens (`bg-surface`, `text-muted-foreground`, `border-border`, `text-primar
 
 ## Surfaces
 
-- `.glass-card`: on main a translucent `--glass-strong` fill with an 18px `backdrop-filter` blur, a 1px `--border` and `--glass-card-shadow`. Beta replaces the blur with a solid 96% surface because the blur made scrolling janky.
+- `.glass-card`: a solid 96% surface, a 1px `--border` and `--glass-card-shadow`. It used an 18px `backdrop-filter` blur until 2026-10-26; that was dropped because it made scrolling janky.
 - Corners are generous: cards use `rounded-3xl`, buttons `rounded-xl`, and avatars and pills `rounded-full`.
 
 ## Primitives (`src/components/ui`)
@@ -61,7 +61,7 @@ Use tokens (`bg-surface`, `text-muted-foreground`, `border-border`, `text-primar
 
 - **Client app:** `src/app/(dashboard)/layout.tsx` with `sidebar.tsx` and `top-nav.tsx` (notifications, theme, avatar menu; the search box is a UI shell). `page-header.tsx` provides page titles.
 - **Admin:** `src/app/(admin)/layout.tsx` with `admin-shell.tsx` and `admin-sidebar.tsx`. The sidebar items depend on the role.
-- **Loading:** `loading.tsx` boundaries at the root, dashboard and admin levels, plus `page-loading.tsx`. Beta turns on hover prefetch (`dynamicOnHover`).
+- **Loading:** `loading.tsx` boundaries at the root, dashboard and admin levels, plus `page-loading.tsx`. Links prefetch on hover (`dynamicOnHover`); hover-loaded pages are kept at most 30 seconds (`staleTimes.static`).
 
 ## Motion
 

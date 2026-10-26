@@ -1,7 +1,7 @@
-# Nextzen Orbit: whole-app documentation (main)
+# Nextzen Orbit: whole-app documentation
 
-Last reviewed from code: 2026-10-16, branch `main` at `808c909`.
-Beta-only changes are in [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md). Non-technical readers should start with [TEAM_CONTEXT_BRIEF.md](TEAM_CONTEXT_BRIEF.md).
+Last reviewed from code: 2026-10-26, branch `main` at `b9b0678` (beta merged).
+Non-technical readers should start with [TEAM_CONTEXT_BRIEF.md](TEAM_CONTEXT_BRIEF.md).
 
 This is the code-grounded tour of the production app: what it does, how each flow works, which files own what, and the known gaps. Generated and vendor folders (`.next/`, `node_modules/`, `build/`) are excluded.
 
@@ -27,12 +27,12 @@ The four non-`user` roles are "privileged" and bypass payment. Guards are in `sr
 
 ### Live and solid
 
-- Google sign-in for clients; email/password sign-in for staff at `/admin/login`.
+- Google or email/password sign-in for clients; email/password sign-in for staff at `/admin/login`.
 - Signup application with resume upload, supervisor review and approval (033, 036).
 - Paid access: PayU monthly INR checkout, idempotent activation, payment reconciliation (035).
 - Resume builder: upload and AI parse (PDF/DOCX), editor with autosave and live preview, version history, PDF/DOCX/LaTeX export.
 - AI resume rewriting through the **quality gate** (writer, reviewer, line fixes, then restore anything still unsupported). Tailoring strength options and stage-aware progress bars.
-- Templates: Classic, Modern, Creative, Jake's Resume, Deedy Two-Column, Awesome CV, plus three C2C contract templates. A user can pick a page count (Auto, 1, 2, or 3–10), and the fitter guarantees it.
+- Templates: Harvard (default), Jake's Resume, Deedy Two-Column, Awesome CV, FAANGPath, AltaCV, plus three C2C contract templates. A user can pick a page count (Auto, 1, 2, or 3–10), and the fitter guarantees it.
 - JD analyzer, cover letter generator, AI bullet/summary helpers, tailoring suggestions.
 - Application tracker (Kanban + table).
 - Job search workspace: Adzuna multi-country search, saved searches, shortlist, per-client queue (037).
@@ -40,17 +40,18 @@ The four non-`user` roles are "privileged" and bypass payment. Guards are in `sr
 - Career workspace: career pages, roadmaps, interview questions, YouTube resources, AI notes, projects.
 - Assisted autofill Chrome extension (Workday, Greenhouse, Lever, LinkedIn, Microsoft Careers). It never submits forms.
 - Performance read models and the signed access envelope (040).
+- Client progress feed, team messaging, LinkedIn optimizer, offer comparison and AI mock interviews (043–045).
+- Daily AI allowances with supervisor approval for extra (046).
 
-### Known gaps on main
+### Known gaps
 
-- **Client email/password sign-in is broken**: the login form posts to `/api/auth/login`, which does not exist. Fixed on beta.
-- No daily AI allowance. Only per-minute burst limits on admin generation, plus monthly `ai_usage` token accounting. Allowances are on beta (migration 046).
 - The USD gateway is a placeholder, so checkout is INR-only. Annual billing isn't offered at checkout.
-- The Vercel functions run in Mumbai (`bom1`) while the database is in Tokyo, which slows every request. Beta moves to `hnd1`.
 - Client-generated cover letters aren't saved (the `cover_letters` table is unused). Admin cover letters are saved in `admin_cover_letters`.
 - The top-nav search is a UI shell. Notifications work (admin-sent, `notifications` table).
 - The legacy `job_queue` columns from auto-apply (`screenshot_url`, `cover_letter_id`) are unused. The table itself is now the admin apply queue.
-- The security audit run-3 fixes (F2–F9, N3, N6) are only on beta. On main, some admin routes skip the client-assignment check, and extension telemetry is silently dropped. See [SECURITY.md](SECURITY.md#open-on-main-fixed-on-beta).
+- The domain split is built but off in production until its three host variables are set ([domain-separation.md](domain-separation.md)).
+
+Fixed by the 2026-10-26 beta merge: client email sign-in, the admin client-assignment gap and dropped telemetry (audit run 3), the missing daily AI cap, and Mumbai↔Tokyo latency. See [CHANGELOG.md](CHANGELOG.md).
 
 ## 4. How the app works
 
@@ -127,6 +128,20 @@ Details: [resume-generation.md](resume-generation.md).
 
 The extension in `extensions/nextzen-orbit-autofill` detects form fields on supported portals and calls `GET /api/autofill/profile` with the user's session cookie. It fills fields only when the user clicks, and reports anonymous coverage to `POST /api/autofill/telemetry`. File inputs and submission stay manual. See [AUTOFILL_EXTENSION_TESTING.md](AUTOFILL_EXTENSION_TESTING.md).
 
+### 4.9 Client features: progress, messages, LinkedIn, offers, mock interviews
+
+Details in [client-features.md](client-features.md).
+
+- **Progress feed** on `/dashboard`: what the team did for the client (applications, resumes, cover letters) from the `client_activity` RPCs (043).
+- **Messages** (`/messages`, and `/admin/messages` plus the client page for staff): one thread per client in `client_messages` (044).
+- **LinkedIn optimizer** (`/linkedin`): headline, About, skills and bullets from a saved resume.
+- **Offer Compare** (`/offers`): CTC and in-hand comparison, computed in the browser.
+- **Mock interviews** (`/interviews/mock`): AI questions for a role, then AI scoring per answer and an overall score (045).
+
+### 4.10 Daily AI allowances
+
+Every AI route calls `checkAiQuota` before the model and `recordAiUse` after a successful run (`src/lib/ai/quota.ts`, 046). The buckets are `rewrite`, `cover_letter` and `light`; limits depend on role and plan and reset at 00:00 UTC. Admins who run out ask a supervisor, who approves extra at `/admin/ai-limits`. Details in [ai-usage-limits.md](ai-usage-limits.md).
+
 ## 5. Source map
 
 ### App routes (`src/app`)
@@ -163,7 +178,7 @@ The extension in `extensions/nextzen-orbit-autofill` detects form fields on supp
 - `src/types/database.ts`, `src/types/api.ts`: DB types; `apiError` / `ERROR_CODES`.
 - `src/components/*`: UI primitives (`ui/`), layout, forms, resume, admin, applications, analyzer, career.
 - `scripts/test-*.cjs`: `node:test` suites that load sources with mocks (no live server). Some run migrations in PGlite.
-- `supabase/migrations/001–041`: the schema used by main. 042–046 are beta-only but already applied to the shared database.
+- `supabase/migrations/001–046`: the schema, all applied.
 
 ## 6. External services
 
@@ -173,7 +188,6 @@ The extension in `extensions/nextzen-orbit-autofill` detects form fields on supp
 | Amazon Bedrock | All AI: Kimi K2.5 writes and parses, DeepSeek V3.2 reviews | `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION` |
 | PayU | INR checkout | `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_PAYU_URL` |
 | Adzuna | Job search | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` |
-| YouTube Data API | Career resource search (`/api/youtube/search`) | `YOUTUBE_API_KEY` |
-| Vercel | Hosting, region `bom1` | `NEXT_PUBLIC_APP_URL`, optional `CRON_SECRET` |
+| Vercel | Hosting, region `hnd1` (Tokyo) | `NEXT_PUBLIC_APP_URL`, optional `CRON_SECRET` |
 
 The AI cost estimate per feature is in the repo root, `AI_COST_ESTIMATE.md`.

@@ -1,6 +1,6 @@
 # Nextzen Orbit: team and leadership brief
 
-Last updated: 2026-10-16
+Last updated: 2026-10-26
 Owner: Product + Engineering
 
 ## 1. What we are building
@@ -25,28 +25,30 @@ In one line: we apply for you, with better documents, and you can see the work.
 - The client resume builder, analyzer, cover letters, tracker, career pages and job search.
 - Analytics for supervisors.
 
-### Known problems on production
-
-- Clients with email/password accounts (SSO clients) can't sign in through the normal login form. **Fixed in beta.**
-- Some recruiter screens don't check whether the recruiter is assigned to that client, so a recruiter could reach another client's documents if they had the link. **Fixed in beta. This is the main reason to ship beta soon.**
-- The app is slower than it should be because the servers (Mumbai) and the database (Tokyo) are in different countries. **Fixed in beta.**
-- There are no daily limits on AI use, so cost isn't capped. **Added in beta.**
-- Payment in USD isn't available yet.
-
-## 3. What beta adds (ready to launch)
-
-- **Separate addresses:** nextzenorbit.com (marketing), app.nextzenorbit.com (clients), admin.nextzenorbit.com (staff), with separate logins.
-- **Five client features:**
+- Since 26 Oct 2026 (the beta release):
   - a progress feed showing what the team did for the client this week;
   - messaging between the client and their team;
   - a LinkedIn profile optimizer;
   - an offer comparison tool (CTC to in-hand pay);
   - AI mock interviews.
-- **Daily AI allowances:** clients get 10–20 resume generations a day depending on plan. Recruiters can ask a supervisor for more.
-- **New resume designs:** Harvard, FAANGPath and AltaCV.
-- The security fixes and speed improvements above.
+- New resume designs: Harvard (the default), FAANGPath and AltaCV.
+- Daily AI allowances. Clients get 10, 15 or 20 resume generations a day (Silver, Gold, Elite), 30 cover letters and 50 other AI actions. Recruiters can ask a supervisor for more.
 
-Launch steps: [`../beta/your-tasks.html`](../beta/your-tasks.html).
+### Fixed in the 26 Oct release
+
+- Email/password (SSO) clients can sign in through the normal login form.
+- Recruiters can only open clients assigned to them.
+- The servers now run in Tokyo next to the database, so pages load faster.
+- AI cost is capped by the daily allowances.
+
+### Still open
+
+- Payment in USD isn't available yet.
+- Separate addresses (nextzenorbit.com for marketing, app. for clients, admin. for staff) are built but not switched on. Launch steps: [plans/your-tasks.html](plans/your-tasks.html).
+
+## 3. Beta
+
+The `beta` branch is where new work is tested before production. Right now it matches production; anything new on it is described in [`../beta/`](../beta/README.md).
 
 ## 4. What it costs to run
 
@@ -54,10 +56,10 @@ AI is roughly 3–7¢ per resume rewrite and about 1¢ per cover letter, so abou
 
 ## 5. Decisions needed from leadership
 
-1. **Merge beta into production** soon, mainly for the recruiter access fix.
+1. **Switch on the separate addresses** (app. and admin.) when convenient.
 2. **USD payments:** pick a provider (Airwallex or Stripe) if non-India clients are a priority.
 3. **Extension distribution:** publish to the Chrome Web Store or keep installing it manually.
-4. **Next features** from the backlog ([`../beta/feature-ideas.html`](../beta/feature-ideas.html)): for example WhatsApp notifications, approve-before-apply, saved-search alerts.
+4. **Next features** from the backlog ([plans/feature-ideas.html](plans/feature-ideas.html)): for example WhatsApp notifications, approve-before-apply, saved-search alerts.
 
 ## 6. Success metrics to track
 
@@ -70,4 +72,4 @@ AI is roughly 3–7¢ per resume rewrite and about 1¢ per cover letter, so abou
 
 ## 7. One-sentence status
 
-Production runs the full done-for-you workflow end to end. Beta closes a recruiter-access security gap and makes the app faster. It also adds cost controls and five client-facing features, and it is ready to launch once the beta checklist is done.
+Production runs the full done-for-you workflow end to end. Since the 26 Oct release it is also faster and more secure, has daily AI cost controls, and gives clients five new features.

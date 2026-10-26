@@ -1,4 +1,4 @@
-# Career workspace architecture (main)
+# Career workspace architecture
 
 Last reviewed from code: 2026-10-16. This describes what is **built**. The original vNext proposal from 2026-05 (folder sketch, Groq, extension tokens) has been replaced by this as-built version.
 
@@ -23,7 +23,7 @@ src/
   app/api/careers/, careers/[slug]/          # career list / page data
   app/api/roadmaps/, roadmaps/[id]/          # roadmaps + ordered steps
   app/api/interview-questions/               # filter by career/role/company/difficulty/topic
-  app/api/youtube/                           # stored resources (youtube/search: live API, removed on beta)
+  app/api/youtube/                           # stored resources (the live youtube/search route was removed, N6)
   app/api/ai-notes/, ai-notes/[id]/          # user notes CRUD
   app/api/ai/generate-notes/                 # AI notes (Bedrock, AI_WRITER_MODEL)
   app/api/projects/, projects/[id]/          # user projects CRUD
@@ -76,7 +76,7 @@ Reference reads are cached under the `career-reference` tag. A super admin can c
 
 ## Environment
 
-Only the shared app variables (Supabase and Bedrock). `YOUTUBE_API_KEY` is used only by the live search route, which beta removes. No extension token secret exists: the extension uses the normal session cookie.
+Only the shared app variables (Supabase and Bedrock). `YOUTUBE_API_KEY` is no longer used. No extension token secret exists: the extension uses the normal session cookie.
 
 ## Relationship to the autofill extension
 

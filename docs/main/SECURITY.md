@@ -1,6 +1,6 @@
-# Security: Nextzen Orbit (main)
+# Security: Nextzen Orbit
 
-Last reviewed from code: 2026-10-16, branch `main`. Audit history is in the security-audit tracker (run 3 is the latest). Its fixes are on beta; see [Open on main, fixed on beta](#open-on-main-fixed-on-beta).
+Last reviewed from code: 2026-10-26, branch `main` (beta merged). Audit history is in the security-audit tracker; run 3 is the latest and is fixed, see [Audit run 3](#audit-run-3-fixed-released-2026-10-26).
 
 ## Authentication
 
@@ -11,7 +11,8 @@ Last reviewed from code: 2026-10-16, branch `main`. Audit history is in the secu
 | SSO clients | Email and password accounts created by a super admin (`/admin/sso-users`) | `src/app/api/admin/sso-users/route.ts` |
 
 - Sessions are Supabase JWTs stored in HTTP-only cookies and refreshed by the proxy on every request.
-- On main, the client login page's email/password form posts to a missing `/api/auth/login`, so SSO clients can't sign in through it. Beta fixes this with a rate-limited `signInWithEmail` server action.
+- The client login page's email/password form uses the `signInWithEmail` server action, rate limited to 30 per IP and 10 per email per 15 minutes.
+- With the domain split on, staff use a separately named session cookie (`sb-orbit-admin`) on the admin host. See [domain-separation.md](domain-separation.md).
 - Signup needs an approved application (033). Rejection permanently blocks the email and the submitted phone (`registration_blocks`). Suspended users (`users.is_suspended`, 034) are denied.
 
 ## Authorization
@@ -68,7 +69,7 @@ Atomic Postgres counters (`rateLimit` → `consume_request_limit`). Keys are SHA
 | `admin-resume-upload` | 10 / 5 min per admin |
 | `performance` beacon | 60 / min per hashed IP |
 
-Main has no daily AI allowance. That's added on beta (migration 046).
+Daily AI allowances cap cost per user (migration 046, reset at 00:00 UTC). Over the limit, AI routes return 429 `AI_QUOTA_EXCEEDED`. See [ai-usage-limits.md](ai-usage-limits.md).
 
 ## Payment security
 
@@ -88,7 +89,7 @@ Main has no daily AI allowance. That's added on beta (migration 046).
 - Demographic answers (`candidate_self_identification`) are owner-only, excluded from recruiter review and matching, and never stored in the browser.
 - Work-authorization answers are visible only to assigned recruiters and supervisory roles, through a guarded endpoint.
 - Admin-generated client documents expire after 30 days. Private-library documents remain until deleted.
-- Secrets live only in Vercel environment variables. `supabase/.temp` must not be committed (it's untracked on beta).
+- Secrets live only in Vercel environment variables. `supabase/.temp` must not be committed (it's untracked).
 
 ## Gaps and non-goals
 
@@ -96,17 +97,21 @@ Main has no daily AI allowance. That's added on beta (migration 046).
 - Some older routes return non-standard error bodies.
 - Phone numbers aren't verified, so a rejection block keyed on phone can be evaded or can hit the wrong person. Reviewers should check contact details before rejecting.
 
-## Open on main, fixed on beta
+## Audit run 3 (fixed, released 2026-10-26)
 
-Security audit run 3 was fixed in commit `aacec9d`, which is on beta only. The database part (migration 042) is **already applied** to the shared database, so these findings are open in main's **app code**:
+Fixed in `aacec9d` and released to main with the beta merge (`b9b0678`). The database part is migration 042.
 
-| Finding | Issue on main | Fix on beta |
+| Finding | Issue before | Fix |
 | --- | --- | --- |
-| F2/F3 | Several admin routes and generator pages don't check that an ordinary admin is assigned to the client: files, resumes, upload, optimize, cover letters, notifications, subscription activate, resume export, `export-admin` | `denyUnassignedClient` in `src/lib/admin/assignments.ts`; fails closed for unknown roles |
-| F6 | Telemetry route inserts with the user client. Since 042 revoked that, telemetry is silently lost | Writes with the service role, with size caps |
-| F8 | `DELETE /api/admin/sso-users` can demote more than `sso_user` accounts, and an admin can demote themselves | Only demotes `sso_user`; blocks demoting yourself |
-| N3 | DOCX parsing has no zip-bomb or oversize-archive guard | Rejected before extraction |
-| N6 | Public `/api/youtube/search` (unused) spends the YouTube quota | Route removed |
-| F1/N1 | Some scripts hardcode the DB URL and seed passwords | Read from env |
+| F2/F3 | Several admin routes and generator pages didn't check that an ordinary admin is assigned to the client: files, resumes, upload, optimize, cover letters, notifications, subscription activate, resume export, `export-admin` | `denyUnassignedClient` in `src/lib/admin/assignments.ts`; fails closed for unknown roles |
+| F4/F5/F7 | Clients could insert `resume_versions` for other resumes, write `job_queue` directly, and save unbounded `saved_job_searches` | 042 policies: owner-only versions, no client queue writes, paid-access gate plus a 4,000-character `filters` cap |
+| F6 | Anonymous and client telemetry inserts | 042 revokes them; the route writes with the service role, with size caps |
+| F8 | `DELETE /api/admin/sso-users` could demote more than `sso_user` accounts, and an admin could demote themselves | Only demotes `sso_user`; blocks demoting yourself |
+| N3 | DOCX parsing had no zip-bomb or oversize-archive guard | Rejected before extraction |
+| N6 | Public `/api/youtube/search` (unused) spent the YouTube quota | Route removed |
+| F1/N1 | Some scripts hardcoded the DB URL and seed passwords | Read from env |
+| F9 | `supabase/.temp` tracked | Untracked |
 
-Until beta is merged, avoid giving ordinary admins access they shouldn't have on main, and prioritize this merge. `scripts/test-security-hardening.cjs` (beta) covers the fixes.
+`node scripts/test-security-hardening.cjs` covers the fixes.
+
+New code that uses `createAdminClient()` bypasses RLS, so it must call the right guard itself. For admin routes acting on a client, that's `requireAdmin` plus `denyUnassignedClient`.

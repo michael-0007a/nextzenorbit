@@ -1,6 +1,6 @@
-# Domain separation (beta)
+# Domain separation
 
-Status: **built on beta** (commits `aa0191e`, `127b807`, `3ca571e`). It is off until all three host variables are set, so previews, localhost and the `*.vercel.app` URL keep working as a single site. The rollout steps (DNS, Vercel, Supabase) are in [your-tasks.html](your-tasks.html); the build plan is in [plan.html](plan.html).
+Status: **on main** since the beta merge (`b9b0678`, 2026-10-26; built in `aa0191e`, `127b807`, `3ca571e`). It is **off in production** until all three host variables are set, so previews, localhost and the `*.vercel.app` URL keep working as a single site. The rollout steps (DNS, Vercel, Supabase) are in [plans/your-tasks.html](plans/your-tasks.html); the build plan is in [plans/plan.html](plans/plan.html).
 
 ## Hosts
 
@@ -45,9 +45,9 @@ On the app and admin hosts, responses carry `X-Robots-Tag: noindex, nofollow`. `
 
 Staff and client logins are therefore independent. Signing out signs you out of that side only. The server, browser and middleware Supabase clients all pass `sessionCookieOptions(host)`.
 
-## Sign-in on beta
+## Sign-in
 
-- **Clients:** Google, or email and password through the `signInWithEmail` server action (rate limited: 30 per IP and 10 per email per 15 minutes). This fixes main's form, which posted to a missing `/api/auth/login`.
+- **Clients:** Google, or email and password through the `signInWithEmail` server action (rate limited: 30 per IP and 10 per email per 15 minutes). Before the merge the form posted to a missing `/api/auth/login`.
 - **Staff:** `admin.<domain>/login` (rewritten to `/admin/login`). Staff sign-in creates the admin-named cookie.
 - **OAuth:** the Google redirect URI stays Supabase's own `…supabase.co/auth/v1/callback`. Supabase → Auth → URL configuration needs the app (and admin) origins in Redirect URLs, with the Site URL set to the app origin. Add the new origins to the Google client's Authorized JavaScript origins if it lists any.
 
@@ -57,7 +57,7 @@ Payment return URLs follow `NEXT_PUBLIC_APP_URL`. `/api/webhooks/payu` is never 
 
 ## Extension
 
-The extension's default App URL on beta is `https://app.nextzenorbit.com`; main's default is localhost. Its `host_permissions` already include `*.nextzenorbit.com` on both branches. Users sign in on the app host.
+The extension's default App URL is `https://app.nextzenorbit.com`. Its `host_permissions` include `*.nextzenorbit.com`. Users sign in on the app host.
 
 ## Rollback
 

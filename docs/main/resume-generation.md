@@ -1,6 +1,6 @@
-# Resume generation (main)
+# Resume generation
 
-Last reviewed from code: 2026-10-16. Code: `src/lib/resume/*`, `src/lib/ai/prompts/*`, `src/lib/ai/model.ts`. Beta changes the template set (see the end).
+Last reviewed from code: 2026-10-26. Code: `src/lib/resume/*`, `src/lib/ai/prompts/*`, `src/lib/ai/model.ts`.
 
 ## Page length
 
@@ -44,16 +44,14 @@ Calls time out at 40 seconds with one retry. Routes set `maxDuration` 120.
 - **LaTeX:** editable source with every field and the selected style. TeX paginates on its own, so it isn't the PDF renderer.
 - **Precedence:** an explicit `template` parameter on export beats the saved preference.
 
-## Templates on main
+## Templates
 
 | Type | Templates |
 | --- | --- |
-| Corporate | Classic Professional, Modern Minimal, Creative, Jake's Resume (split), Deedy Two-Column (sidebar), Awesome CV (split) |
+| Corporate | Harvard (default; serif, centered, ruled sections), Jake's Resume (split), Deedy Two-Column (sidebar), Awesome CV (split), FAANGPath (sans-serif single column), AltaCV (two columns, skills sidebar on the right) |
 | C2C / Contract | Contract Consultant, Contract Classic, Contract Modern |
 
-`templatesForType("corporate" | "c2c")` filters the list, and unknown ids fall back to the first template.
-
-**On beta:** Harvard (the new default), FAANGPath and AltaCV replace Classic, Modern and Creative for corporate resumes. The old three remain only as the base of the C2C templates. See [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+`templatesForType("corporate" | "c2c")` filters the list. Classic, Modern and Creative were retired on 2026-10-26 and remain only as the base of the C2C templates (`LEGACY` in `templates.ts`). `getTemplate` maps retired ids so saved resumes keep rendering: `classic` → Harvard, `modern` → FAANGPath, `creative` → Awesome CV. Unknown ids fall back to Harvard.
 
 ## ATS note
 

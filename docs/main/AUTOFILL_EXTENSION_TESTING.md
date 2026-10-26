@@ -29,7 +29,7 @@ npm run dev       # same, in watch mode
 ## Configure
 
 1. Open the popup.
-2. Set the **App URL**. The default on main is `http://localhost:3000`; on beta it's `https://app.nextzenorbit.com`. Change it to the app you're testing against.
+2. Set the **App URL** to the app you're testing against. The default is `https://app.nextzenorbit.com`, which only works once the domain split is live in production. Until then, set it to the production URL you actually use (or `http://localhost:3000` locally).
 3. Keep **Autofill enabled** checked.
 
 ## Supported portals
@@ -51,7 +51,7 @@ Detectors live in `src/content/detectors/` (one per portal, plus `base.ts`).
 3. The in-page assist panel appears and shows the detected fields.
 4. Click **Fill**. Review every field and correct anything wrong.
 5. Upload the resume yourself (file inputs are flagged, never filled), then submit yourself.
-6. Optional: confirm a telemetry call to `/api/autofill/telemetry` in the service-worker console. On main the server drops the row; beta stores it.
+6. Optional: confirm a telemetry call to `/api/autofill/telemetry` in the service-worker console. The server stores it with the service role.
 
 ## What gets filled
 
@@ -64,7 +64,7 @@ Full name, email, phone, LinkedIn, GitHub, portfolio, education (institution, de
 - **"Unable to load profile":**
   - check the App URL;
   - open `<App URL>/api/autofill/profile` in a tab: 401 means you're not signed in, and 403/402 means the account isn't approved or paid;
-  - on beta with the domain split on, the session lives on the app host, so sign in at `app.` and not the marketing domain.
+  - with the domain split on, the session lives on the app host, so sign in at `app.` and not the marketing domain.
 - **Debugging:** in `chrome://extensions`, click the extension's **service worker** link for background logs. Use the page DevTools console for content-script logs.
 
 ## Packaging

@@ -1,4 +1,4 @@
-# Payments: Nextzen Orbit (main)
+# Payments: Nextzen Orbit
 
 Last reviewed from code: 2026-10-16. Code: `src/lib/payments/*`, `src/lib/subscription.ts`, `src/app/api/{subscription,payments,webhooks/payu}`. Rollout history and edge cases: [signup-review-rollout.md](signup-review-rollout.md).
 

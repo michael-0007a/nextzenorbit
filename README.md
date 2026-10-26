@@ -10,7 +10,9 @@
 - **Client tools:** resume builder, JD analyzer, cover letters, application tracker, job search, career pages (roadmaps, interview questions, AI notes).
 - **Admin console:** client management, signup review, the document workspace, analytics, team and SSO users.
 - **Assisted autofill:** a Chrome extension for Workday, Greenhouse, Lever, LinkedIn and Microsoft Careers. It never submits forms.
-- **On beta:** site/app/admin domains, a progress feed, messaging, the LinkedIn optimizer, offer comparison, mock interviews and daily AI allowances.
+- **Client extras:** a progress feed, messaging with the team, a LinkedIn optimizer, offer comparison and AI mock interviews.
+- **Cost control:** daily AI allowances by role and plan, with supervisor approval for extra.
+- **Domain split (built, off until configured):** separate site, app and admin domains.
 
 ## Tech stack
 
@@ -48,7 +50,7 @@ The full variable list and setup steps are in [docs/main/DEPLOYMENT.md](docs/mai
 All docs live in [`docs/`](docs/README.md) and are split by branch:
 
 - [`docs/main/`](docs/main/): production. Start with [APP_OVERVIEW](docs/main/APP_OVERVIEW.md), [APP_DOCUMENTATION](docs/main/APP_DOCUMENTATION.md), [ARCHITECTURE](docs/main/ARCHITECTURE.md), [API_DOCS](docs/main/API_DOCS.md), [DATABASE_SCHEMA](docs/main/DATABASE_SCHEMA.md), [SECURITY](docs/main/SECURITY.md), [PAYMENTS](docs/main/PAYMENTS.md) and [DEPLOYMENT](docs/main/DEPLOYMENT.md).
-- [`docs/beta/`](docs/beta/): what beta adds before it is merged. Start with [BETA_OVERVIEW](docs/beta/BETA_OVERVIEW.md).
+- [`docs/beta/`](docs/beta/README.md): work on beta that isn't on main yet (empty right now).
 
 For leadership: [TEAM_CONTEXT_BRIEF](docs/main/TEAM_CONTEXT_BRIEF.md). AI running costs: [AI_COST_ESTIMATE.md](AI_COST_ESTIMATE.md).
 

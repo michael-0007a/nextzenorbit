@@ -11,7 +11,7 @@ Last reviewed: 2026-10-16.
 | A001 | Google OAuth only | Superseded by A017 |
 | A002 | No email verification | Still holds for Google; email accounts are staff-created |
 | A003 | Groq (LLaMA 3.3 70B) for AI | Superseded by A018 |
-| A004 | AI token limits not enforced | Holds on main; superseded on beta by A024 |
+| A004 | AI token limits not enforced | Superseded by A024 (2026-10-26) |
 | A005 | Razorpay primary, Cashfree secondary | Superseded by A019 |
 | A006 | Payment integration deferred | Superseded by A019 |
 | A007 | Export deferred to Phase 3 | Superseded: PDF/DOCX/LaTeX export is live |
@@ -38,7 +38,7 @@ Last reviewed: 2026-10-16.
 **Decision:** Groq with LLaMA 3.3 70B, later `openai/gpt-oss-120b`.
 
 ### A004: AI token limits not enforced yet
-**Decision:** Track tokens (`ai_usage`) but don't enforce them. This still holds on main; see A024 for beta.
+**Decision:** Track tokens (`ai_usage`) but don't enforce them. **Superseded** by the daily allowances in A024.
 
 ### A005: Razorpay primary, Cashfree secondary. **Superseded by A019**
 
@@ -48,7 +48,7 @@ Last reviewed: 2026-10-16.
 Export to PDF, DOCX and LaTeX is live, from one shared layout plan.
 
 ### A008: Single resume template initially. **Superseded**
-Main has Classic, Modern, Creative, Jake's, Deedy and Awesome CV plus three C2C templates. Beta replaces Classic, Modern and Creative with Harvard, FAANGPath and AltaCV.
+There are six corporate templates (Harvard, Jake's, Deedy, Awesome CV, FAANGPath, AltaCV) plus three C2C templates. Classic, Modern and Creative were retired on 2026-10-26; saved resumes map to the closest current design.
 
 ### A009: Yeldra-inspired B/W design. **Superseded by A021**
 
@@ -99,11 +99,11 @@ Main has Classic, Modern, Creative, Jake's, Deedy and Awesome CV plus three C2C 
 ### A023: One deployment, service role plus code checks for staff
 **Decision:** A single Next.js deployment serves every surface. Admin routes use the service role and authorize in code; RLS role checks caused recursion (migrations 005–030).
 
-### A024: Daily AI allowances (beta, 2026-10)
-**Decision:** Per-day caps by role and plan, reset at 00:00 GMT. Only successful runs are recorded, and admins can request extra from a supervisor (migration 046). See [`../beta/ai-usage-limits.md`](../beta/ai-usage-limits.md).
+### A024: Daily AI allowances (2026-10)
+**Decision:** Per-day caps by role and plan, reset at 00:00 GMT. Only successful runs are recorded, and admins can request extra from a supervisor (migration 046). See [ai-usage-limits.md](ai-usage-limits.md).
 
-### A025: Region alignment (beta, 2026-10)
-**Decision:** Move the Vercel functions from `bom1` to `hnd1` to sit next to the Tokyo Supabase project, instead of migrating to AWS. See [`../beta/speed.html`](../beta/speed.html) and [performance/performance-audit.md](performance/performance-audit.md).
+### A025: Region alignment (2026-10)
+**Decision:** Move the Vercel functions from `bom1` to `hnd1` to sit next to the Tokyo Supabase project, instead of migrating to AWS. See [plans/speed.html](plans/speed.html) and [performance/performance-audit.md](performance/performance-audit.md).
 
 ## Format
 

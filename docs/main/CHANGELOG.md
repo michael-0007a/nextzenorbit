@@ -1,17 +1,32 @@
-# Changelog: Nextzen Orbit (main)
+# Changelog: Nextzen Orbit
 
-Built from `git log origin/main`. Beta work not yet on main is listed under **Unreleased (beta)**. Versions are informal milestones; the app has no version tags.
+Built from `git log origin/main`. Versions are informal milestones; the app has no version tags. Work on the `beta` branch that isn't merged yet is described in [`../beta/`](../beta/README.md).
 
-## Unreleased (beta)
+## 2026-10-26: Beta merged into main (`b9b0678`)
 
-The full list is in [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md):
+19 beta commits, released together.
 
-- Security audit run-3 fixes (F2–F9, N3, N6) and migration 042.
-- Site / app / admin domain split with separate staff and client sessions. Fixed client email sign-in.
-- Five client features: progress feed (043), client–team messaging (044), LinkedIn optimizer, CTC and offer comparison, AI mock interviews (045).
-- Daily AI allowances with supervisor approval (046).
-- Harvard, FAANGPath and AltaCV templates replace Classic, Modern and Creative.
-- Speed: functions move to `hnd1` (Tokyo, next to the database), fewer auth round trips, lighter cards, hover prefetch.
+- **Security (audit run 3, `aacec9d`):**
+  - Admin routes enforce client assignment with `denyUnassignedClient` (F2/F3), and unknown roles fail closed.
+  - Migration 042 locks down `resume_versions`, `job_queue`, `autofill_telemetry` and `saved_job_searches` (F4–F7). Extension telemetry is stored again, written with the service role.
+  - SSO-user removal only demotes `sso_user` accounts (F8).
+  - DOCX zip-bomb guard (N3). The unused public `/api/youtube/search` was removed (N6).
+- **Sign-in:** client email/password sign-in works through the rate-limited `signInWithEmail` server action. Before this, the form posted to a missing `/api/auth/login`.
+- **Domain split** (site / app / admin, separate staff session, clean admin URLs). It's built but **off** until the three host variables are set. See [domain-separation.md](domain-separation.md).
+- **Five client features** ([client-features.md](client-features.md)):
+  - progress feed (043);
+  - client–team messaging (044);
+  - LinkedIn profile optimizer;
+  - CTC and offer comparison;
+  - AI mock interviews (045).
+- **Daily AI allowances** with supervisor approval for extra (046); mock interview answers count too (`1d95703`). See [ai-usage-limits.md](ai-usage-limits.md).
+- **Templates:** Harvard (the new default), FAANGPath and AltaCV replace Classic, Modern and Creative. Saved resumes map to the closest new design.
+- **Speed:**
+  - functions moved from `bom1` to `hnd1` (Tokyo, next to the database);
+  - local JWT check with `getClaims`;
+  - solid card surface instead of blur;
+  - hover prefetch.
+- **Docs:** split into `docs/main` and `docs/beta`, rewritten from the code. Launch pages are in [plans/](plans/).
 
 ## 2026-10-15: Tailoring strength and keywords (`808c909`)
 - The tailoring strength options (conservative / moderate / aggressive) now change the output. Added implied skills and bolded job keywords in exports.

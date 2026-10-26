@@ -1,9 +1,9 @@
-# Database schema: Nextzen Orbit (main)
+# Database schema: Nextzen Orbit
 
-Last reviewed from code: 2026-10-16. Source of truth: `supabase/migrations/*.sql` and `src/types/database.ts`.
+Last reviewed from code: 2026-10-26 (beta merged). Source of truth: `supabase/migrations/*.sql` and `src/types/database.ts`.
 
-- **Project:** Supabase `nextzenorbit`, region Tokyo (`ap-northeast-1`). Main and beta share this one database.
-- **Migrations:** main uses 001–041. 042–046 belong to beta (see [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md)) but are **already applied** to the shared project. The next new migration is `047_*.sql`.
+- **Project:** Supabase `nextzenorbit`, region Tokyo (`ap-northeast-1`). Production, beta previews and local development all use this one database.
+- **Migrations:** 001–046, all applied. The next new migration is `047_*.sql`.
 - **Applying:** there's no migration runner in npm. Apply with `npx supabase db push`, the Supabase MCP, or the SQL editor. Never rename a migration that has already been applied.
 
 ## Access model
@@ -63,6 +63,17 @@ Last reviewed from code: 2026-10-16. Source of truth: `supabase/migrations/*.sql
 | `autofill_telemetry` | `user_id`, `portal`, `fields_detected`, `status` | Extension coverage |
 | `notifications` | `user_id`, `type`, `title`, `message`, `is_read`, `metadata` | Sent by admins |
 
+### Client features and AI limits (044–046)
+
+All server-only (RLS on, no policies); routes authorize in code.
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `client_messages` | `client_id`, `sender_id`, `from_team`, `body` (1–4,000), `read_at` | One thread per client with their team (044) |
+| `mock_interviews` | `user_id`, `role`, `job_description` (≤8,000), `questions` (1–10), `answers`, `overall` (0–100), `completed_at` | AI mock interview sessions (045) |
+| `ai_usage_events` | `user_id`, `bucket` (`rewrite` / `cover_letter` / `light`), `tokens` | One row per successful AI run, counted per UTC day (046) |
+| `ai_quota_requests` | `user_id`, `bucket`, `day`, `reason`, `status`, `extra`, `decided_by/at` | Admin requests for extra daily allowance (046) |
+
 ### Career workspace (014)
 
 `careers`, `roadmaps`, `roadmap_steps`, `interview_questions`, `youtube_resources` (reference data; seeded with `npm run seed:career-workspace`), `ai_notes` and `projects` (user-owned).
@@ -80,6 +91,7 @@ Last reviewed from code: 2026-10-16. Source of truth: `supabase/migrations/*.sql
 | `assign_client_admins`, `update_team_queue_job`, `client_target_report` | 039 | Allocation, claim/complete, targets |
 | `performance_admin_stats`, `performance_admin_users`, `performance_admin_analytics`, `performance_applications`, `performance_queue_page`, `performance_resume_metadata` | 040 | Read models for slow pages |
 | `claim_document_job` | 041 | Lease-based job claiming |
+| `client_activity`, `client_activity_summary` | 043 | The client progress feed and weekly counts, built from `job_queue`, `admin_resumes` and `admin_cover_letters` (no new table) |
 | `is_admin_or_super`, `is_super_admin`, `is_admin_user` | 022–031 | Legacy role helpers |
 
 ## Storage buckets
@@ -127,6 +139,10 @@ The old `screenshots` bucket from auto-apply is no longer used.
 | 039 | Shared client assignments, completion credit, targets |
 | 040 | Performance read models |
 | 041 | `document_jobs` |
-| 042–046 | Beta only: security hardening, activity feed, messages, mock interviews, AI usage limits |
+| 042 | Security hardening (audit run 3: F4–F7) |
+| 043 | Client activity feed RPCs and indexes |
+| 044 | `client_messages` |
+| 045 | `mock_interviews` |
+| 046 | AI usage limits |
 
 `003_enhanced_features.sql.bak` is an unused draft, kept for reference.

@@ -1,6 +1,6 @@
 # Performance implementation — 2026-10-05
 
-> **Status (2026-10-16):** historical record. The code changes shipped to main on 2026-10-05 (migrations 040 and 041 are applied). One premise turned out to be wrong: the Supabase project is in **Tokyo (`ap-northeast-1`)**, not Mumbai. Pinning the functions to `bom1` (P02) therefore kept a cross-region hop. Beta moves the functions to `hnd1` (Tokyo); see [`../../beta/speed.html`](../../beta/speed.html). AI has since moved from Groq to Amazon Bedrock. Benchmark JSON files live next to this file.
+> **Status (2026-10-16):** historical record. The code changes shipped to main on 2026-10-05 (migrations 040 and 041 are applied). One premise turned out to be wrong: the Supabase project is in **Tokyo (`ap-northeast-1`)**, not Mumbai. Pinning the functions to `bom1` (P02) therefore kept a cross-region hop. Since 2026-10-26 the functions run in `hnd1` (Tokyo); see [../plans/speed.html](../plans/speed.html). AI has since moved from Groq to Amazon Bedrock. Benchmark JSON files live next to this file.
 
 Performance code changes for the 21-task plan are present in this checkout. The production build and all 148 regression tests pass. Production migrations and deployment have **not** been performed, so the public website still runs its previous implementation. This report distinguishes implemented changes from acceptance checks that require production access, real accounts, model calls, or representative devices.
 

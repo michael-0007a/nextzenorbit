@@ -1,12 +1,12 @@
-# Project report: Nextzen Orbit (main)
+# Project report: Nextzen Orbit
 
-Date: 2026-10-16. Branch `main` at `808c909`.
+Date: 2026-10-26. Branch `main` at `b9b0678` (beta merged).
 
 ## 1. Executive summary
 
 Nextzen Orbit is a done-for-you job application service with a client workspace. The production app covers the whole loop: gated signup, PayU payment, allocating clients to recruiter teams, job search and the apply queue, and AI-generated resumes and cover letters checked by a second model. It also has client self-serve tools and an assisted autofill extension.
 
-The main open items on production are already fixed on beta: an admin client-assignment gap, client email sign-in, region latency, and AI cost caps. See [`../beta/BETA_OVERVIEW.md`](../beta/BETA_OVERVIEW.md).
+The 2026-10-26 release (the beta merge) closed the main open items: the admin client-assignment gap, client email sign-in, region latency and AI cost caps. It also added five client features (progress feed, messaging, LinkedIn optimizer, offer comparison, mock interviews). See [CHANGELOG.md](CHANGELOG.md).
 
 ## 2. Business context
 
@@ -26,7 +26,7 @@ The main open items on production are already fixed on beta: an admin client-ass
 | Documents | `@react-pdf/renderer`, `docx`, LaTeX source; parsing with `unpdf`, `mammoth`, `jszip` |
 | Payments | PayU |
 | Jobs | Adzuna |
-| Hosting | Vercel (`bom1`); Supabase in Tokyo |
+| Hosting | Vercel (`hnd1`, Tokyo); Supabase in Tokyo |
 | Tests | `node:test` scripts with module mocks and PGlite |
 
 ## 4. Repository structure
@@ -38,18 +38,18 @@ The main open items on production are already fixed on beta: an admin client-ass
 | `src/lib` | Supabase clients, access gate, admin guards, AI, resume pipeline, payments, jobs, rate limit, validations |
 | `src/services` | Data services (careers, jobs, notes, projects, roadmaps, interview, youtube, users, subscription, autofill) |
 | `src/types` | `database.ts`, `api.ts`, `domain/*` |
-| `supabase/migrations` | 001–041 for main (042–046 for beta) |
+| `supabase/migrations` | 001–046, all applied |
 | `scripts` | `test-*.cjs` suites, `seed/`, benchmarks, admin and maintenance scripts |
 | `extensions/nextzen-orbit-autofill` | Chrome MV3 extension |
-| `docs` | This documentation (`main/`, `beta/`) |
+| `docs` | This documentation (`main/` for production, `beta/` for unmerged beta work) |
 
 The repo root also holds one-off scripts (`seed-*.js`, `fix-types.js`, `expand-roadmaps.js`) and output dumps (`*-output.txt`); they aren't part of the app. The `worker/` folder (Playwright auto-apply) has been removed.
 
 ## 5. Layout, SEO and performance
 
 - The root layout sets the metadata template, loads fonts with `next/font`, and wraps providers (theme, toasts).
-- App and admin pages aren't for search engines. Beta adds `X-Robots-Tag: noindex` on the app and admin hosts.
-- Performance (2026-10): read models, a durable job queue, the signed access envelope, concurrent reads, loading boundaries, and `Server-Timing` headers. Beta adds hover prefetch and a local JWT check in the proxy. See [performance/](performance/).
+- App and admin pages aren't for search engines. With the domain split on, the app and admin hosts send `X-Robots-Tag: noindex`.
+- Performance (2026-10): read models, a durable job queue, the signed access envelope, concurrent reads, loading boundaries, and `Server-Timing` headers. Since 2026-10-26 also hover prefetch, a local JWT check in the proxy, and functions in the database's region. See [performance/](performance/).
 
 ## 6. Route inventory
 
@@ -69,7 +69,7 @@ Vercel builds `main` automatically. Migrations are applied by hand, before the c
 
 ## 10. Environment variables
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`, `NEXT_PUBLIC_APP_URL`, `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_PAYU_URL`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`; optional `YOUTUBE_API_KEY` and `CRON_SECRET`. Beta adds `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_ADMIN_URL` and `ORBIT_LEGACY_HOSTS`.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `AWS_REGION`, `NEXT_PUBLIC_APP_URL`, `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `NEXT_PUBLIC_PAYU_URL`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`; optional `CRON_SECRET`, plus `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_ADMIN_URL` and `ORBIT_LEGACY_HOSTS` for the domain split.
 
 ## 11. Accounts checklist (fill in privately; never commit secrets)
 
@@ -83,8 +83,7 @@ Keep the actual values in a password manager. This list is just the inventory of
 | Google Cloud | OAuth client for Supabase sign-in, consent screen owner |
 | PayU | Merchant account (test and live), callback URL |
 | Adzuna | Developer account, app id |
-| YouTube Data API | Only if live search is kept |
-| Domains / DNS | Registrar (GoDaddy), DNS records for the three hosts on beta, mail MX/TXT |
+| Domains / DNS | Registrar (GoDaddy), DNS records for the site, app and admin hosts (and their `beta.` versions), mail MX/TXT |
 | GitHub | Repo `michael-0007a/nextzenorbit`, branch protections |
 | Chrome Web Store | Publisher account, if the extension is published |
 
@@ -103,8 +102,8 @@ Keep the actual values in a password manager. This list is just the inventory of
 
 ## 13. Risks and recommendations
 
-1. **Merge beta.** It fixes the admin client-assignment gap (F2/F3) and dropped telemetry (F6), among others.
-2. **Cap AI cost.** Daily allowances exist on beta (046).
-3. **Latency.** Move to `hnd1` (beta).
+1. **Turn on the domain split** when ready ([plans/your-tasks.html](plans/your-tasks.html)). The extension's default App URL already points at `app.nextzenorbit.com`.
+2. **Tune the daily AI limits** (`src/lib/ai/quota.ts`) once real usage is visible.
+3. **Watch latency** after the `hnd1` move with `scripts/measure-latency.cjs`.
 4. **USD payments.** Integrate a real provider before selling outside India.
-5. **Docs drift.** Keep `docs/main` in step with main and `docs/beta` with beta; fold beta into main on merge.
+5. **Docs drift.** Keep `docs/main` in step with main; describe unmerged beta work in `docs/beta` and fold it in on merge.
